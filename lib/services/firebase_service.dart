@@ -269,7 +269,7 @@ class FirebaseService {
     }
   }
 
-  // Kelimeyi isimle getir
+  // Kelimeyi isimle getir - geniş arama (kelime, harekeli, anlam)
   Future<WordModel?> getWordByName(String wordName) async {
     try {
       final snapshot = await _wordsRef.get();
@@ -277,6 +277,9 @@ class FirebaseService {
       if (!snapshot.exists) return null;
 
       final data = snapshot.value as Map<dynamic, dynamic>;
+      final searchTerm = wordName.toLowerCase().trim();
+      
+      debugPrint('🔍 Firebase\'de aranıyor: $searchTerm');
       
       // Tüm kelimeleri kontrol et
       for (final entry in data.entries) {
@@ -307,10 +310,42 @@ class FirebaseService {
               );
             }
             
-            // Kelime, harekeli kelime veya key tam eşleşmesi
-            if (word.kelime.toLowerCase() == wordName.toLowerCase() ||
-                word.harekeliKelime?.toLowerCase() == wordName.toLowerCase() ||
-                key.toLowerCase() == wordName.toLowerCase()) {
+            // Geniş arama: kelime, harekeli kelime, key ve anlam kontrolü
+            bool found = false;
+            
+            // 1. Kelime tam eşleşmesi
+            if (word.kelime.toLowerCase() == searchTerm ||
+                word.harekeliKelime?.toLowerCase() == searchTerm ||
+                key.toLowerCase() == searchTerm) {
+              found = true;
+            }
+            
+            // 2. Anlam kontrolü - Türkçe kelime aranıyorsa anlamlar içinde ara
+            if (!found && word.anlam != null && word.anlam!.isNotEmpty) {
+              final anlam = word.anlam!.toLowerCase();
+              
+              // Tam eşleşme
+              if (anlam == searchTerm) {
+                found = true;
+              } else {
+                // Anlamları ayır ve kontrol et (virgül, noktalı virgül, nokta ile ayrılmış)
+                final anlamlar = anlam
+                    .split(RegExp(r'[,;.\n]'))
+                    .map((m) => m.trim())
+                    .where((m) => m.isNotEmpty)
+                    .toList();
+                
+                for (final anlamParcasi in anlamlar) {
+                  if (anlamParcasi == searchTerm) {
+                    found = true;
+                    break;
+                  }
+                }
+              }
+            }
+            
+            if (found) {
+              debugPrint('✅ Firebase\'de kelime bulundu: ${word.kelime}');
               return word;
             }
           }
@@ -319,6 +354,7 @@ class FirebaseService {
         }
       }
       
+      debugPrint('❌ Firebase\'de kelime bulunamadı: $searchTerm');
       return null;
     } catch (e) {
       print('Kelime getirme hatası: $e');

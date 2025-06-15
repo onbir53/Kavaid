@@ -17,8 +17,20 @@ class GeminiService {
   // Kelime analizi - HomeScreen için
   Future<WordModel?> analyzeWord(String word) async {
     try {
-      final result = await searchWord(word);
-      return result.bulunduMu ? result : null;
+      debugPrint('🔍 Kelime analiz ediliyor: $word');
+      
+      // Önce Firebase'de kelime var mı kontrol et
+      final firebaseService = FirebaseService();
+      final existingWord = await firebaseService.getWordByName(word);
+      
+      if (existingWord != null) {
+        debugPrint('📦 Kelime zaten veritabanında mevcut: ${existingWord.kelime}');
+        return existingWord.bulunduMu ? existingWord : null;
+      }
+      
+      // Firebase'de bulunamadıysa null döndür - AI çağrısı yapmayız
+      debugPrint('❌ Kelime veritabanında bulunamadı, analiz yapılamıyor: $word');
+      return null;
     } catch (e) {
       debugPrint('Analiz hatası: $e');
       return null;
@@ -27,7 +39,18 @@ class GeminiService {
 
   Future<WordModel> searchWord(String word) async {
     try {
-      debugPrint('🔍 Gemini API\'ye istek atılıyor: $word');
+      debugPrint('🔍 Kelime aranıyor: $word');
+      
+      // Önce Firebase'de kelime var mı kontrol et
+      final firebaseService = FirebaseService();
+      final existingWord = await firebaseService.getWordByName(word);
+      
+      if (existingWord != null) {
+        debugPrint('📦 Kelime zaten veritabanında mevcut: ${existingWord.kelime}');
+        return existingWord;
+      }
+      
+      debugPrint('🤖 Kelime veritabanında bulunamadı, Gemini API\'ye istek atılıyor: $word');
       
       final url = Uri.parse('$_baseUrl?key=$_apiKey');
       
@@ -225,8 +248,6 @@ class GeminiService {
   String _buildPrompt(String word) {
     return '''YAPAY ZEKA İÇİN GÜNCEL VE KESİN TALİMATLAR
 
-Kelime: "$word"
-
 Sen bir Arapça sözlük uygulamasısın. Kullanıcıdan Arapça veya Türkçe bir kelime al ve gramer özelliklerini dikkate alarak detaylı bir tarama yap.
 Sadece kesin olarak bildiğin ve doğrulayabildiğin bilgileri sun. 
 Bilmediğin veya emin olmadığın hiçbir bilgiyi uydurma ya da tahmin etme. Çıktıyı aşağıdaki JSON formatında üret.
@@ -234,7 +255,9 @@ Bilmediğin veya emin olmadığın hiçbir bilgiyi uydurma ya da tahmin etme. Ç
 Genel Kurallar
 JSON Formatı: Çıktı, belirtilen JSON yapısına tam uymalıdır.
 
-eğer kullanıcı türkçe bir kelime girerse bu kelimenin gramer yapısına dikkat ederek arapçaya çevir ve öyle devam et.
+eğer kullanıcı türkçe bir kelime girerse bu kelimenin gramer yapısına çok dikkat et arapça gramerinde ve  çevir ve öyle devam et.
+anlam kısmında girilen türkçe kelimeyide ver.
+aranan türkçe kelimenin mazi müzari mastar olarak arapça korşlığını en doğru oalrak ver
 Harekeler: kelime ve koku alanları harekesiz, diğer tüm Arapça kelimeler tam harekeli (vokalize edilmiş) olmalıdır.
 Boş Bırakma: Bilgi yoksa veya alan uygulanamıyorsa, ilgili alanlar "" (boş string) veya [] (boş dizi) olmalıdır. Asla uydurma bilgi ekleme.
 Hata Durumu: Kelime bulunamazsa veya dilbilgisel olarak anlaşılamazsa, bulunduMu alanını false yap, kelimeBilgisi alanını null bırak.
@@ -282,7 +305,8 @@ bulunduMu false ise null.
 Aksi takdirde aşağıdaki alanları içerir:
 kelime (string): Kullanıcının girdiği kelime, eğer türkçe girdiyse arapça olarak ele al(harekeli veya harekesiz).
 harekeliKelime (string): Kelimenin tam harekeli hali.
-anlam (string): Türkçe anlam(lar), virgülle ayrılmış, net ve öz gramere uygun şekilde olmalıi fiillerin zamanına dikkat edilmeli.
+anlam (string): Türkçe anlam(lar), virgülle ayrılmış, net ve öz gramere uygun şekilde olmalıi fiillerin zamanına dikkat edilmeli, 
+eğer aranan türkçe bir kelimeyse ve arapçaya çevrildiyse anlamda  girilien türkeç kelimeyide ver anlamlar arasında, parantez falan kullanma.
 koku (string): Kelimenin kökü, bitişik ve harekesiz (ör. كتب).
 dilbilgiselOzellikler (object):
 tur (string): Kelimenin türü (ör. İsim, Mazî Fiil, Mastar). Bilinmiyorsa "".

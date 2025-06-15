@@ -34,6 +34,7 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _isSearching = false;
   bool _showAIButton = false;
   bool _showArabicKeyboard = false;
+  bool _showNotFound = false;
   Timer? _debounceTimer;
   StreamSubscription<List<WordModel>>? _searchSubscription;
 
@@ -68,6 +69,7 @@ class _HomeScreenState extends State<HomeScreen> {
           _selectedWord = null;
           _isSearching = false;
           _showAIButton = false;
+          _showNotFound = false;
         });
       }
     });
@@ -80,6 +82,7 @@ class _HomeScreenState extends State<HomeScreen> {
       _isSearching = true;
       _isLoading = true;
       _showAIButton = false;
+      _showNotFound = false;
     });
 
     try {
@@ -89,6 +92,7 @@ class _HomeScreenState extends State<HomeScreen> {
         _isLoading = false;
         _selectedWord = null;
         _showAIButton = results.isEmpty; // Sonuç yoksa AI butonunu göster
+        _showNotFound = false;
       });
     } catch (e) {
       debugPrint('Arama hatası: $e');
@@ -96,6 +100,7 @@ class _HomeScreenState extends State<HomeScreen> {
         _searchResults = [];
         _isLoading = false;
         _showAIButton = true; // Hata durumunda da AI butonunu göster
+        _showNotFound = false;
       });
     }
   }
@@ -106,6 +111,7 @@ class _HomeScreenState extends State<HomeScreen> {
       _searchResults = [];
       _isSearching = false;
       _showAIButton = false;
+      _showNotFound = false;
       _searchController.text = word.kelime;
     });
     _searchFocusNode.unfocus();
@@ -120,11 +126,26 @@ class _HomeScreenState extends State<HomeScreen> {
       _selectedWord = null;
       _searchResults = [];
       _showAIButton = false;
+      _showNotFound = false;
     });
 
     try {
-      debugPrint('🤖 AI ile arama başlatılıyor: $query');
+      debugPrint('🔍 AI ile arama başlatılıyor: $query');
       
+      // Önce Firebase'de var mı kontrol et
+      final existingWord = await _firebaseService.getWordByName(query);
+      if (existingWord != null) {
+        debugPrint('📦 Kelime zaten veritabanında mevcut, AI çağrısı yapılmadı: ${existingWord.kelime}');
+        setState(() {
+          _searchResults = [existingWord];
+          _isLoading = false;
+          _isSearching = true;
+          _showNotFound = false;
+        });
+        return;
+      }
+      
+      debugPrint('🤖 Kelime veritabanında bulunamadı, AI\'ya soruluyor: $query');
       final aiResult = await _geminiService.searchWord(query);
       
       if (aiResult.bulunduMu) {
@@ -135,49 +156,22 @@ class _HomeScreenState extends State<HomeScreen> {
           _searchResults = [aiResult]; // AI sonucunu arama sonuçları listesine ekle
           _isLoading = false;
           _isSearching = true; // Arama sonuçları modunu aktif et
+          _showNotFound = false;
         });
-        
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('✅ Kelime AI ile bulundu ve kaydedildi!'),
-              backgroundColor: Colors.green,
-              duration: Duration(seconds: 2),
-            ),
-          );
-        }
       } else {
         setState(() {
           _isLoading = false;
           _showAIButton = true;
+          _showNotFound = true; // Bulunamadı mesajını göster
         });
-        
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('❌ Kelime bulunamadı. Lütfen farklı bir kelime deneyin.'),
-              backgroundColor: Colors.orange,
-              duration: Duration(seconds: 3),
-            ),
-          );
-        }
       }
     } catch (e) {
       debugPrint('❌ AI arama hatası: $e');
       setState(() {
         _isLoading = false;
         _showAIButton = true;
+        _showNotFound = true; // Hata durumunda da bulunamadı göster
       });
-      
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('🚫 Hata oluştu: ${e.toString()}'),
-            backgroundColor: Colors.red,
-            duration: const Duration(seconds: 4),
-          ),
-        );
-      }
     }
   }
 
@@ -261,6 +255,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 _selectedWord = null;
                                 _isSearching = false;
                                 _showAIButton = false;
+                                _showNotFound = false;
                               });
                             },
                           ),
@@ -277,19 +272,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     padding: const EdgeInsets.only(top: 12),
                     child: SizedBox(
                       width: double.infinity,
-                      child: ElevatedButton.icon(
+                      child: ElevatedButton(
                         onPressed: _searchWithAI,
-                        icon: const Icon(
-                          Icons.auto_awesome,
-                          size: 20,
-                        ),
-                        label: const Text(
-                          'AI ile Ara',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF007AFF),
                           foregroundColor: Colors.white,
@@ -298,6 +282,13 @@ class _HomeScreenState extends State<HomeScreen> {
                             borderRadius: BorderRadius.circular(12),
                           ),
                           elevation: 2,
+                        ),
+                        child: const Text(
+                          'Ara',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),  
                         ),
                       ),
                     ),
@@ -365,6 +356,40 @@ class _HomeScreenState extends State<HomeScreen> {
       return SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 20),
         child: WordCard(word: _selectedWord!),
+      );
+    }
+
+    // Kelime bulunamadı durumu
+    if (_showNotFound) {
+      return const Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.search_off,
+              size: 64,
+              color: Color(0xFF8E8E93),
+            ),
+            SizedBox(height: 16),
+            Text(
+              'Bulunamadı',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF8E8E93),
+              ),
+            ),
+            SizedBox(height: 8),
+            Text(
+              'Kelime bulunamadı. Farklı bir kelime deneyin.',
+              style: TextStyle(
+                fontSize: 14,
+                color: Color(0xFF8E8E93),
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
       );
     }
 
