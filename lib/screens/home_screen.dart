@@ -37,6 +37,11 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     _searchController.addListener(_onSearchChanged);
+    
+    // Uygulama açıldığında klavyeyi otomatik aç
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _searchFocusNode.requestFocus();
+    });
   }
 
   @override
@@ -195,6 +200,7 @@ class _HomeScreenState extends State<HomeScreen> {
             child: TextField(
               controller: _searchController,
               focusNode: _searchFocusNode,
+              autofocus: true,
               decoration: InputDecoration(
                 hintText: 'Arapça veya Türkçe kelime ara',
                 prefixIcon: const Icon(
