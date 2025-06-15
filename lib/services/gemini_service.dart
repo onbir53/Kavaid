@@ -1,10 +1,13 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+import 'package:firebase_database/firebase_database.dart';
 import '../models/word_model.dart';
+import 'firebase_service.dart';
 
 class GeminiService {
-  static const String _baseUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview';
-  static const String _apiKey = 'YOUR_GEMINI_API_KEY'; // Buraya API Key'inizi ekleyin
+  static const String _apiKey = 'AIzaSyCbAR_1yQ2QVKbpyWRFj0VpOxAQZ2JBfas';
+  static const String _baseUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent';
 
   // Singleton pattern
   static final GeminiService _instance = GeminiService._internal();
@@ -17,29 +20,163 @@ class GeminiService {
       final result = await searchWord(word);
       return result.bulunduMu ? result : null;
     } catch (e) {
-      print('Analiz hatası: $e');
+      debugPrint('Analiz hatası: $e');
       return null;
     }
   }
 
   Future<WordModel> searchWord(String word) async {
     try {
-      final prompt = _buildPrompt(word);
-      final response = await _makeRequest(prompt);
+      debugPrint('🔍 Gemini API\'ye istek atılıyor: $word');
       
+      final url = Uri.parse('$_baseUrl?key=$_apiKey');
+      
+      final requestBody = {
+        'contents': [
+          {
+            'parts': [
+              {
+                'text': _buildPrompt(word),
+              }
+            ]
+          }
+        ],
+        'generationConfig': {
+          'temperature': 0.0,
+          'maxOutputTokens': 2048,
+          'thinkingConfig': {
+            'thinkingBudget': 0
+          },
+        }
+      };
+
+      debugPrint('📤 İstek gönderiliyor...');
+
+      final response = await http.post(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: json.encode(requestBody),
+      );
+
+      debugPrint('📥 Yanıt alındı - Status: ${response.statusCode}');
+
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        final content = data['candidates'][0]['content']['parts'][0]['text'];
+        debugPrint('🔍 API Yanıt Yapısı: ${data.keys.toList()}');
+        
+        // Candidates kontrolü
+        if (data['candidates'] == null) {
+          debugPrint('❌ Candidates null - Tam yanıt: ${response.body}');
+          return WordModel(
+            kelime: word,
+            bulunduMu: false,
+            anlam: 'API yanıtında candidates bulunamadı',
+          );
+        }
+        
+        if (data['candidates'].isEmpty) {
+          debugPrint('❌ Candidates boş');
+          return WordModel(
+            kelime: word,
+            bulunduMu: false,
+            anlam: 'API yanıtında içerik bulunamadı',
+          );
+        }
+        
+        final candidate = data['candidates'][0];
+        debugPrint('🔍 Candidate yapısı: ${candidate.keys.toList()}');
+        debugPrint('🔍 Candidate içeriği: $candidate');
+        
+        // finishReason kontrolü
+        final finishReason = candidate['finishReason'];
+        if (finishReason == 'MAX_TOKENS') {
+          debugPrint('⚠️ Token limiti aşıldı, yanıt kesildi');
+          return WordModel(
+            kelime: word,
+            bulunduMu: false,
+            anlam: 'Yanıt çok uzun, token limiti aşıldı',
+          );
+        }
+        
+        if (finishReason == 'SAFETY') {
+          debugPrint('⚠️ Güvenlik filtreleri devreye girdi');
+          return WordModel(
+            kelime: word,
+            bulunduMu: false,
+            anlam: 'İçerik güvenlik filtreleri tarafından bloklandı',
+          );
+        }
+        
+        if (candidate['content'] == null) {
+          debugPrint('❌ Content null');
+          return WordModel(
+            kelime: word,
+            bulunduMu: false,
+            anlam: 'API yanıtında content bulunamadı',
+          );
+        }
+        
+        debugPrint('🔍 Content yapısı: ${candidate['content'].keys.toList()}');
+        debugPrint('🔍 Content içeriği: ${candidate['content']}');
+        
+        if (candidate['content']['parts'] == null || candidate['content']['parts'].isEmpty) {
+          debugPrint('❌ Parts null veya boş');
+          return WordModel(
+            kelime: word,
+            bulunduMu: false,
+            anlam: 'API yanıtında metin içeriği bulunamadı',
+          );
+        }
+        
+        debugPrint('🔍 Parts uzunluğu: ${candidate['content']['parts'].length}');
+        debugPrint('🔍 İlk part: ${candidate['content']['parts'][0]}');
+        
+        final content = candidate['content']['parts'][0]['text'];
+        if (content == null || content.toString().trim().isEmpty) {
+          debugPrint('❌ Text içeriği boş');
+          return WordModel(
+            kelime: word,
+            bulunduMu: false,
+            anlam: 'API yanıtında metin içeriği bulunamadı',
+          );
+        }
+        
+        debugPrint('✅ İçerik alındı: ${content.length > 500 ? content.substring(0, 500) + "..." : content}');
         
         // JSON'u temizle ve parse et
         final cleanedJson = _cleanJsonResponse(content);
-        final wordData = json.decode(cleanedJson);
+        debugPrint('🧹 Temizlenmiş JSON uzunluğu: ${cleanedJson.length}');
         
-        return WordModel.fromJson(wordData);
+        try {
+          final wordData = json.decode(cleanedJson);
+          final wordModel = WordModel.fromJson(wordData);
+          
+          // Eğer kelime bulunduysa Firebase'e kaydet
+          if (wordData['bulunduMu'] == true && wordData['kelimeBilgisi'] != null) {
+            await _saveToFirebase(wordData['kelimeBilgisi']);
+          }
+          
+          return wordModel;
+        } catch (jsonError) {
+          debugPrint('❌ JSON parse hatası: $jsonError');
+          debugPrint('🔍 Problematik JSON: $cleanedJson');
+          
+          // JSON parse hatası durumunda fallback
+          return WordModel(
+            kelime: word,
+            bulunduMu: false,
+            anlam: 'JSON parse hatası oluştu',
+          );
+        }
       } else {
-        throw Exception('API Hatası: ${response.statusCode}');
+        debugPrint('❌ API Hatası - Status: ${response.statusCode}');
+        debugPrint('❌ API Hatası - Body: ${response.body}');
+        throw Exception('API Hatası: ${response.statusCode} - ${response.body}');
       }
     } catch (e) {
+      debugPrint('❌ Hata oluştu: $e');
       // Hata durumunda boş kelime modeli döndür
       return WordModel(
         kelime: word,
@@ -49,112 +186,175 @@ class GeminiService {
     }
   }
 
+  Future<void> _saveToFirebase(Map<String, dynamic> kelimeBilgisi) async {
+    try {
+      final harekeliKelime = kelimeBilgisi['harekeliKelime'] ?? kelimeBilgisi['kelime'];
+      debugPrint('💾 Realtime Database\'e kaydediliyor: $harekeliKelime');
+      
+      final database = FirebaseDatabase.instance;
+      final kelimelerRef = database.ref('kelimeler');
+      
+      // Kelime zaten var mı kontrol et (harekeli hali ile)
+      final existingSnapshot = await kelimelerRef.child(harekeliKelime).once();
+      
+      if (existingSnapshot.snapshot.exists) {
+        debugPrint('📝 Kelime zaten mevcut: $harekeliKelime');
+        return;
+      }
+      
+      // Gemini'den gelen kelimeBilgisi objesini direkt kaydet
+      final docData = {
+        ...kelimeBilgisi, // Tüm kelimeBilgisi objesini kopyala
+        'eklenmeTarihi': DateTime.now().millisecondsSinceEpoch,
+        'kaynak': 'AI', // AI'dan geldiğini belirtmek için
+      };
+      
+      // Harekeli kelimeyi key olarak kullanarak kaydet
+      await kelimelerRef.child(harekeliKelime).set(docData);
+      debugPrint('✅ Realtime Database\'e başarıyla kaydedildi: $harekeliKelime');
+      
+      // Firebase cache'ini temizle - yeni kelime eklendiği için
+      FirebaseService.clearCache();
+      
+    } catch (e) {
+      debugPrint('❌ Realtime Database kaydetme hatası: $e');
+      // Hata durumunda sessizce devam et, ana işlevi etkilemesin
+    }
+  }
+
   String _buildPrompt(String word) {
-    return '''
-Aşağıdaki kelimeyi Arapça sözlük formatında analiz et ve JSON formatında döndür:
+    return '''YAPAY ZEKA İÇİN GÜNCEL VE KESİN TALİMATLAR
 
 Kelime: "$word"
 
-Lütfen aşağıdaki JSON formatında yanıt ver:
+Sen bir Arapça sözlük uygulamasısın. Kullanıcıdan Arapça veya Türkçe bir kelime al ve gramer özelliklerini dikkate alarak detaylı bir tarama yap.
+Sadece kesin olarak bildiğin ve doğrulayabildiğin bilgileri sun. 
+Bilmediğin veya emin olmadığın hiçbir bilgiyi uydurma ya da tahmin etme. Çıktıyı aşağıdaki JSON formatında üret.
+
+Genel Kurallar
+JSON Formatı: Çıktı, belirtilen JSON yapısına tam uymalıdır.
+
+eğer kullanıcı türkçe bir kelime girerse bu kelimenin gramer yapısına dikkat ederek arapçaya çevir ve öyle devam et.
+Harekeler: kelime ve koku alanları harekesiz, diğer tüm Arapça kelimeler tam harekeli (vokalize edilmiş) olmalıdır.
+Boş Bırakma: Bilgi yoksa veya alan uygulanamıyorsa, ilgili alanlar "" (boş string) veya [] (boş dizi) olmalıdır. Asla uydurma bilgi ekleme.
+Hata Durumu: Kelime bulunamazsa veya dilbilgisel olarak anlaşılamazsa, bulunduMu alanını false yap, kelimeBilgisi alanını null bırak.
+Örnek Cümleler: ornekCumleler dizisi, iki adet orta uzunlukta ve orta zorlukta cümle içermelidir.
+genel yapı: veriler kısa, öz, resmi ve net olmalıdır. Parantezli ek açıklamalar veya gayri resmi ifadeler kullanılmamalıdır.
+dikkat: parantez kullanılmamalı.
+
+Kelime: "$word"
 
 {
-  "kelime": "aranan kelime",
-  "harekeliYazi": "Arapça harekeli yazılış (varsa)",
-  "anlam": "Türkçe anlamı (detaylı)",
-  "kok": "Kelime kökü (Arapça)",
-  "kelimeTuru": "isim/fiil/sıfat/zarf/edat/zamir/ünlem vb.",
-  "cogulFormu": "çoğul formu (varsa)",
-  "bulunduMu": true/false (kelime bulundu mu?),
-  "ornekler": [
-    {
-      "arapcaCumle": "Arapça örnek cümle",
-      "turkceCeviri": "Türkçe çevirisi"
+  "bulunduMu": true,
+  "kelimeBilgisi": {
+    "kelime": "تهنئة",
+    "harekeliKelime": "تَهْنِئَةٌ",
+    "anlam": "Tebrik, kutlama",
+    "koku": "هنا",
+    "dilbilgiselOzellikler": {
+      "tur": "Mastar",
+      "cogulForm": "تَهَانِئُ"
+    },
+    "ornekCumleler": [
+      {
+        "arapcaCümle": "أَرْسَلْتُ تَهْنِئَةً بِالنَّجَاحِ.",
+        "turkceAnlam": "Başarı için tebrik mesajı gönderdim."
+      },
+      {
+        "arapcaCümle": "تَلَقَّيْتُ تَهْنِئَةً بِالْعِيدِ.",
+        "turkceAnlam": "Bayram tebriği aldım."
+      }
+    ],
+    "fiilCekimler": {
+      "maziForm": "هَنَّأَ",
+      "muzariForm": "يُهَنِّئُ",
+      "mastarForm": "تَهْنِئَةٌ",
+      "emirForm": "هَنِّئْ"
     }
-  ],
-  "fiilCekimi": {
-    "mazi": "geçmiş zaman (varsa)",
-    "muzari": "şimdiki/gelecek zaman (varsa)", 
-    "mastar": "mastar formu (varsa)",
-    "emir": "emir kipi (varsa)"
-  },
-  "ek": "Ek bilgiler, etimoloji, özel kullanımlar vb."
+  }
 }
-
-ÖNEMLI KURALLAR:
-1. Sadece JSON formatında yanıt ver, başka metin ekleme
-2. Eğer kelime Arapça değilse veya bulunamadıysa "bulunduMu": false yap
-3. Türkçe kelime ise Arapça karşılığını bul
-4. Fiiller için mutlaka çekim bilgilerini ekle
-5. En az 1-2 örnek cümle ver
-6. Harekeliyi doğru şekilde yaz
-7. Anlamı detaylı ve açıklayıcı yap
+JSON Alanlarının Tanımı
+bulunduMu (boolean): Kelimenin sözlükte bulunup bulunmadığını gösterir.
+true: Kelime bulundu, kelimeBilgisi dolu.
+false: Kelime bulunamadı veya girilen bir kelime değil, kelimeBilgisi null.
+kelimeBilgisi (object | null): Kelimeye ait tüm bilgiler.
+bulunduMu false ise null.
+Aksi takdirde aşağıdaki alanları içerir:
+kelime (string): Kullanıcının girdiği kelime, eğer türkçe girdiyse arapça olarak ele al(harekeli veya harekesiz).
+harekeliKelime (string): Kelimenin tam harekeli hali.
+anlam (string): Türkçe anlam(lar), virgülle ayrılmış, net ve öz gramere uygun şekilde olmalıi fiillerin zamanına dikkat edilmeli.
+koku (string): Kelimenin kökü, bitişik ve harekesiz (ör. كتب).
+dilbilgiselOzellikler (object):
+tur (string): Kelimenin türü (ör. İsim, Mazî Fiil, Mastar). Bilinmiyorsa "".
+cogulForm (string): İsimse tam harekeli çoğul hali, değilse "" veya zaten kelime çoğulsa "".
+ornekCumleler (array of object): İki örnek cümle.
+arapcaCümle (string): Tam harekeli Arapça cümle.
+turkceAnlam (string): Cümlenin Türkçe çevirisi.
+fiilCekimler (object): Fiilse çekimler, değilse tüm alanlar "".
+maziForm (string): Mazi, 3. tekil eril, harekeli.
+muzariForm (string): Muzari, 3. tekil eril, harekeli.
+mastarForm (string): Mastar, harekeli.
+emirForm (string): Emir, 2. tekil eril, harekeli.
 ''';
   }
 
-  Future<http.Response> _makeRequest(String prompt) async {
-    final url = Uri.parse('$_baseUrl:generateContent?key=$_apiKey');
-    
-    final headers = {
-      'Content-Type': 'application/json',
-    };
-
-    final body = json.encode({
-      'contents': [
-        {
-          'parts': [
-            {
-              'text': prompt,
-            }
-          ]
-        }
-      ],
-      'generationConfig': {
-        'temperature': 0, // Tutarlı sonuçlar için
-        'maxOutputTokens': 1024,
-        'topP': 1,
-        'topK': 1,
-      },
-      'safetySettings': [
-        {
-          'category': 'HARM_CATEGORY_HARASSMENT',
-          'threshold': 'BLOCK_MEDIUM_AND_ABOVE'
-        },
-        {
-          'category': 'HARM_CATEGORY_HATE_SPEECH',
-          'threshold': 'BLOCK_MEDIUM_AND_ABOVE'
-        },
-        {
-          'category': 'HARM_CATEGORY_SEXUALLY_EXPLICIT',
-          'threshold': 'BLOCK_MEDIUM_AND_ABOVE'
-        },
-        {
-          'category': 'HARM_CATEGORY_DANGEROUS_CONTENT',
-          'threshold': 'BLOCK_MEDIUM_AND_ABOVE'
-        }
-      ]
-    });
-
-    return await http.post(url, headers: headers, body: body);
-  }
-
   String _cleanJsonResponse(String response) {
-    // Markdown formatını temizle
-    String cleaned = response.replaceAll('```json', '').replaceAll('```', '');
-    
-    // Başlangıç ve bitiş boşluklarını temizle
-    cleaned = cleaned.trim();
-    
-    // Eğer JSON başlangıcı yoksa, ilk { işaretini bul
-    final startIndex = cleaned.indexOf('{');
-    final endIndex = cleaned.lastIndexOf('}');
-    
-    if (startIndex != -1 && endIndex != -1) {
-      cleaned = cleaned.substring(startIndex, endIndex + 1);
+    try {
+      // Markdown kod bloklarını temizle
+      String cleaned = response.replaceAll(RegExp(r'```json\s*'), '');
+      cleaned = cleaned.replaceAll(RegExp(r'```\s*$'), '');
+      cleaned = cleaned.replaceAll('```', '');
+      
+      // Başındaki ve sonundaki boşlukları temizle
+      cleaned = cleaned.trim();
+      
+      // Eğer JSON ile başlamıyorsa, JSON'u bul
+      int jsonStart = cleaned.indexOf('{');
+      if (jsonStart > 0) {
+        cleaned = cleaned.substring(jsonStart);
+      }
+      
+      // JSON'un tam olup olmadığını kontrol et
+      int braceCount = 0;
+      int lastValidIndex = -1;
+      
+      for (int i = 0; i < cleaned.length; i++) {
+        if (cleaned[i] == '{') {
+          braceCount++;
+        } else if (cleaned[i] == '}') {
+          braceCount--;
+          if (braceCount == 0) {
+            lastValidIndex = i;
+            break;
+          }
+        }
+      }
+      
+      if (lastValidIndex > 0) {
+        cleaned = cleaned.substring(0, lastValidIndex + 1);
+      }
+      
+      // Eğer hala geçersizse, son } karakterinden sonrasını temizle
+      int jsonEnd = cleaned.lastIndexOf('}');
+      if (jsonEnd > 0 && jsonEnd < cleaned.length - 1) {
+        cleaned = cleaned.substring(0, jsonEnd + 1);
+      }
+      
+      debugPrint('🔧 Final cleaned JSON: $cleaned');
+      return cleaned;
+    } catch (e) {
+      debugPrint('❌ JSON temizleme hatası: $e');
+      // Hata durumunda basit temizlik yap
+      String fallback = response.trim();
+      int start = fallback.indexOf('{');
+      int end = fallback.lastIndexOf('}');
+      if (start >= 0 && end > start) {
+        return fallback.substring(start, end + 1);
+      }
+      return response;
     }
-    
-    return cleaned;
   }
 
   // API Key kontrolü
-  bool get isConfigured => _apiKey != 'YOUR_GEMINI_API_KEY';
+  bool get isConfigured => _apiKey.isNotEmpty;
 } 

@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import '../models/word_model.dart';
 import '../services/gemini_service.dart';
 import '../services/firebase_service.dart';
@@ -30,6 +31,7 @@ class _HomeScreenState extends State<HomeScreen> {
   WordModel? _selectedWord;
   bool _isLoading = false;
   bool _isSearching = false;
+  bool _showAIButton = false;
   Timer? _debounceTimer;
   StreamSubscription<List<WordModel>>? _searchSubscription;
 
@@ -63,6 +65,7 @@ class _HomeScreenState extends State<HomeScreen> {
           _searchResults = [];
           _selectedWord = null;
           _isSearching = false;
+          _showAIButton = false;
         });
       }
     });
@@ -74,6 +77,7 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() {
       _isSearching = true;
       _isLoading = true;
+      _showAIButton = false;
     });
 
     try {
@@ -82,12 +86,14 @@ class _HomeScreenState extends State<HomeScreen> {
         _searchResults = results;
         _isLoading = false;
         _selectedWord = null;
+        _showAIButton = results.isEmpty; // Sonuç yoksa AI butonunu göster
       });
     } catch (e) {
-      print('Arama hatası: $e');
+      debugPrint('Arama hatası: $e');
       setState(() {
         _searchResults = [];
         _isLoading = false;
+        _showAIButton = true; // Hata durumunda da AI butonunu göster
       });
     }
   }
@@ -97,6 +103,7 @@ class _HomeScreenState extends State<HomeScreen> {
       _selectedWord = word;
       _searchResults = [];
       _isSearching = false;
+      _showAIButton = false;
       _searchController.text = word.kelime;
     });
     _searchFocusNode.unfocus();
@@ -110,54 +117,62 @@ class _HomeScreenState extends State<HomeScreen> {
       _isLoading = true;
       _selectedWord = null;
       _searchResults = [];
+      _showAIButton = false;
     });
 
     try {
-      // Önce Firebase'de ara
-      final firebaseResults = await _firebaseService.searchWords(query);
+      debugPrint('🤖 AI ile arama başlatılıyor: $query');
       
-      if (firebaseResults.isNotEmpty) {
-        // Firebase'de bulundu
-        setState(() {
-          _selectedWord = firebaseResults.first;
-          _isLoading = false;
-        });
-      } else {
-        // Firebase'de bulunamadı, AI'ya sor
-        final aiResult = await _geminiService.analyzeWord(query);
+      final aiResult = await _geminiService.searchWord(query);
+      
+      if (aiResult.bulunduMu) {
+        // AI sonucunu Firebase'e kaydet
+        await _firebaseService.saveWord(aiResult);
         
-        if (aiResult != null) {
-          // AI sonucunu Firebase'e kaydet
-          await _firebaseService.saveWord(aiResult);
-          
-          setState(() {
-            _selectedWord = aiResult;
-            _isLoading = false;
-          });
-        } else {
-          setState(() {
-            _isLoading = false;
-          });
-          
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Kelime bulunamadı. Lütfen farklı bir kelime deneyin.'),
-              ),
-            );
-          }
+        setState(() {
+          _searchResults = [aiResult]; // AI sonucunu arama sonuçları listesine ekle
+          _isLoading = false;
+          _isSearching = true; // Arama sonuçları modunu aktif et
+        });
+        
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('✅ Kelime AI ile bulundu ve kaydedildi!'),
+              backgroundColor: Colors.green,
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
+      } else {
+        setState(() {
+          _isLoading = false;
+          _showAIButton = true;
+        });
+        
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('❌ Kelime bulunamadı. Lütfen farklı bir kelime deneyin.'),
+              backgroundColor: Colors.orange,
+              duration: Duration(seconds: 3),
+            ),
+          );
         }
       }
     } catch (e) {
+      debugPrint('❌ AI arama hatası: $e');
       setState(() {
         _isLoading = false;
+        _showAIButton = true;
       });
       
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Hata oluştu: $e'),
+            content: Text('🚫 Hata oluştu: ${e.toString()}'),
             backgroundColor: Colors.red,
+            duration: const Duration(seconds: 4),
           ),
         );
       }
@@ -196,38 +211,75 @@ class _HomeScreenState extends State<HomeScreen> {
         children: [
           // Arama alanı
           Padding(
-            padding: const EdgeInsets.fromLTRB(20, 8, 20, 20), // Üstten daha az boşluk
-            child: TextField(
-              controller: _searchController,
-              focusNode: _searchFocusNode,
-              autofocus: true,
-              decoration: InputDecoration(
-                hintText: 'Arapça veya Türkçe kelime ara',
-                prefixIcon: const Icon(
-                  Icons.search,
-                  color: Color(0xFF8E8E93),
-                  size: 22,
+            padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
+            child: Column(
+              children: [
+                TextField(
+                  controller: _searchController,
+                  focusNode: _searchFocusNode,
+                  autofocus: true,
+                  decoration: InputDecoration(
+                    hintText: 'Arapça veya Türkçe kelime ara',
+                    prefixIcon: const Icon(
+                      Icons.search,
+                      color: Color(0xFF8E8E93),
+                      size: 22,
+                    ),
+                    suffixIcon: _searchController.text.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(
+                              Icons.clear,
+                              color: Color(0xFF8E8E93),
+                              size: 20,
+                            ),
+                            onPressed: () {
+                              _searchController.clear();
+                              setState(() {
+                                _searchResults = [];
+                                _selectedWord = null;
+                                _isSearching = false;
+                                _showAIButton = false;
+                              });
+                            },
+                          )
+                        : null,
+                  ),
+                  textInputAction: TextInputAction.search,
+                  onSubmitted: (_) => _searchWithAI(),
                 ),
-                suffixIcon: _searchController.text.isNotEmpty
-                    ? IconButton(
+                
+                // AI ile Ara butonu
+                if (_showAIButton && !_isLoading)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 12),
+                    child: SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: _searchWithAI,
                         icon: const Icon(
-                          Icons.clear,
-                          color: Color(0xFF8E8E93),
+                          Icons.auto_awesome,
                           size: 20,
                         ),
-                        onPressed: () {
-                          _searchController.clear();
-                          setState(() {
-                            _searchResults = [];
-                            _selectedWord = null;
-                            _isSearching = false;
-                          });
-                        },
-                      )
-                    : null,
-              ),
-              textInputAction: TextInputAction.search,
-              onSubmitted: (_) => _searchWithAI(),
+                        label: const Text(
+                          'AI ile Ara',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF007AFF),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          elevation: 2,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
             ),
           ),
           

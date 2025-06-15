@@ -1,4 +1,5 @@
 import 'package:firebase_database/firebase_database.dart';
+import 'package:flutter/foundation.dart';
 import '../models/word_model.dart';
 
 class FirebaseService {
@@ -14,6 +15,38 @@ class FirebaseService {
   static Map<String, List<WordModel>>? _cachedData;
   static DateTime? _lastCacheTime;
   static const Duration _cacheTimeout = Duration(minutes: 5);
+  
+  // Cache'i temizle
+  static void clearCache() {
+    _cachedData = null;
+    _lastCacheTime = null;
+    debugPrint('🗑️ Cache temizlendi');
+  }
+
+  // Helper fonksiyonlar - Type casting için
+  static Map<String, dynamic>? _safeCastMap(dynamic value) {
+    if (value == null) return null;
+    if (value is Map<String, dynamic>) return value;
+    if (value is Map) {
+      return Map<String, dynamic>.from(value.map((k, v) => MapEntry(k.toString(), v)));
+    }
+    return null;
+  }
+
+  static List<Map<String, dynamic>>? _safeCastList(dynamic value) {
+    if (value == null) return null;
+    if (value is List<Map<String, dynamic>>) return value;
+    if (value is List) {
+      return value.map((item) {
+        if (item is Map<String, dynamic>) return item;
+        if (item is Map) {
+          return Map<String, dynamic>.from(item.map((k, v) => MapEntry(k.toString(), v)));
+        }
+        return <String, dynamic>{};
+      }).toList();
+    }
+    return null;
+  }
 
   // Kelime arama - HomeScreen için (hızlandırılmış)
   Future<List<WordModel>> searchWords(String query) async {
@@ -25,13 +58,16 @@ class FirebaseService {
     if (query.isEmpty) return [];
 
     try {
-      // Cache kontrolü
+      // Cache kontrolü - Yeni kelime eklendiğinde cache'i atla
       final now = DateTime.now();
       if (_cachedData != null && 
           _lastCacheTime != null && 
           now.difference(_lastCacheTime!).compareTo(_cacheTimeout) < 0) {
+        debugPrint('📦 Cache\'den arama yapılıyor');
         return _searchInCache(query);
       }
+      
+      debugPrint('🔍 Firebase\'den fresh arama yapılıyor');
 
       final snapshot = await _wordsRef.get();
       
@@ -41,12 +77,35 @@ class FirebaseService {
       final words = <WordModel>[];
       final results = <WordModel>[];
 
-      // Hızlı parsing ve arama
+      // Yeni yapıya göre parsing ve arama
       for (final entry in data.entries) {
         try {
-          if (entry.value != null && entry.value is Map) {
-            final wordData = Map<String, dynamic>.from(entry.value.map((k, v) => MapEntry(k.toString(), v)));
-            final word = WordModel.fromJson(wordData);
+          final key = entry.key.toString(); // Harekeli kelime key olarak
+          final value = entry.value;
+          
+          if (value != null && value is Map) {
+            final wordData = Map<String, dynamic>.from(value.map((k, v) => MapEntry(k.toString(), v)));
+            
+            // Yeni yapıya uygun WordModel oluştur
+            WordModel word;
+            if (wordData.containsKey('kelimeBilgisi')) {
+              // Eski format uyumluluğu
+              word = WordModel.fromJson(wordData);
+            } else {
+              // Yeni format - direkt kelime bilgileri
+              word = WordModel(
+                kelime: wordData['kelime'] ?? key,
+                harekeliKelime: wordData['harekeliKelime'] ?? key,
+                anlam: wordData['anlam'],
+                koku: wordData['koku'],
+                dilbilgiselOzellikler: _safeCastMap(wordData['dilbilgiselOzellikler']),
+                ornekCumleler: _safeCastList(wordData['ornekCumleler']),
+                fiilCekimler: _safeCastMap(wordData['fiilCekimler']),
+                eklenmeTarihi: wordData['eklenmeTarihi'],
+                bulunduMu: true,
+              );
+            }
+            
             words.add(word);
             
             // Hızlı arama - sadece başlangıç eşleşmelerini kontrol et
@@ -54,9 +113,11 @@ class FirebaseService {
             final lowerKelime = word.kelime.toLowerCase();
             final lowerHarekeli = word.harekeliKelime?.toLowerCase() ?? '';
             final lowerAnlam = word.anlam?.toLowerCase() ?? '';
+            final lowerKey = key.toLowerCase(); // Key'i de kontrol et
             
             if (lowerKelime.startsWith(lowerQuery) || 
                 lowerHarekeli.startsWith(lowerQuery) ||
+                lowerKey.startsWith(lowerQuery) ||
                 lowerAnlam.contains(lowerQuery)) {
               results.add(word);
               
@@ -65,6 +126,7 @@ class FirebaseService {
             }
           }
         } catch (e) {
+          debugPrint('Kelime parse hatası: $e');
           // Hata durumunda devam et
           continue;
         }
@@ -129,21 +191,43 @@ class FirebaseService {
 
       data.forEach((key, value) {
         try {
+          final keyStr = key.toString(); // Harekeli kelime key olarak
+          
           if (value != null && value is Map) {
             final wordData = Map<String, dynamic>.from(value.map((k, v) => MapEntry(k.toString(), v)));
-            final word = WordModel.fromJson(wordData);
+            
+            // Yeni yapıya uygun WordModel oluştur
+            WordModel word;
+            if (wordData.containsKey('kelimeBilgisi')) {
+              // Eski format uyumluluğu
+              word = WordModel.fromJson(wordData);
+            } else {
+              // Yeni format - direkt kelime bilgileri
+              word = WordModel(
+                kelime: wordData['kelime'] ?? keyStr,
+                harekeliKelime: wordData['harekeliKelime'] ?? keyStr,
+                anlam: wordData['anlam'],
+                koku: wordData['koku'],
+                dilbilgiselOzellikler: _safeCastMap(wordData['dilbilgiselOzellikler']),
+                ornekCumleler: _safeCastList(wordData['ornekCumleler']),
+                fiilCekimler: _safeCastMap(wordData['fiilCekimler']),
+                eklenmeTarihi: wordData['eklenmeTarihi'],
+                bulunduMu: true,
+              );
+            }
             
             // Kelime veya harekeli kelime ile başlayanlara öncelik ver
             final kelimeMatch = word.kelime.toLowerCase().startsWith(query.toLowerCase());
             final harekeliMatch = word.harekeliKelime?.toLowerCase().startsWith(query.toLowerCase()) ?? false;
+            final keyMatch = keyStr.toLowerCase().startsWith(query.toLowerCase());
             final anlamMatch = word.anlam?.toLowerCase().contains(query.toLowerCase()) ?? false;
             
-            if (kelimeMatch || harekeliMatch || anlamMatch) {
+            if (kelimeMatch || harekeliMatch || keyMatch || anlamMatch) {
               suggestions.add(word);
             }
           }
         } catch (e) {
-          print('Öneri parse hatası: $e');
+          debugPrint('Öneri parse hatası: $e');
         }
       });
 
@@ -174,6 +258,9 @@ class FirebaseService {
       // Firebase'e kaydet
       await newWordRef.set(word.toFirebaseJson());
       
+      // Cache'i temizle - yeni kelime eklendiği için
+      clearCache();
+      
       print('Kelime kaydedildi: ${word.kelime}');
       return true;
     } catch (e) {
@@ -194,18 +281,41 @@ class FirebaseService {
       // Tüm kelimeleri kontrol et
       for (final entry in data.entries) {
         try {
-          if (entry.value != null && entry.value is Map) {
-            final wordData = Map<String, dynamic>.from(entry.value.map((k, v) => MapEntry(k.toString(), v)));
-            final word = WordModel.fromJson(wordData);
+          final key = entry.key.toString(); // Harekeli kelime key olarak
+          final value = entry.value;
+          
+          if (value != null && value is Map) {
+            final wordData = Map<String, dynamic>.from(value.map((k, v) => MapEntry(k.toString(), v)));
             
-            // Kelime veya harekeli kelime tam eşleşmesi
+            // Yeni yapıya uygun WordModel oluştur
+            WordModel word;
+            if (wordData.containsKey('kelimeBilgisi')) {
+              // Eski format uyumluluğu
+              word = WordModel.fromJson(wordData);
+            } else {
+              // Yeni format - direkt kelime bilgileri
+              word = WordModel(
+                kelime: wordData['kelime'] ?? key,
+                harekeliKelime: wordData['harekeliKelime'] ?? key,
+                anlam: wordData['anlam'],
+                koku: wordData['koku'],
+                dilbilgiselOzellikler: _safeCastMap(wordData['dilbilgiselOzellikler']),
+                ornekCumleler: _safeCastList(wordData['ornekCumleler']),
+                fiilCekimler: _safeCastMap(wordData['fiilCekimler']),
+                eklenmeTarihi: wordData['eklenmeTarihi'],
+                bulunduMu: true,
+              );
+            }
+            
+            // Kelime, harekeli kelime veya key tam eşleşmesi
             if (word.kelime.toLowerCase() == wordName.toLowerCase() ||
-                word.harekeliKelime?.toLowerCase() == wordName.toLowerCase()) {
+                word.harekeliKelime?.toLowerCase() == wordName.toLowerCase() ||
+                key.toLowerCase() == wordName.toLowerCase()) {
               return word;
             }
           }
         } catch (e) {
-          print('Kelime kontrol hatası: $e');
+          debugPrint('Kelime kontrol hatası: $e');
         }
       }
       
@@ -228,13 +338,35 @@ class FirebaseService {
 
       data.forEach((key, value) {
         try {
+          final keyStr = key.toString(); // Harekeli kelime key olarak
+          
           if (value != null && value is Map) {
             final wordData = Map<String, dynamic>.from(value.map((k, v) => MapEntry(k.toString(), v)));
-            final word = WordModel.fromJson(wordData);
+            
+            // Yeni yapıya uygun WordModel oluştur
+            WordModel word;
+            if (wordData.containsKey('kelimeBilgisi')) {
+              // Eski format uyumluluğu
+              word = WordModel.fromJson(wordData);
+            } else {
+              // Yeni format - direkt kelime bilgileri
+              word = WordModel(
+                kelime: wordData['kelime'] ?? keyStr,
+                harekeliKelime: wordData['harekeliKelime'] ?? keyStr,
+                anlam: wordData['anlam'],
+                koku: wordData['koku'],
+                dilbilgiselOzellikler: _safeCastMap(wordData['dilbilgiselOzellikler']),
+                ornekCumleler: _safeCastList(wordData['ornekCumleler']),
+                fiilCekimler: _safeCastMap(wordData['fiilCekimler']),
+                eklenmeTarihi: wordData['eklenmeTarihi'],
+                bulunduMu: true,
+              );
+            }
+            
             words.add(word);
           }
         } catch (e) {
-          print('Son kelime parse hatası: $e');
+          debugPrint('Son kelime parse hatası: $e');
         }
       });
 
@@ -289,13 +421,35 @@ class FirebaseService {
 
       data.forEach((key, value) {
         try {
+          final keyStr = key.toString(); // Harekeli kelime key olarak
+          
           if (value != null && value is Map) {
             final wordData = Map<String, dynamic>.from(value.map((k, v) => MapEntry(k.toString(), v)));
-            final word = WordModel.fromJson(wordData);
+            
+            // Yeni yapıya uygun WordModel oluştur
+            WordModel word;
+            if (wordData.containsKey('kelimeBilgisi')) {
+              // Eski format uyumluluğu
+              word = WordModel.fromJson(wordData);
+            } else {
+              // Yeni format - direkt kelime bilgileri
+              word = WordModel(
+                kelime: wordData['kelime'] ?? keyStr,
+                harekeliKelime: wordData['harekeliKelime'] ?? keyStr,
+                anlam: wordData['anlam'],
+                koku: wordData['koku'],
+                dilbilgiselOzellikler: _safeCastMap(wordData['dilbilgiselOzellikler']),
+                ornekCumleler: _safeCastList(wordData['ornekCumleler']),
+                fiilCekimler: _safeCastMap(wordData['fiilCekimler']),
+                eklenmeTarihi: wordData['eklenmeTarihi'],
+                bulunduMu: true,
+              );
+            }
+            
             words.add(word);
           }
         } catch (e) {
-          print('Rastgele kelime parse hatası: $e');
+          debugPrint('Rastgele kelime parse hatası: $e');
         }
       });
 

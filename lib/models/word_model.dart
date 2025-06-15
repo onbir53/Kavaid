@@ -26,8 +26,36 @@ class WordModel {
     this.bulunduMu = true,
   });
 
-  // Firebase LinkedMap'i güvenli bir şekilde handle eden custom fromJson
+  // Gemini API formatından WordModel oluşturma
   factory WordModel.fromJson(Map<String, dynamic> json) {
+    // Eğer Gemini API formatındaysa
+    if (json.containsKey('kelimeBilgisi')) {
+      final bulunduMu = json['bulunduMu'] as bool? ?? false;
+      
+      if (!bulunduMu || json['kelimeBilgisi'] == null) {
+        return WordModel(
+          kelime: json['kelime']?.toString() ?? '',
+          bulunduMu: false,
+          anlam: 'Kelime bulunamadı',
+        );
+      }
+      
+      final kelimeBilgisi = json['kelimeBilgisi'] as Map<String, dynamic>;
+      
+      return WordModel(
+        kelime: kelimeBilgisi['kelime']?.toString() ?? '',
+        harekeliKelime: kelimeBilgisi['harekeliKelime']?.toString(),
+        anlam: kelimeBilgisi['anlam']?.toString(),
+        koku: kelimeBilgisi['koku']?.toString(),
+        dilbilgiselOzellikler: _safeMapConvert(kelimeBilgisi['dilbilgiselOzellikler']),
+        fiilCekimler: _safeMapConvert(kelimeBilgisi['fiilCekimler']),
+        ornekCumleler: _safeListConvert(kelimeBilgisi['ornekCumleler']),
+        eklenmeTarihi: DateTime.now().millisecondsSinceEpoch,
+        bulunduMu: true,
+      );
+    }
+    
+    // Eski format (Firebase'den gelen)
     return WordModel(
       kelime: json['kelime']?.toString() ?? '',
       harekeliKelime: json['harekeliKelime']?.toString(),
