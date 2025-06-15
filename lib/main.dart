@@ -55,42 +55,42 @@ class _KavaidAppState extends State<KavaidApp> {
       colorScheme: ColorScheme.fromSeed(
         seedColor: const Color(0xFF007AFF),
         brightness: Brightness.light,
-        surface: const Color(0xFFF8F9FA),
-        onSurface: const Color(0xFF1C1C1E),
+        surface: const Color(0xFFF2F2F7),
+        onSurface: const Color(0xFF2C2C2E),
       ),
       useMaterial3: true,
-      scaffoldBackgroundColor: const Color(0xFFF8F9FA),
+      scaffoldBackgroundColor: const Color(0xFFF2F2F7),
       appBarTheme: const AppBarTheme(
         centerTitle: false,
         elevation: 0,
-        backgroundColor: Color(0xFFF8F9FA),
-        foregroundColor: Color(0xFF1C1C1E),
+        backgroundColor: Color(0xFFF2F2F7),
+        foregroundColor: Color(0xFF2C2C2E),
         titleTextStyle: TextStyle(
-          color: Color(0xFF1C1C1E),
-          fontSize: 24, // Biraz büyüttüm
-          fontWeight: FontWeight.w700, // Kalın ve tok
-          letterSpacing: 0.8, // Estetik harf aralığı
+          color: Color(0xFF2C2C2E),
+          fontSize: 24,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 0.8,
         ),
       ),
       cardTheme: CardThemeData(
         elevation: 0,
-        color: Colors.white,
+        color: const Color(0xFFFFFFFF).withOpacity(0.9),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
         ),
       ),
       inputDecorationTheme: InputDecorationTheme(
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(6), // Hafif yumuşak köşeler
+          borderRadius: BorderRadius.circular(6),
           borderSide: const BorderSide(
-            color: Color(0xFFE5E5EA),
+            color: Color(0xFFD1D1D6),
             width: 1,
           ),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(6),
           borderSide: const BorderSide(
-            color: Color(0xFFE5E5EA),
+            color: Color(0xFFD1D1D6),
             width: 1,
           ),
         ),
@@ -102,18 +102,18 @@ class _KavaidAppState extends State<KavaidApp> {
           ),
         ),
         filled: true,
-        fillColor: Colors.white,
+        fillColor: const Color(0xFFFFFFFF).withOpacity(0.8),
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         hintStyle: const TextStyle(
           color: Color(0xFF8E8E93),
           fontSize: 16,
         ),
       ),
-      bottomNavigationBarTheme: const BottomNavigationBarThemeData(
+      bottomNavigationBarTheme: BottomNavigationBarThemeData(
         type: BottomNavigationBarType.fixed,
-        selectedItemColor: Color(0xFF007AFF),
-        unselectedItemColor: Color(0xFF8E8E93),
-        backgroundColor: Colors.white,
+        selectedItemColor: const Color(0xFF007AFF),
+        unselectedItemColor: const Color(0xFF8E8E93),
+        backgroundColor: const Color(0xFFFFFFFF).withOpacity(0.95),
       ),
     );
   }
@@ -123,42 +123,42 @@ class _KavaidAppState extends State<KavaidApp> {
       colorScheme: ColorScheme.fromSeed(
         seedColor: const Color(0xFF007AFF),
         brightness: Brightness.dark,
-        surface: const Color(0xFF1C1C1E),
-        onSurface: Colors.white,
+        surface: const Color(0xFF2C2C2E),
+        onSurface: const Color(0xFFE5E5EA),
       ),
       useMaterial3: true,
-      scaffoldBackgroundColor: const Color(0xFF000000),
+      scaffoldBackgroundColor: const Color(0xFF1C1C1E),
       appBarTheme: const AppBarTheme(
         centerTitle: false,
         elevation: 0,
-        backgroundColor: Color(0xFF000000),
-        foregroundColor: Colors.white,
+        backgroundColor: Color(0xFF1C1C1E),
+        foregroundColor: Color(0xFFE5E5EA),
         titleTextStyle: TextStyle(
-          color: Colors.white,
-          fontSize: 24, // Biraz büyüttüm
-          fontWeight: FontWeight.w700, // Kalın ve tok
-          letterSpacing: 0.8, // Estetik harf aralığı
+          color: Color(0xFFE5E5EA),
+          fontSize: 24,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 0.8,
         ),
       ),
       cardTheme: CardThemeData(
         elevation: 0,
-        color: const Color(0xFF1C1C1E),
+        color: const Color(0xFF2C2C2E),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
         ),
       ),
       inputDecorationTheme: InputDecorationTheme(
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(6), // Hafif yumuşak köşeler
+          borderRadius: BorderRadius.circular(6),
           borderSide: const BorderSide(
-            color: Color(0xFF2C2C2E),
+            color: Color(0xFF3A3A3C),
             width: 1,
           ),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(6),
           borderSide: const BorderSide(
-            color: Color(0xFF2C2C2E),
+            color: Color(0xFF3A3A3C),
             width: 1,
           ),
         ),
@@ -170,7 +170,7 @@ class _KavaidAppState extends State<KavaidApp> {
           ),
         ),
         filled: true,
-        fillColor: const Color(0xFF1C1C1E),
+        fillColor: const Color(0xFF2C2C2E),
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         hintStyle: const TextStyle(
           color: Color(0xFF8E8E93),
@@ -181,7 +181,7 @@ class _KavaidAppState extends State<KavaidApp> {
         type: BottomNavigationBarType.fixed,
         selectedItemColor: Color(0xFF007AFF),
         unselectedItemColor: Color(0xFF8E8E93),
-        backgroundColor: Color(0xFF1C1C1E),
+        backgroundColor: Color(0xFF2C2C2E),
       ),
     );
   }
@@ -238,8 +238,8 @@ class _MainScreenState extends State<MainScreen> {
         onTap: _onTabTapped,
         type: BottomNavigationBarType.fixed,
         backgroundColor: widget.isDarkMode 
-            ? const Color(0xFF1C1C1E) 
-            : Colors.white,
+            ? const Color(0xFF2C2C2E)
+            : const Color(0xFFFFFFFF).withOpacity(0.95),
         selectedItemColor: const Color(0xFF007AFF),
         unselectedItemColor: const Color(0xFF8E8E93),
         selectedLabelStyle: const TextStyle(
