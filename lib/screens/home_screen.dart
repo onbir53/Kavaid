@@ -11,11 +11,13 @@ import '../widgets/arabic_keyboard.dart';
 class HomeScreen extends StatefulWidget {
   final bool isDarkMode;
   final VoidCallback onThemeToggle;
+  final Function(bool)? onArabicKeyboardToggle;
 
   const HomeScreen({
     super.key,
     required this.isDarkMode,
     required this.onThemeToggle,
+    this.onArabicKeyboardToggle,
   });
 
   @override
@@ -203,114 +205,131 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
-      body: Column(
+      body: Stack(
         children: [
-          // Arama alanı
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
-            child: Column(
-              children: [
-                TextField(
-                  controller: _searchController,
-                  focusNode: _searchFocusNode,
-                  autofocus: true,
-                  decoration: InputDecoration(
-                    hintText: 'Arapça veya Türkçe kelime ara',
-                    prefixIcon: const Icon(
-                      Icons.search,
-                      color: Color(0xFF8E8E93),
-                      size: 22,
-                    ),
-                    suffixIcon: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        // Arapça klavye ikonu
-                        IconButton(
-                          icon: Icon(
-                            Icons.keyboard_alt_outlined,
-                            color: _showArabicKeyboard 
-                                ? const Color(0xFF007AFF) 
-                                : const Color(0xFF8E8E93),
-                            size: 22,
-                          ),
-                          onPressed: () {
-                            setState(() {
-                              _showArabicKeyboard = !_showArabicKeyboard;
-                            });
-                          },
-                          tooltip: 'Arapça Klavye',
+          // Ana içerik
+          Column(
+            children: [
+              // Arama alanı
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
+                child: Column(
+                  children: [
+                    TextField(
+                      controller: _searchController,
+                      focusNode: _searchFocusNode,
+                      autofocus: true,
+                      decoration: InputDecoration(
+                        hintText: 'Arapça veya Türkçe kelime ara',
+                        prefixIcon: const Icon(
+                          Icons.search,
+                          color: Color(0xFF8E8E93),
+                          size: 22,
                         ),
-                        // Temizle ikonu
-                        if (_searchController.text.isNotEmpty)
-                          IconButton(
-                            icon: const Icon(
-                              Icons.clear,
-                              color: Color(0xFF8E8E93),
-                              size: 20,
+                        suffixIcon: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            // Arapça klavye ikonu
+                            IconButton(
+                              icon: Icon(
+                                Icons.keyboard_alt_outlined,
+                                color: _showArabicKeyboard 
+                                    ? const Color(0xFF007AFF) 
+                                    : const Color(0xFF8E8E93),
+                                size: 22,
+                              ),
+                              onPressed: () {
+                                setState(() {
+                                  _showArabicKeyboard = !_showArabicKeyboard;
+                                });
+                                // Parent widget'a durumu bildir
+                                widget.onArabicKeyboardToggle?.call(_showArabicKeyboard);
+                              },
+                              tooltip: 'Arapça Klavye',
                             ),
-                            onPressed: () {
-                              _searchController.clear();
-                              setState(() {
-                                _searchResults = [];
-                                _selectedWord = null;
-                                _isSearching = false;
-                                _showAIButton = false;
-                                _showNotFound = false;
-                              });
-                            },
-                          ),
-                      ],
-                    ),
-                  ),
-                  textInputAction: TextInputAction.search,
-                  onSubmitted: (_) => _searchWithAI(),
-                ),
-                
-                // AI ile Ara butonu
-                if (_showAIButton && !_isLoading)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 12),
-                    child: SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: _searchWithAI,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF007AFF),
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          elevation: 2,
-                        ),
-                        child: const Text(
-                          'Ara',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                          ),  
+                            // Temizle ikonu
+                            if (_searchController.text.isNotEmpty)
+                              IconButton(
+                                icon: const Icon(
+                                  Icons.clear,
+                                  color: Color(0xFF8E8E93),
+                                  size: 20,
+                                ),
+                                onPressed: () {
+                                  _searchController.clear();
+                                  setState(() {
+                                    _searchResults = [];
+                                    _selectedWord = null;
+                                    _isSearching = false;
+                                    _showAIButton = false;
+                                    _showNotFound = false;
+                                  });
+                                },
+                              ),
+                          ],
                         ),
                       ),
+                      textInputAction: TextInputAction.search,
+                      onSubmitted: (_) => _searchWithAI(),
                     ),
-                  ),
-              ],
-            ),
+                    
+                    // AI ile Ara butonu
+                    if (_showAIButton && !_isLoading)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 12),
+                        child: SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton(
+                            onPressed: _searchWithAI,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF007AFF),
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              elevation: 2,
+                            ),
+                            child: const Text(
+                              'Ara',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),  
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              
+              // Ana içerik alanı
+              Expanded(
+                child: _buildMainContent(),
+              ),
+            ],
           ),
           
-          // Ana içerik alanı
-          Expanded(
-            child: _buildMainContent(),
-          ),
-          
-          // Arapça klavye
+          // Arapça klavye - Stack'in en altında (banner'ın altında)
           if (_showArabicKeyboard)
-            ArabicKeyboard(
-              controller: _searchController,
-              onClose: () {
-                setState(() {
-                  _showArabicKeyboard = false;
-                });
-              },
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: Container(
+                color: Theme.of(context).scaffoldBackgroundColor,
+                child: ArabicKeyboard(
+                  controller: _searchController,
+                  onClose: () {
+                    setState(() {
+                      _showArabicKeyboard = false;
+                    });
+                    // Parent widget'a durumu bildir
+                    widget.onArabicKeyboardToggle?.call(false);
+                  },
+                ),
+              ),
             ),
         ],
       ),

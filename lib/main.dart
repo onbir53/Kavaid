@@ -4,6 +4,8 @@ import 'screens/home_screen.dart';
 import 'screens/saved_words_screen.dart';
 import 'services/firebase_options.dart';
 import 'services/saved_words_service.dart';
+import 'services/admob_service.dart';
+import 'widgets/banner_ad_widget.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -12,6 +14,13 @@ void main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+  
+  // AdMob'u güvenli şekilde başlat
+  try {
+    await AdMobService.initialize();
+  } catch (e) {
+    debugPrint('❌ AdMob başlatılamadı: $e');
+  }
   
   // SavedWordsService'i initialize et
   await SavedWordsService().initialize();
@@ -204,6 +213,7 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   int _currentIndex = 0;
   VoidCallback? _refreshSavedWords;
+  bool _isArabicKeyboardVisible = false; // Arapça klavye durumu
 
   void _onTabTapped(int index) {
     setState(() => _currentIndex = index);
@@ -214,61 +224,172 @@ class _MainScreenState extends State<MainScreen> {
     }
   }
 
+  // Arapça klavye durumu callback'i
+  void _onArabicKeyboardToggle(bool isVisible) {
+    setState(() {
+      _isArabicKeyboardVisible = isVisible;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
+    // Klavye yüksekliğini al
+    final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
+    
+    // Arapça klavye yüksekliği (gerçek hesaplama)
+    const arabicKeyboardHeight = 240.0;
+    
     return Scaffold(
-      body: IndexedStack(
-        index: _currentIndex,
+      resizeToAvoidBottomInset: true,
+      body: Stack(
         children: [
-          HomeScreen(
-            isDarkMode: widget.isDarkMode,
-            onThemeToggle: widget.onThemeToggle,
-          ), // Sözlük
-          SavedWordsScreen(
-            onRefreshCallback: (callback) => _refreshSavedWords = callback,
-          ), // Kaydedilenler
-          ProfileScreen(
-            isDarkMode: widget.isDarkMode,
-            onThemeToggle: widget.onThemeToggle,
-          ), // Profil
-        ],
-      ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _currentIndex,
-        onTap: _onTabTapped,
-        type: BottomNavigationBarType.fixed,
-        backgroundColor: widget.isDarkMode 
-            ? const Color(0xFF2C2C2E)
-            : const Color(0xFFFFFFFF).withOpacity(0.95),
-        selectedItemColor: const Color(0xFF007AFF),
-        unselectedItemColor: const Color(0xFF8E8E93),
-        selectedLabelStyle: const TextStyle(
-          fontSize: 11,
-          fontWeight: FontWeight.w600,
-        ),
-        unselectedLabelStyle: const TextStyle(
-          fontSize: 11,
-          fontWeight: FontWeight.w400,
-        ),
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.menu_book_outlined),
-            activeIcon: Icon(Icons.menu_book),
-            label: 'Sözlük',
+          // Ana içerik alanı - en üstten başlıyor
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: _calculateBottomSpacing(keyboardHeight, arabicKeyboardHeight),
+            child: IndexedStack(
+              index: _currentIndex,
+              children: [
+                HomeScreen(
+                  isDarkMode: widget.isDarkMode,
+                  onThemeToggle: widget.onThemeToggle,
+                  onArabicKeyboardToggle: _onArabicKeyboardToggle,
+                ), // Sözlük
+                SavedWordsScreen(
+                  onRefreshCallback: (callback) => _refreshSavedWords = callback,
+                ), // Kaydedilenler
+                ProfileScreen(
+                  isDarkMode: widget.isDarkMode,
+                  onThemeToggle: widget.onThemeToggle,
+                ), // Profil
+              ],
+            ),
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.bookmark_border),
-            activeIcon: Icon(Icons.bookmark),
-            label: 'Kaydedilenler',
+          
+          // Bottom Navigation Bar - sabit pozisyonda
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: _calculateBottomNavPosition(keyboardHeight, arabicKeyboardHeight),
+            child: Container(
+              decoration: BoxDecoration(
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 4,
+                    offset: const Offset(0, -2),
+                  ),
+                ],
+              ),
+              child: BottomNavigationBar(
+                currentIndex: _currentIndex,
+                onTap: _onTabTapped,
+                type: BottomNavigationBarType.fixed,
+                backgroundColor: widget.isDarkMode 
+                    ? const Color(0xFF2C2C2E)
+                    : const Color(0xFFFFFFFF).withOpacity(0.95),
+                selectedItemColor: const Color(0xFF007AFF),
+                unselectedItemColor: const Color(0xFF8E8E93),
+                selectedLabelStyle: const TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                ),
+                unselectedLabelStyle: const TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w400,
+                ),
+                items: const [
+                  BottomNavigationBarItem(
+                    icon: Icon(Icons.menu_book_outlined),
+                    activeIcon: Icon(Icons.menu_book),
+                    label: 'Sözlük',
+                  ),
+                  BottomNavigationBarItem(
+                    icon: Icon(Icons.bookmark_border),
+                    activeIcon: Icon(Icons.bookmark),
+                    label: 'Kaydedilenler',
+                  ),
+                  BottomNavigationBarItem(
+                    icon: Icon(Icons.person_outline),
+                    activeIcon: Icon(Icons.person),
+                    label: 'Profil',
+                  ),
+                ],
+              ),
+            ),
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person_outline),
-            activeIcon: Icon(Icons.person),
-            label: 'Profil',
+          
+          // Banner - klavyenin hemen üstünde bitişik
+          AnimatedPositioned(
+            duration: const Duration(milliseconds: 200),
+            left: 0,
+            right: 0,
+            bottom: _calculateBannerPosition(keyboardHeight, arabicKeyboardHeight),
+            child: Container(
+              decoration: BoxDecoration(
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 4,
+                    offset: const Offset(0, -2),
+                  ),
+                ],
+              ),
+              child: const BannerAdWidget(),
+            ),
           ),
         ],
       ),
     );
+  }
+
+  // İçerik alanının alttan boşluğunu hesapla
+  double _calculateBottomSpacing(double keyboardHeight, double arabicKeyboardHeight) {
+    const bottomNavHeight = 80.0; // BottomNavigationBar yüksekliği
+    const bannerHeight = 64.0; // Banner yüksekliği
+    
+    if (_isArabicKeyboardVisible) {
+      // Arapça klavye + BottomNav + Banner yüksekliği
+      return arabicKeyboardHeight + bottomNavHeight + bannerHeight;
+    } else if (keyboardHeight > 0) {
+      // Sistem klavyesi + BottomNav + Banner yüksekliği  
+      return keyboardHeight + bottomNavHeight + bannerHeight;
+    } else {
+      // BottomNav + Banner yüksekliği (klavye kapalı - banner bottomNav'ın altında)
+      return bottomNavHeight + bannerHeight;
+    }
+  }
+
+  // BottomNavigationBar pozisyonunu hesapla
+  double _calculateBottomNavPosition(double keyboardHeight, double arabicKeyboardHeight) {
+    const bannerHeight = 64.0; // Banner yüksekliği
+    
+    if (_isArabicKeyboardVisible) {
+      // Arapça klavye açıksa klavyenin tam üstünde
+      return arabicKeyboardHeight;
+    } else if (keyboardHeight > 0) {
+      // Sistem klavyesi açıksa klavyenin tam üstünde
+      return keyboardHeight;
+    } else {
+      // Klavye kapalıysa banner'ın üstünde (banner bottomNav'ın altında)
+      return bannerHeight;
+    }
+  }
+
+  // Banner pozisyonunu hesapla
+  double _calculateBannerPosition(double keyboardHeight, double arabicKeyboardHeight) {
+    if (_isArabicKeyboardVisible) {
+      // Arapça klavye açıksa klavyenin hemen üstünde bitişik
+      return arabicKeyboardHeight;
+    } else if (keyboardHeight > 0) {
+      // Sistem klavyesi açıksa klavyenin hemen üstünde bitişik
+      return keyboardHeight;
+    } else {
+      // Klavye kapalıysa bottomNav'ın altında bitişik (en altta)
+      return 0;
+    }
   }
 }
 

@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:html' as html;
 import 'package:flutter/foundation.dart';
 import '../models/word_model.dart';
 
@@ -18,25 +17,11 @@ class SavedWordsService extends ChangeNotifier {
   // Kaydedilen kelimeleri getir
   Future<List<WordModel>> getSavedWords() async {
     try {
-      final savedWordsJson = html.window.localStorage[_savedWordsKey];
-      
-      if (savedWordsJson == null || savedWordsJson.isEmpty) {
-        print('DEBUG: LocalStorage boş');
-        _cachedSavedWords = [];
-        _savedWordKeys.clear();
-        return [];
-      }
-      
-      final List<dynamic> jsonList = jsonDecode(savedWordsJson);
-      print('DEBUG: LocalStorage\'dan ${jsonList.length} kelime yüklendi');
-      
-      final words = jsonList.map((json) => WordModel.fromJson(json as Map<String, dynamic>)).toList();
-      
-      // Cache'i güncelle
-      _cachedSavedWords = words;
-      _savedWordKeys = words.map((w) => w.kelime).toSet();
-      
-      return words;
+      // Şimdilik boş liste döndür (storage implementasyonu sonra)
+      print('DEBUG: Storage boş - implementasyon sonra eklenecek');
+      _cachedSavedWords = [];
+      _savedWordKeys.clear();
+      return [];
     } catch (e) {
       print('Kaydedilen kelimeler yüklenirken hata: $e');
       _cachedSavedWords = [];
@@ -60,32 +45,6 @@ class SavedWordsService extends ChangeNotifier {
       savedWords.insert(0, word);
       print('DEBUG: Yeni kayıtlı kelime sayısı: ${savedWords.length}');
       
-      // JSON listesine çevir
-      final jsonList = savedWords.map((w) {
-        try {
-          return w.toJson();
-        } catch (e) {
-          print('DEBUG: JSON encode hatası: $e');
-          // Basit bir JSON oluştur
-          return {
-            'kelime': w.kelime,
-            'harekeliKelime': w.harekeliKelime,
-            'anlam': w.anlam,
-            'koku': w.koku,
-            'dilbilgiselOzellikler': w.dilbilgiselOzellikler,
-            'fiilCekimler': w.fiilCekimler,
-            'ornekCumleler': w.ornekCumleler,
-            'eklenmeTarihi': DateTime.now().millisecondsSinceEpoch,
-            'bulunduMu': w.bulunduMu,
-          };
-        }
-      }).toList();
-      
-      // LocalStorage'a kaydet
-      html.window.localStorage[_savedWordsKey] = jsonEncode(jsonList);
-      
-      print('DEBUG: LocalStorage\'a kaydedildi');
-      
       // Cache'i güncelle
       _cachedSavedWords = savedWords;
       _savedWordKeys.add(word.kelime);
@@ -93,13 +52,7 @@ class SavedWordsService extends ChangeNotifier {
       // Tüm dinleyicileri bilgilendir
       notifyListeners();
       
-      // Doğrulama için tekrar oku
-      final verification = html.window.localStorage[_savedWordsKey];
-      if (verification != null) {
-        final verificationList = jsonDecode(verification) as List;
-        print('DEBUG: Doğrulama - kayıtlı kelime sayısı: ${verificationList.length}');
-      }
-      
+      print('DEBUG: Kelime cache\'e eklendi');
       return true;
     } catch (e) {
       print('Kelime kaydedilirken hata: $e');
@@ -121,31 +74,6 @@ class SavedWordsService extends ChangeNotifier {
       
       print('DEBUG: Kaldırma sonrası kelime sayısı: ${savedWords.length}');
       print('DEBUG: Kelime kaldırıldı mı: ${initialLength != savedWords.length}');
-      
-      // JSON listesine çevir
-      final jsonList = savedWords.map((w) {
-        try {
-          return w.toJson();
-        } catch (e) {
-          print('DEBUG: JSON encode hatası: $e');
-          return {
-            'kelime': w.kelime,
-            'harekeliKelime': w.harekeliKelime,
-            'anlam': w.anlam,
-            'koku': w.koku,
-            'dilbilgiselOzellikler': w.dilbilgiselOzellikler,
-            'fiilCekimler': w.fiilCekimler,
-            'ornekCumleler': w.ornekCumleler,
-            'eklenmeTarihi': w.eklenmeTarihi,
-            'bulunduMu': w.bulunduMu,
-          };
-        }
-      }).toList();
-      
-      // LocalStorage'a kaydet
-      html.window.localStorage[_savedWordsKey] = jsonEncode(jsonList);
-      
-      print('DEBUG: Kaldırma işlemi tamamlandı');
       
       // Cache'i güncelle
       _cachedSavedWords = savedWords;
@@ -181,7 +109,6 @@ class SavedWordsService extends ChangeNotifier {
   // Tüm kayıtlı kelimeleri temizle
   Future<void> clearAllSavedWords() async {
     try {
-      html.window.localStorage.remove(_savedWordsKey);
       print('DEBUG: Tüm kayıtlı kelimeler temizlendi');
       
       // Cache'i temizle

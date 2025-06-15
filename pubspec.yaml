@@ -49,6 +49,9 @@ dependencies:
   
   # Google Fonts (Cairo için)
   google_fonts: ^6.2.1
+  
+  # Google Mobile Ads (AdMob)
+  google_mobile_ads: ^5.1.0
 
 dev_dependencies:
   flutter_test:

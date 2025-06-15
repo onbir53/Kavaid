@@ -84,11 +84,18 @@ class ArabicKeyboard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
+      width: double.infinity,
+      margin: EdgeInsets.zero,
+      padding: const EdgeInsets.symmetric(vertical: 4),
       decoration: BoxDecoration(
-        color: const Color(0xFFF8F9FA),
+        color: Theme.of(context).brightness == Brightness.dark
+            ? const Color(0xFF1C1C1E)
+            : const Color(0xFFF2F2F7),
         border: Border(
           top: BorderSide(
-            color: Colors.grey.shade300,
+            color: Theme.of(context).brightness == Brightness.dark
+                ? const Color(0xFF2C2C2E)
+                : const Color(0xFFE5E5EA),
             width: 0.5,
           ),
         ),
@@ -139,71 +146,59 @@ class ArabicKeyboard extends StatelessWidget {
           ),
           
           // Ana harfler
-          ...List.generate(_arabicKeys.length, (rowIndex) {
+          ..._arabicKeys.map((row) {
             return Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: _arabicKeys[rowIndex].map((key) {
+                children: row.map((letter) {
                   return Expanded(
                     child: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 0.5),
-                      child: _buildKey(key),
+                      child: _buildKey(letter),
                     ),
                   );
                 }).toList(),
               ),
             );
-          }),
+          }).toList(),
           
-          // Alt satır - minimal
+          // Son satır: Boşluk ve kontrol butonları
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
             child: Row(
               children: [
-                // Backspace
                 Expanded(
-                  flex: 2,
-                  child: _buildSpecialKey(
-                    icon: Icons.backspace_outlined,
-                    onPressed: _backspace,
-                  ),
+                  child: _buildKey('⌫', isBackspace: true),
                 ),
-                const SizedBox(width: 2),
-                // Boşluk
+                const SizedBox(width: 4),
                 Expanded(
-                  flex: 5,
-                  child: _buildSpecialKey(
-                    text: 'Boşluk',
-                    onPressed: _addSpace,
-                  ),
+                  flex: 4,
+                  child: _buildKey(' ', isSpace: true),
                 ),
-                const SizedBox(width: 2),
-                // Enter/Ara
+                const SizedBox(width: 4),
                 Expanded(
-                  flex: 2,
-                  child: _buildSpecialKey(
-                    text: 'Ara',
-                    onPressed: () {
-                      FocusScope.of(context).unfocus();
-                    },
-                    isSearch: true,
-                  ),
+                  child: _buildReturnKey(),
                 ),
               ],
             ),
           ),
-          
-          // Minimal padding
-          const SizedBox(height: 4),
         ],
       ),
     );
   }
 
-  Widget _buildKey(String text, {bool isDiacritic = false}) {
+  Widget _buildKey(String text, {bool isDiacritic = false, bool isBackspace = false, bool isSpace = false}) {
     return GestureDetector(
-      onTap: () => _insertText(text),
+      onTap: () {
+        if (isBackspace) {
+          _backspace();
+        } else if (isSpace) {
+          _addSpace();
+        } else {
+          _insertText(text);
+        }
+      },
       child: Container(
         height: 36,
         decoration: BoxDecoration(
@@ -219,16 +214,22 @@ class ArabicKeyboard extends StatelessWidget {
           ),
         ),
         child: Center(
-          child: Text(
-            text,
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w400,
-              color: isDiacritic 
-                  ? const Color(0xFF007AFF)
-                  : const Color(0xFF1C1C1E),
-            ),
-          ),
+          child: isBackspace
+              ? const Icon(
+                  Icons.backspace_outlined,
+                  size: 18,
+                  color: Color(0xFF8E8E93),
+                )
+              : Text(
+                  isSpace ? 'Space' : text,
+                  style: TextStyle(
+                    fontSize: isSpace ? 12 : 18,
+                    fontWeight: FontWeight.w400,
+                    color: isDiacritic 
+                        ? const Color(0xFF007AFF)
+                        : const Color(0xFF1C1C1E),
+                  ),
+                ),
         ),
       ),
     );
@@ -267,6 +268,18 @@ class ArabicKeyboard extends StatelessWidget {
                 ),
         ),
       ),
+    );
+  }
+
+  Widget _buildReturnKey() {
+    return _buildSpecialKey(
+      text: 'Ara',
+      onPressed: () {
+        if (onClose != null) {
+          onClose!();
+        }
+      },
+      isSearch: true,
     );
   }
 } 
