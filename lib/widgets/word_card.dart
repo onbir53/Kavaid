@@ -2,14 +2,77 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../models/word_model.dart';
+import '../services/saved_words_service.dart';
 
-class WordCard extends StatelessWidget {
+class WordCard extends StatefulWidget {
   final WordModel word;
 
   const WordCard({
     super.key,
     required this.word,
   });
+
+  @override
+  State<WordCard> createState() => _WordCardState();
+}
+
+class _WordCardState extends State<WordCard> {
+  final SavedWordsService _savedWordsService = SavedWordsService();
+  bool _isSaved = false;
+  bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _updateSavedStatus();
+    
+    // SavedWordsService'i dinle
+    _savedWordsService.addListener(_updateSavedStatus);
+  }
+
+  @override
+  void dispose() {
+    // Listener'ı kaldır
+    _savedWordsService.removeListener(_updateSavedStatus);
+    super.dispose();
+  }
+
+  void _updateSavedStatus() {
+    if (mounted) {
+      setState(() {
+        _isSaved = _savedWordsService.isWordSavedSync(widget.word);
+      });
+    }
+  }
+
+  Future<void> _toggleSaved() async {
+    if (_isLoading) return;
+    
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      if (_isSaved) {
+        await _savedWordsService.removeWord(widget.word);
+      } else {
+        await _savedWordsService.saveWord(widget.word);
+      }
+      
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      print('Toggle saved error: $e');
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -25,7 +88,7 @@ class WordCard extends StatelessWidget {
               children: [
                 Expanded(
                   child: Text(
-                    word.kelime,
+                    widget.word.kelime,
                     style: const TextStyle(
                       fontSize: 28,
                       fontWeight: FontWeight.bold,
@@ -33,24 +96,35 @@ class WordCard extends StatelessWidget {
                     ),
                   ),
                 ),
-                IconButton(
-                  onPressed: () {
-                    // Favorilere ekleme işlemi
-                  },
-                  icon: const Icon(
-                    Icons.bookmark_border,
-                    color: Color(0xFF007AFF),
-                    size: 28,
+                InkWell(
+                  onTap: _toggleSaved,
+                  borderRadius: BorderRadius.circular(24),
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    child: _isLoading
+                        ? const SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Color(0xFF007AFF),
+                            ),
+                          )
+                        : Icon(
+                            _isSaved ? Icons.bookmark : Icons.bookmark_border,
+                            color: const Color(0xFF007AFF),
+                            size: 28,
+                          ),
                   ),
                 ),
               ],
             ),
             
             // Harekeli yazılış
-            if (word.harekeliKelime?.isNotEmpty == true) ...[
+            if (widget.word.harekeliKelime?.isNotEmpty == true) ...[
               const SizedBox(height: 8),
               Text(
-                word.harekeliKelime!,
+                widget.word.harekeliKelime!,
                 style: GoogleFonts.amiri(
                   fontSize: 26, // Biraz büyüttüm
                   fontWeight: FontWeight.w700, // Daha kalın
@@ -63,7 +137,7 @@ class WordCard extends StatelessWidget {
             const SizedBox(height: 16),
             
             // Anlam
-            if (word.anlam?.isNotEmpty == true) ...[
+            if (widget.word.anlam?.isNotEmpty == true) ...[
               const Text(
                 'Anlam',
                 style: TextStyle(
@@ -75,7 +149,7 @@ class WordCard extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               Text(
-                word.anlam!,
+                widget.word.anlam!,
                 style: const TextStyle(
                   fontSize: 17,
                   color: Color(0xFF1C1C1E),
@@ -88,7 +162,7 @@ class WordCard extends StatelessWidget {
             ],
             
             // Kök
-            if (word.koku?.isNotEmpty == true) ...[
+            if (widget.word.koku?.isNotEmpty == true) ...[
               const Text(
                 'Kök',
                 style: TextStyle(
@@ -100,7 +174,7 @@ class WordCard extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               Text(
-                word.koku!,
+                widget.word.koku!,
                 style: GoogleFonts.amiri(
                   fontSize: 18, // Biraz büyüttüm
                   fontWeight: FontWeight.w600, // Kalın
@@ -112,7 +186,7 @@ class WordCard extends StatelessWidget {
             ],
             
             // Dilbilgisel özellikler
-            if (word.dilbilgiselOzellikler?.isNotEmpty == true) ...[
+            if (widget.word.dilbilgiselOzellikler?.isNotEmpty == true) ...[
               const Text(
                 'Dilbilgisel Özellikler',
                 style: TextStyle(
@@ -126,14 +200,14 @@ class WordCard extends StatelessWidget {
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
-                children: word.dilbilgiselOzellikler!.entries.map((entry) {
+                children: widget.word.dilbilgiselOzellikler!.entries.map((entry) {
                   return Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
                       color: const Color(0xFFE5E5EA),
                       borderRadius: BorderRadius.circular(16),
                     ),
-                    child:                       Text(
+                    child: Text(
                       '${entry.key}: ${entry.value}',
                       style: const TextStyle(
                         fontSize: 13, // Biraz küçülttüm
@@ -149,7 +223,7 @@ class WordCard extends StatelessWidget {
             ],
             
             // Örnek cümleler
-            if (word.ornekCumleler?.isNotEmpty == true) ...[
+            if (widget.word.ornekCumleler?.isNotEmpty == true) ...[
               const Text(
                 'Örnek Cümleler',
                 style: TextStyle(
@@ -160,7 +234,7 @@ class WordCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 8),
-              ...word.ornekCumleler!.map((example) {
+              ...widget.word.ornekCumleler!.map((example) {
                 return Padding(
                   padding: const EdgeInsets.only(bottom: 12),
                   child: Container(
@@ -190,7 +264,7 @@ class WordCard extends StatelessWidget {
             ],
             
             // Fiil çekimleri
-            if (word.fiilCekimler?.isNotEmpty == true) ...[
+            if (widget.word.fiilCekimler?.isNotEmpty == true) ...[
               const Text(
                 'Fiil Çekimleri',
                 style: TextStyle(
@@ -201,38 +275,28 @@ class WordCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 8),
-              ...word.fiilCekimler!.entries.map((entry) {
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      SizedBox(
-                        width: 100,
-                        child: Text(
-                          entry.key,
-                          style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: Color(0xFF8E8E93),
-                          ),
-                        ),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: widget.word.fiilCekimler!.entries.map((entry) {
+                  return Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFE5E5EA),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Text(
+                      '${entry.key}: ${entry.value}',
+                      style: const TextStyle(
+                        fontSize: 13, // Biraz küçülttüm
+                        color: Color(0xFF1C1C1E),
+                        fontWeight: FontWeight.w500, // Orta kalınlık
+                        letterSpacing: 0.2, // Estetik harf aralığı
                       ),
-                      Expanded(
-                        child: Text(
-                          entry.value.toString(),
-                          style: const TextStyle(
-                            fontSize: 15,
-                            color: Color(0xFF1C1C1E),
-                            fontFamily: 'Amiri',
-                          ),
-                          textDirection: TextDirection.rtl,
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              }).toList(),
+                    ),
+                  );
+                }).toList(),
+              ),
             ],
           ],
         ),

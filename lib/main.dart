@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'screens/home_screen.dart';
+import 'screens/saved_words_screen.dart';
 import 'services/firebase_options.dart';
+import 'services/saved_words_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -10,6 +12,9 @@ void main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+  
+  // SavedWordsService'i initialize et
+  await SavedWordsService().initialize();
   
   runApp(const KavaidApp());
 }
@@ -198,6 +203,16 @@ class MainScreen extends StatefulWidget {
 
 class _MainScreenState extends State<MainScreen> {
   int _currentIndex = 0;
+  VoidCallback? _refreshSavedWords;
+
+  void _onTabTapped(int index) {
+    setState(() => _currentIndex = index);
+    
+    // Kaydedilenler sekmesine geçildiğinde listeyi yenile
+    if (index == 1 && _refreshSavedWords != null) {
+      _refreshSavedWords!();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -210,8 +225,7 @@ class _MainScreenState extends State<MainScreen> {
             onThemeToggle: widget.onThemeToggle,
           ), // Sözlük
           SavedWordsScreen(
-            isDarkMode: widget.isDarkMode,
-            onThemeToggle: widget.onThemeToggle,
+            onRefreshCallback: (callback) => _refreshSavedWords = callback,
           ), // Kaydedilenler
           ProfileScreen(
             isDarkMode: widget.isDarkMode,
@@ -221,7 +235,7 @@ class _MainScreenState extends State<MainScreen> {
       ),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
-        onTap: (index) => setState(() => _currentIndex = index),
+        onTap: _onTabTapped,
         type: BottomNavigationBarType.fixed,
         backgroundColor: widget.isDarkMode 
             ? const Color(0xFF1C1C1E) 
@@ -259,49 +273,6 @@ class _MainScreenState extends State<MainScreen> {
 }
 
 // Placeholder screens
-class SavedWordsScreen extends StatelessWidget {
-  final bool isDarkMode;
-  final VoidCallback onThemeToggle;
-
-  const SavedWordsScreen({
-    super.key,
-    required this.isDarkMode,
-    required this.onThemeToggle,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Kaydedilenler'),
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 16),
-            child: IconButton(
-              icon: Icon(
-                isDarkMode 
-                    ? Icons.light_mode_outlined 
-                    : Icons.dark_mode_outlined,
-                size: 28,
-              ),
-              onPressed: onThemeToggle,
-            ),
-          ),
-        ],
-      ),
-      body: const Center(
-        child: Text(
-          'Kaydedilen kelimeler burada görünecek',
-          style: TextStyle(
-            fontSize: 17,
-            color: Color(0xFF8E8E93),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 class ProfileScreen extends StatelessWidget {
   final bool isDarkMode;
   final VoidCallback onThemeToggle;

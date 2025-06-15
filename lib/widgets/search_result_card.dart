@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../models/word_model.dart';
+import '../services/saved_words_service.dart';
 
-class SearchResultCard extends StatelessWidget {
+class SearchResultCard extends StatefulWidget {
   final WordModel word;
   final VoidCallback onTap;
 
@@ -13,13 +14,77 @@ class SearchResultCard extends StatelessWidget {
   });
 
   @override
+  State<SearchResultCard> createState() => _SearchResultCardState();
+}
+
+class _SearchResultCardState extends State<SearchResultCard> {
+  final SavedWordsService _savedWordsService = SavedWordsService();
+  bool _isSaved = false;
+  bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _updateSavedStatus();
+    
+    // SavedWordsService'i dinle
+    _savedWordsService.addListener(_updateSavedStatus);
+  }
+
+  @override
+  void dispose() {
+    // Listener'ı kaldır
+    _savedWordsService.removeListener(_updateSavedStatus);
+    super.dispose();
+  }
+
+  void _updateSavedStatus() {
+    if (mounted) {
+      setState(() {
+        _isSaved = _savedWordsService.isWordSavedSync(widget.word);
+      });
+    }
+  }
+
+  Future<void> _toggleSaved() async {
+    if (_isLoading) return;
+    
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      bool success = false;
+      
+      if (_isSaved) {
+        success = await _savedWordsService.removeWord(widget.word);
+      } else {
+        success = await _savedWordsService.saveWord(widget.word);
+      }
+      
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      print('Toggle saved error: $e');
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     
     return Padding(
       padding: const EdgeInsets.only(bottom: 4),
       child: InkWell(
-        onTap: onTap,
+        onTap: widget.onTap,
         borderRadius: BorderRadius.circular(6),
         child: Container(
           padding: const EdgeInsets.all(14),
@@ -54,9 +119,9 @@ class SearchResultCard extends StatelessWidget {
                       children: [
                         // Harekeli Arapça kelime (öncelik harekeli kelimeye)
                         Text(
-                          word.harekeliKelime?.isNotEmpty == true 
-                              ? word.harekeliKelime! 
-                              : word.kelime,
+                          widget.word.harekeliKelime?.isNotEmpty == true 
+                              ? widget.word.harekeliKelime! 
+                              : widget.word.kelime,
                           style: GoogleFonts.amiri(
                             fontSize: 20,
                             fontWeight: FontWeight.w700,
@@ -66,7 +131,7 @@ class SearchResultCard extends StatelessWidget {
                         ),
                         const SizedBox(width: 8),
                         // Kelime türü chip'i - JSON yapısından dilbilgiselOzellikler.tur
-                        if (word.dilbilgiselOzellikler?.containsKey('tur') == true) ...[
+                        if (widget.word.dilbilgiselOzellikler?.containsKey('tur') == true) ...[
                           Container(
                             padding: const EdgeInsets.symmetric(
                               horizontal: 8,
@@ -77,7 +142,7 @@ class SearchResultCard extends StatelessWidget {
                               borderRadius: BorderRadius.circular(6),
                             ),
                             child: Text(
-                              word.dilbilgiselOzellikler!['tur'].toString(),
+                              widget.word.dilbilgiselOzellikler!['tur'].toString(),
                               style: const TextStyle(
                                 fontSize: 10,
                                 fontWeight: FontWeight.w600,
@@ -90,9 +155,9 @@ class SearchResultCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 5),
                     // Türkçe anlam
-                    if (word.anlam?.isNotEmpty == true) ...[
+                    if (widget.word.anlam?.isNotEmpty == true) ...[
                       Text(
-                        word.anlam!,
+                        widget.word.anlam!,
                         style: TextStyle(
                           fontSize: 15,
                           color: isDarkMode 
@@ -110,6 +175,31 @@ class SearchResultCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 10),
+              // Kaydetme tuşu
+              InkWell(
+                onTap: _toggleSaved,
+                borderRadius: BorderRadius.circular(20),
+                child: Container(
+                  padding: const EdgeInsets.all(8),
+                  child: _isLoading
+                      ? SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: isDarkMode ? Colors.white54 : const Color(0xFF8E8E93),
+                          ),
+                        )
+                      : Icon(
+                          _isSaved ? Icons.bookmark : Icons.bookmark_border,
+                          color: _isSaved 
+                              ? const Color(0xFF007AFF)
+                              : (isDarkMode ? Colors.white54 : const Color(0xFF8E8E93)),
+                          size: 20,
+                        ),
+                ),
+              ),
+              const SizedBox(width: 4),
               // Açılır menü ikonu
               Icon(
                 Icons.keyboard_arrow_down,
