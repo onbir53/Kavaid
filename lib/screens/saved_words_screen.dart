@@ -229,7 +229,7 @@ class SavedExpandedCardController {
   static _SavedWordCardWidgetState? _currentExpanded;
   
   static void setExpanded(_SavedWordCardWidgetState? card) {
-    if (_currentExpanded != null && _currentExpanded != card) {
+    if (_currentExpanded != null && _currentExpanded != card && _currentExpanded!.mounted) {
       _currentExpanded!._collapseCard();
     }
     _currentExpanded = card;
@@ -289,19 +289,25 @@ class _SavedWordCardWidgetState extends State<_SavedWordCardWidget> with TickerP
   }
 
   void _toggleExpanded() {
+    if (!mounted) return;
+    
     if (!_isExpanded) {
       // Diğer açık kartları kapat
       SavedExpandedCardController.setExpanded(this);
-      setState(() {
-        _isExpanded = true;
-      });
-      _animationController.forward();
+      if (mounted) {
+        setState(() {
+          _isExpanded = true;
+        });
+        _animationController.forward();
+      }
     } else {
       _collapseCard();
     }
   }
 
   void _collapseCard() {
+    if (!mounted) return;
+    
     if (_isExpanded) {
       setState(() {
         _isExpanded = false;
@@ -357,9 +363,9 @@ class _SavedWordCardWidgetState extends State<_SavedWordCardWidget> with TickerP
                                 widget.word.harekeliKelime?.isNotEmpty == true 
                                     ? widget.word.harekeliKelime! 
                                     : widget.word.kelime,
-                                style: GoogleFonts.amiri(
+                                style: GoogleFonts.notoNaskhArabic(
                                   fontSize: 20,
-                                  fontWeight: FontWeight.w700,
+                                  fontWeight: FontWeight.w800,
                                   color: widget.isDarkMode ? Colors.white : const Color(0xFF1C1C1E),
                                 ),
                                 textDirection: TextDirection.rtl,
@@ -457,21 +463,21 @@ class _SavedWordCardWidgetState extends State<_SavedWordCardWidget> with TickerP
   List<Widget> _buildWordInfoChips() {
     final chips = <Widget>[];
     
-    // Kelime türü
+    // Kelime türü (her zaman göster)
     if (widget.word.dilbilgiselOzellikler?.containsKey('tur') == true) {
       chips.add(Container(
         padding: const EdgeInsets.symmetric(
-          horizontal: 6,
-          vertical: 2,
+          horizontal: 8,
+          vertical: 4,
         ),
         decoration: BoxDecoration(
           color: const Color(0xFF007AFF).withOpacity(0.12),
-          borderRadius: BorderRadius.circular(4),
+          borderRadius: BorderRadius.circular(6),
         ),
         child: Text(
           widget.word.dilbilgiselOzellikler!['tur'].toString(),
           style: const TextStyle(
-            fontSize: 9,
+            fontSize: 11,
             fontWeight: FontWeight.w600,
             color: Color(0xFF007AFF),
           ),
@@ -479,57 +485,70 @@ class _SavedWordCardWidgetState extends State<_SavedWordCardWidget> with TickerP
       ));
     }
     
-    // Kök
-    if (widget.word.koku?.isNotEmpty == true) {
-      chips.add(Container(
-        padding: const EdgeInsets.symmetric(
-          horizontal: 6,
-          vertical: 2,
-        ),
-        decoration: BoxDecoration(
-          color: const Color(0xFF007AFF).withOpacity(0.12),
-          borderRadius: BorderRadius.circular(4),
-        ),
-        child: Text(
-          'Kök: ${widget.word.koku!}',
-          style: GoogleFonts.amiri(
-            fontSize: 9,
-            fontWeight: FontWeight.w600,
-            color: const Color(0xFF007AFF),
+    // Kök ve çoğul sadece expanded durumunda göster
+    if (_isExpanded) {
+      // Kök (sadece veri, etiket yok) - Yeşil tema
+      if (widget.word.koku?.isNotEmpty == true) {
+        chips.add(Container(
+          padding: const EdgeInsets.symmetric(
+            horizontal: 8,
+            vertical: 4,
           ),
-          textDirection: TextDirection.rtl,
-        ),
-      ));
-    }
-    
-    // Çoğul
-    if (widget.word.dilbilgiselOzellikler?.containsKey('cogulForm') == true && 
-        widget.word.dilbilgiselOzellikler!['cogulForm']?.toString().trim().isNotEmpty == true) {
-      chips.add(Container(
-        padding: const EdgeInsets.symmetric(
-          horizontal: 6,
-          vertical: 2,
-        ),
-        decoration: BoxDecoration(
-          color: const Color(0xFF007AFF).withOpacity(0.12),
-          borderRadius: BorderRadius.circular(4),
-        ),
-        child: Text(
-          'Çoğul: ${widget.word.dilbilgiselOzellikler!['cogulForm'].toString()}',
-          style: GoogleFonts.amiri(
-            fontSize: 9,
-            fontWeight: FontWeight.w600,
-            color: const Color(0xFF007AFF),
+          decoration: BoxDecoration(
+            color: widget.isDarkMode 
+                ? const Color(0xFF30D158).withOpacity(0.15)
+                : const Color(0xFF34C759).withOpacity(0.12),
+            borderRadius: BorderRadius.circular(6),
           ),
-          textDirection: TextDirection.rtl,
-        ),
-      ));
+          child: Text(
+            widget.word.koku!,
+            style: GoogleFonts.notoNaskhArabic(
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              color: widget.isDarkMode 
+                  ? const Color(0xFF30D158)
+                  : const Color(0xFF34C759),
+            ),
+            textDirection: TextDirection.rtl,
+            textAlign: TextAlign.center,
+          ),
+        ));
+      }
+      
+      // Çoğul (sadece veri, etiket yok) - Turuncu tema
+      if (widget.word.dilbilgiselOzellikler?.containsKey('cogulForm') == true && 
+          widget.word.dilbilgiselOzellikler!['cogulForm']?.toString().trim().isNotEmpty == true) {
+        chips.add(Container(
+          padding: const EdgeInsets.symmetric(
+            horizontal: 8,
+            vertical: 4,
+          ),
+          decoration: BoxDecoration(
+            color: widget.isDarkMode 
+                ? const Color(0xFFFF9F0A).withOpacity(0.15)
+                : const Color(0xFFFF9500).withOpacity(0.12),
+            borderRadius: BorderRadius.circular(6),
+          ),
+          child: Text(
+            widget.word.dilbilgiselOzellikler!['cogulForm'].toString(),
+            style: GoogleFonts.notoNaskhArabic(
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              color: widget.isDarkMode 
+                  ? const Color(0xFFFF9F0A)
+                  : const Color(0xFFFF9500),
+            ),
+            textDirection: TextDirection.rtl,
+            textAlign: TextAlign.center,
+          ),
+        ));
+      }
     }
     
     // Chip'ler arasına boşluk ekle
     final spacedChips = <Widget>[];
     for (int i = 0; i < chips.length; i++) {
-      if (i > 0) spacedChips.add(const SizedBox(width: 6));
+      if (i > 0) spacedChips.add(const SizedBox(width: 8));
       spacedChips.add(chips[i]);
     }
     
@@ -592,12 +611,12 @@ class _SavedWordCardWidgetState extends State<_SavedWordCardWidget> with TickerP
           return Padding(
             padding: const EdgeInsets.only(bottom: 12),
             child: Container(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(18),
               decoration: BoxDecoration(
                 color: widget.isDarkMode 
                     ? const Color(0xFF2C2C2E)
                     : const Color(0xFFF8F9FA),
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(4),
                 border: Border.all(
                   color: widget.isDarkMode 
                       ? const Color(0xFF3C3C3E)
@@ -611,15 +630,15 @@ class _SavedWordCardWidgetState extends State<_SavedWordCardWidget> with TickerP
                   if (example['arapcaCümle'] != null) ...[
                     Text(
                       example['arapcaCümle'].toString(),
-                      style: GoogleFonts.amiri(
-                        fontSize: 17,
-                        fontWeight: FontWeight.w700,
+                      style: GoogleFonts.notoNaskhArabic(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w800,
                         color: widget.isDarkMode ? Colors.white : const Color(0xFF1C1C1E),
-                        height: 1.5,
+                        height: 1.4,
                       ),
                       textDirection: TextDirection.rtl,
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 10),
                   ],
                   Text(
                     example['turkceAnlam']?.toString() ?? 
@@ -627,7 +646,7 @@ class _SavedWordCardWidgetState extends State<_SavedWordCardWidget> with TickerP
                     example['turkce']?.toString() ?? 
                     example.toString(),
                     style: TextStyle(
-                      fontSize: 15,
+                      fontSize: 16,
                       fontWeight: FontWeight.w500,
                       color: widget.isDarkMode 
                           ? const Color(0xFF8E8E93)
@@ -644,49 +663,54 @@ class _SavedWordCardWidgetState extends State<_SavedWordCardWidget> with TickerP
     );
   }
 
-
-
   Widget _buildConjugationChip(String title, String text) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: widget.isDarkMode 
-            ? const Color(0xFF2C2C2E)
-            : const Color(0xFFF8F9FA),
-        borderRadius: BorderRadius.circular(4),
-        border: Border.all(
-          color: widget.isDarkMode 
-              ? const Color(0xFF3C3C3E)
-              : const Color(0xFFE5E5EA),
-          width: 1.0,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // Başlık kutunun üstünde
+        Text(
+          title,
+          style: const TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+            color: Color(0xFF007AFF),
+          ),
         ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            title,
-            style: const TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-              color: Color(0xFF007AFF),
+        const SizedBox(height: 6),
+        // Arapça metin için kutu
+        Container(
+          width: double.infinity,
+          height: 60,
+          decoration: BoxDecoration(
+            color: widget.isDarkMode 
+                ? const Color(0xFF2C2C2E)
+                : const Color(0xFFF8F9FA),
+            borderRadius: BorderRadius.circular(4),
+            border: Border.all(
+              color: widget.isDarkMode 
+                  ? const Color(0xFF3C3C3E)
+                  : const Color(0xFFE5E5EA),
+              width: 1.0,
             ),
           ),
-          const SizedBox(height: 6),
-          Text(
-            text,
-            style: GoogleFonts.amiri(
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
-              color: widget.isDarkMode ? Colors.white : const Color(0xFF1C1C1E),
-              height: 1.2,
+          child: Center(
+            child: Text(
+              text,
+              style: GoogleFonts.notoNaskhArabic(
+                fontSize: 18,
+                fontWeight: FontWeight.w800,
+                color: widget.isDarkMode ? Colors.white : const Color(0xFF1C1C1E),
+                height: 1.2,
+              ),
+              textDirection: TextDirection.rtl,
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
             ),
-            textDirection: TextDirection.rtl,
-            textAlign: TextAlign.center,
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 } 
