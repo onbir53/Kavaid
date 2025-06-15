@@ -139,29 +139,50 @@ class WordModel {
     return json;
   }
 
-  // Arama skorlama için metod
+  // Arama skorlama için metod - sadece başlangıç eşleşmeleri
   double searchScore(String query) {
     final lowerQuery = query.toLowerCase();
     final lowerKelime = kelime.toLowerCase();
     final lowerAnlam = anlam?.toLowerCase() ?? '';
     final lowerHarekeli = harekeliKelime?.toLowerCase() ?? '';
 
-    // Tam eşleşme
+    // Tam eşleşme - en yüksek skor
     if (lowerKelime == lowerQuery) return 1.0;
     if (lowerHarekeli == lowerQuery) return 0.95;
-    if (lowerAnlam.contains(lowerQuery)) return 0.9;
+    
+    // Anlam kontrolü - tüm anlamları kontrol et
+    if (_checkMeaningMatch(lowerAnlam, lowerQuery, exact: true)) return 0.9;
 
-    // Başlangıç eşleşmesi
+    // Başlangıç eşleşmesi - sadece bunlar kabul edilir
     if (lowerKelime.startsWith(lowerQuery)) return 0.8;
     if (lowerHarekeli.startsWith(lowerQuery)) return 0.75;
-    if (lowerAnlam.startsWith(lowerQuery)) return 0.7;
-
-    // İçerik eşleşmesi
-    if (lowerKelime.contains(lowerQuery)) return 0.6;
-    if (lowerHarekeli.contains(lowerQuery)) return 0.55;
-    if (lowerAnlam.contains(lowerQuery)) return 0.5;
+    
+    // Anlam başlangıç kontrolü - tüm anlamları kontrol et
+    if (_checkMeaningMatch(lowerAnlam, lowerQuery, exact: false)) return 0.7;
 
     return 0.0;
+  }
+
+  // Anlam eşleşmesi kontrolü - tüm anlamları kontrol eder
+  bool _checkMeaningMatch(String meanings, String query, {required bool exact}) {
+    if (meanings.isEmpty) return false;
+    
+    // Anlamları ayır (virgül, noktalı virgül, satır sonu ile)
+    final meaningList = meanings
+        .split(RegExp(r'[,;.\n]'))
+        .map((m) => m.trim())
+        .where((m) => m.isNotEmpty)
+        .toList();
+    
+    for (final meaning in meaningList) {
+      if (exact) {
+        if (meaning == query) return true;
+      } else {
+        if (meaning.startsWith(query)) return true;
+      }
+    }
+    
+    return false;
   }
 
   // Kelime türü çıkarma (dilbilgiselOzellikler'den)

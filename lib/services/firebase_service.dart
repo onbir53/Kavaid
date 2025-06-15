@@ -108,7 +108,7 @@ class FirebaseService {
             
             words.add(word);
             
-            // Hızlı arama - sadece başlangıç eşleşmelerini kontrol et
+            // Sadece başlangıç eşleşmeleri - kelime başında olmalı
             final lowerQuery = query.toLowerCase();
             final lowerKelime = word.kelime.toLowerCase();
             final lowerHarekeli = word.harekeliKelime?.toLowerCase() ?? '';
@@ -118,7 +118,7 @@ class FirebaseService {
             if (lowerKelime.startsWith(lowerQuery) || 
                 lowerHarekeli.startsWith(lowerQuery) ||
                 lowerKey.startsWith(lowerQuery) ||
-                lowerAnlam.contains(lowerQuery)) {
+                _checkMeaningStartsWith(lowerAnlam, lowerQuery)) { // Tüm anlamları kontrol et
               results.add(word);
               
               // Erken çıkış - 15 sonuç bulunca dur
@@ -162,7 +162,7 @@ class FirebaseService {
       
       if (lowerKelime.startsWith(lowerQuery) || 
           lowerHarekeli.startsWith(lowerQuery) ||
-          lowerAnlam.contains(lowerQuery)) {
+          _checkMeaningStartsWith(lowerAnlam, lowerQuery)) { // Tüm anlamları kontrol et
         results.add(word);
         
         if (results.length >= 15) break;
@@ -216,11 +216,11 @@ class FirebaseService {
               );
             }
             
-            // Kelime veya harekeli kelime ile başlayanlara öncelik ver
+            // Sadece başlangıç eşleşmeleri
             final kelimeMatch = word.kelime.toLowerCase().startsWith(query.toLowerCase());
             final harekeliMatch = word.harekeliKelime?.toLowerCase().startsWith(query.toLowerCase()) ?? false;
             final keyMatch = keyStr.toLowerCase().startsWith(query.toLowerCase());
-            final anlamMatch = word.anlam?.toLowerCase().contains(query.toLowerCase()) ?? false;
+            final anlamMatch = _checkMeaningStartsWith(word.anlam?.toLowerCase() ?? '', query.toLowerCase()); // Tüm anlamları kontrol et
             
             if (kelimeMatch || harekeliMatch || keyMatch || anlamMatch) {
               suggestions.add(word);
@@ -460,5 +460,23 @@ class FirebaseService {
       print('Rastgele kelimeler getirme hatası: $e');
       return [];
     }
+  }
+
+  // Anlam eşleşmesi kontrolü - tüm anlamları kontrol eder
+  bool _checkMeaningStartsWith(String meanings, String query) {
+    if (meanings.isEmpty || query.isEmpty) return false;
+    
+    // Anlamları ayır (virgül, noktalı virgül, satır sonu ile)
+    final meaningList = meanings
+        .split(RegExp(r'[,;.\n]'))
+        .map((m) => m.trim())
+        .where((m) => m.isNotEmpty)
+        .toList();
+    
+    for (final meaning in meaningList) {
+      if (meaning.startsWith(query)) return true;
+    }
+    
+    return false;
   }
 } 
