@@ -213,6 +213,9 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   int _currentIndex = 0;
   VoidCallback? _refreshSavedWords;
+  
+  // Banner reklamı için stateful widget key
+  final GlobalKey<BannerAdWidgetState> _bannerKey = GlobalKey<BannerAdWidgetState>();
 
   void _onTabTapped(int index) {
     setState(() => _currentIndex = index);
@@ -325,7 +328,7 @@ class _MainScreenState extends State<MainScreen> {
                   ),
                 ],
               ),
-              child: const BannerAdWidget(),
+              child: BannerAdWidget(key: _bannerKey),
             ),
           ),
         ],

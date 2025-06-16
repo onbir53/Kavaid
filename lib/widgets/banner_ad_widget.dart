@@ -8,10 +8,10 @@ class BannerAdWidget extends StatefulWidget {
   const BannerAdWidget({Key? key}) : super(key: key);
 
   @override
-  State<BannerAdWidget> createState() => _BannerAdWidgetState();
+  State<BannerAdWidget> createState() => BannerAdWidgetState();
 }
 
-class _BannerAdWidgetState extends State<BannerAdWidget> {
+class BannerAdWidgetState extends State<BannerAdWidget> {
   BannerAd? _bannerAd;
   bool _isAdLoaded = false;
   AdSize? _adSize;
@@ -22,14 +22,7 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
     _loadBannerAd();
   }
 
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    // Orientation değişikliklerinde banneri yeniden yükle
-    if (_bannerAd != null) {
-      _loadBannerAd();
-    }
-  }
+
 
   Future<void> _loadBannerAd() async {
     // Web'de veya desteklenmeyen platformlarda reklam yükleme
