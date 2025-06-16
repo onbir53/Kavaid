@@ -35,8 +35,51 @@ class KavaidApp extends StatefulWidget {
   State<KavaidApp> createState() => _KavaidAppState();
 }
 
-class _KavaidAppState extends State<KavaidApp> {
+class _KavaidAppState extends State<KavaidApp> with WidgetsBindingObserver {
   bool _isDarkMode = false;
+  bool _isAppInForeground = true;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    
+    // İlk başlatmada App Open reklamını göster (biraz gecikme ile)
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Future.delayed(const Duration(milliseconds: 1000), () {
+        if (_isAppInForeground) {
+          AdMobService().showAppOpenAd();
+        }
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    
+    switch (state) {
+      case AppLifecycleState.resumed:
+        if (!_isAppInForeground) {
+          _isAppInForeground = true;
+          AdMobService().onAppStateChanged(true);
+        }
+        break;
+      case AppLifecycleState.paused:
+      case AppLifecycleState.inactive:
+      case AppLifecycleState.detached:
+      case AppLifecycleState.hidden:
+        _isAppInForeground = false;
+        AdMobService().onAppStateChanged(false);
+        break;
+    }
+  }
 
   void _toggleTheme() {
     setState(() {
