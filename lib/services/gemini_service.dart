@@ -47,7 +47,11 @@ class GeminiService {
           debugPrint('⚠️ Database\'deki API anahtarı boş, varsayılan kullanılıyor');
         }
       } else {
-        debugPrint('⚠️ Database\'de config/gemini_api bulunamadı, varsayılan kullanılıyor');
+        debugPrint('⚠️ Database\'de config/gemini_api bulunamadı, oluşturuluyor...');
+        
+        // Config alanını otomatik oluştur
+        await _createConfigInDatabase();
+        apiKey = _defaultApiKey;
       }
       
       // Cache'le
@@ -61,6 +65,26 @@ class GeminiService {
       _cachedApiKey = _defaultApiKey;
       _lastApiKeyFetch = DateTime.now();
       return _defaultApiKey;
+    }
+  }
+
+  // Config alanını database'de oluştur
+  Future<void> _createConfigInDatabase() async {
+    try {
+      debugPrint('🔧 Database\'de config alanı oluşturuluyor...');
+      
+      final database = FirebaseDatabase.instance;
+      final configRef = database.ref('config');
+      
+      await configRef.set({
+        'gemini_api': _defaultApiKey,
+        'created_at': DateTime.now().millisecondsSinceEpoch,
+        'note': 'Bu alanı Firebase Console\'dan düzenleyebilirsiniz'
+      });
+      
+      debugPrint('✅ Config alanı başarıyla oluşturuldu');
+    } catch (e) {
+      debugPrint('❌ Config alanı oluşturulamadı: $e');
     }
   }
 
