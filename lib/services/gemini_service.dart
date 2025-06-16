@@ -2,17 +2,74 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:firebase_database/firebase_database.dart';
+import 'package:firebase_remote_config/firebase_remote_config.dart';
 import '../models/word_model.dart';
 import 'firebase_service.dart';
 
 class GeminiService {
-  static const String _apiKey = 'AIzaSyCbAR_1yQ2QVKbpyWRFj0VpOxAQZ2JBfas';
+  static const String _defaultApiKey = 'AIzaSyCbAR_1yQ2QVKbpyWRFj0VpOxAQZ2JBfas';
   static const String _baseUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent';
 
   // Singleton pattern
   static final GeminiService _instance = GeminiService._internal();
   factory GeminiService() => _instance;
   GeminiService._internal();
+
+  String? _cachedApiKey;
+  DateTime? _lastApiKeyFetch;
+  static const Duration _apiKeyCacheTimeout = Duration(minutes: 30);
+
+  // Firebase Remote Config'den API anahtarını al
+  Future<String> _getApiKey() async {
+    try {
+      // Cache kontrolü
+      final now = DateTime.now();
+      if (_cachedApiKey != null && 
+          _lastApiKeyFetch != null && 
+          now.difference(_lastApiKeyFetch!).compareTo(_apiKeyCacheTimeout) < 0) {
+        debugPrint('📦 Cached API anahtarı kullanılıyor');
+        return _cachedApiKey!;
+      }
+
+      debugPrint('🔑 Firebase Remote Config\'den API anahtarı alınıyor...');
+      
+      final remoteConfig = FirebaseRemoteConfig.instance;
+      await remoteConfig.setConfigSettings(RemoteConfigSettings(
+        fetchTimeout: const Duration(seconds: 10),
+        minimumFetchInterval: const Duration(minutes: 5),
+      ));
+
+      // Varsayılan değerler
+      await remoteConfig.setDefaults({
+        'gemini_api_key': _defaultApiKey,
+      });
+
+      // Fetch ve activate
+      await remoteConfig.fetchAndActivate();
+      
+      final apiKey = remoteConfig.getString('gemini_api_key');
+      
+      // Cache'le
+      _cachedApiKey = apiKey.isNotEmpty ? apiKey : _defaultApiKey;
+      _lastApiKeyFetch = now;
+      
+      debugPrint('✅ API anahtarı Remote Config\'den alındı');
+      return _cachedApiKey!;
+      
+    } catch (e) {
+      debugPrint('⚠️ Remote Config hatası, varsayılan API anahtarı kullanılıyor: $e');
+      _cachedApiKey = _defaultApiKey;
+      _lastApiKeyFetch = DateTime.now();
+      return _defaultApiKey;
+    }
+  }
+
+  // API anahtarı cache'ini temizle (manuel refresh için)
+  void clearApiKeyCache() {
+    _cachedApiKey = null;
+    _lastApiKeyFetch = null;
+    debugPrint('🗑️ API anahtarı cache\'i temizlendi');
+  }
 
   // Kelime analizi - HomeScreen için
   Future<WordModel?> analyzeWord(String word) async {
@@ -52,7 +109,9 @@ class GeminiService {
       
       debugPrint('🤖 Kelime veritabanında bulunamadı, Gemini API\'ye istek atılıyor: $word');
       
-      final url = Uri.parse('$_baseUrl?key=$_apiKey');
+      // API anahtarını dinamik olarak al
+      final apiKey = await _getApiKey();
+      final url = Uri.parse('$_baseUrl?key=$apiKey');
       
       final requestBody = {
         'contents': [
@@ -380,5 +439,12 @@ emirForm (string): Emir, 2. tekil eril, harekeli.
   }
 
   // API Key kontrolü
-  bool get isConfigured => _apiKey.isNotEmpty;
+  Future<bool> get isConfigured async {
+    try {
+      final apiKey = await _getApiKey();
+      return apiKey.isNotEmpty;
+    } catch (e) {
+      return false;
+    }
+  }
 } 

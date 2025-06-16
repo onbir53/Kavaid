@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_remote_config/firebase_remote_config.dart';
 import 'screens/home_screen.dart';
 import 'screens/saved_words_screen.dart';
 import 'services/firebase_options.dart';
@@ -14,6 +15,24 @@ void main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+  
+  // Firebase Remote Config'i initialize et
+  try {
+    final remoteConfig = FirebaseRemoteConfig.instance;
+    await remoteConfig.setConfigSettings(RemoteConfigSettings(
+      fetchTimeout: const Duration(seconds: 10),
+      minimumFetchInterval: const Duration(minutes: 5),
+    ));
+    
+    // Varsayılan değerler
+    await remoteConfig.setDefaults({
+      'gemini_api_key': 'AIzaSyCbAR_1yQ2QVKbpyWRFj0VpOxAQZ2JBfas',
+    });
+    
+    debugPrint('✅ Firebase Remote Config başlatıldı');
+  } catch (e) {
+    debugPrint('❌ Firebase Remote Config başlatılamadı: $e');
+  }
   
   // AdMob'u güvenli şekilde başlat
   try {
@@ -278,12 +297,12 @@ class _MainScreenState extends State<MainScreen> {
       resizeToAvoidBottomInset: false,
       body: Stack(
         children: [
-          // Ana içerik alanı - en üstten başlıyor, sabit pozisyon
+          // Ana içerik alanı - en üstten başlıyor, banner'ın arkasına kadar uzanıyor
           Positioned(
             top: 0,
             left: 0,
             right: 0,
-            bottom: 144, // Banner (64) + BottomNav (80) = 144 - klavyeden bağımsız sabit
+            bottom: _calculateContentBottomPosition(keyboardHeight),
             child: IndexedStack(
               index: _currentIndex,
               children: [
@@ -377,6 +396,15 @@ class _MainScreenState extends State<MainScreen> {
         ],
       ),
     );
+  }
+
+  // Ana içerik alanının bottom pozisyonunu hesapla
+  double _calculateContentBottomPosition(double keyboardHeight) {
+    const bottomNavHeight = 80.0; // BottomNavigationBar yüksekliği
+    
+    // İçerik sadece navigation bar kadar bottom'dan uzak olmalı
+    // Banner ile örtüşebilmeli, böylece banner'ın arkasından kelimeler görünür
+    return bottomNavHeight;
   }
 
   // Banner pozisyonunu hesapla

@@ -316,7 +316,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     if (_isSearching && _searchResults.isNotEmpty) {
       return ListView.builder(
-        padding: const EdgeInsets.symmetric(horizontal: 20),
+        padding: const EdgeInsets.fromLTRB(20, 0, 20, 80), // Banner alanında padding
         itemCount: _searchResults.length,
         itemBuilder: (context, index) {
           return SearchResultCard(
@@ -329,7 +329,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     if (_selectedWord != null) {
       return SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 20),
+        padding: const EdgeInsets.fromLTRB(20, 0, 20, 80), // Banner alanında padding
         child: WordCard(word: _selectedWord!),
       );
     }

@@ -152,7 +152,7 @@ class _SavedWordsScreenState extends State<SavedWordsScreen> with AutomaticKeepA
           ),
         ),
         body: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 20),
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 80), // Banner alanında padding
           child: WordCard(word: _selectedWord!),
         ),
       );
@@ -204,7 +204,7 @@ class _SavedWordsScreenState extends State<SavedWordsScreen> with AutomaticKeepA
                   ),
                 )
               : ListView.builder(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                  padding: const EdgeInsets.fromLTRB(20, 10, 20, 90), // Banner alanında padding
                   itemCount: _savedWords.length,
                   itemBuilder: (context, index) {
                     final word = _savedWords[index];
