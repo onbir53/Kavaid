@@ -14,22 +14,9 @@ class GeminiService {
   factory GeminiService() => _instance;
   GeminiService._internal();
 
-  String? _cachedApiKey;
-  DateTime? _lastApiKeyFetch;
-  static const Duration _apiKeyCacheTimeout = Duration(minutes: 30);
-
-  // Firebase Realtime Database'den API anahtarını al
+  // Firebase Realtime Database'den API anahtarını al (her seferinde fresh)
   Future<String> _getApiKey() async {
     try {
-      // Cache kontrolü
-      final now = DateTime.now();
-      if (_cachedApiKey != null && 
-          _lastApiKeyFetch != null && 
-          now.difference(_lastApiKeyFetch!).compareTo(_apiKeyCacheTimeout) < 0) {
-        debugPrint('📦 Cached API anahtarı kullanılıyor');
-        return _cachedApiKey!;
-      }
-
       debugPrint('🔑 Firebase Realtime Database\'den API anahtarı alınıyor...');
       
       final database = FirebaseDatabase.instance;
@@ -42,7 +29,7 @@ class GeminiService {
         final value = snapshot.value.toString().trim();
         if (value.isNotEmpty) {
           apiKey = value;
-          debugPrint('✅ API anahtarı Realtime Database\'den alındı');
+          debugPrint('✅ API anahtarı Realtime Database\'den alındı: ${value.substring(0, 10)}...');
         } else {
           debugPrint('⚠️ Database\'deki API anahtarı boş, varsayılan kullanılıyor');
         }
@@ -54,16 +41,10 @@ class GeminiService {
         apiKey = _defaultApiKey;
       }
       
-      // Cache'le
-      _cachedApiKey = apiKey;
-      _lastApiKeyFetch = now;
-      
-      return _cachedApiKey!;
+      return apiKey;
       
     } catch (e) {
       debugPrint('⚠️ Realtime Database hatası, varsayılan API anahtarı kullanılıyor: $e');
-      _cachedApiKey = _defaultApiKey;
-      _lastApiKeyFetch = DateTime.now();
       return _defaultApiKey;
     }
   }
@@ -88,11 +69,9 @@ class GeminiService {
     }
   }
 
-  // API anahtarı cache'ini temizle (manuel refresh için)
+  // API anahtarını manuel refresh et (artık her seferinde fresh alındığı için sadece log)
   void clearApiKeyCache() {
-    _cachedApiKey = null;
-    _lastApiKeyFetch = null;
-    debugPrint('🗑️ API anahtarı cache\'i temizlendi');
+    debugPrint('🔄 API anahtarı bir sonraki istekte Firebase\'den fresh alınacak');
   }
 
   // Kelime analizi - HomeScreen için
@@ -468,6 +447,7 @@ emirForm (string): Emir, 2. tekil eril, harekeli.
       final apiKey = await _getApiKey();
       return apiKey.isNotEmpty;
     } catch (e) {
+      debugPrint('❌ API anahtarı kontrol hatası: $e');
       return false;
     }
   }
