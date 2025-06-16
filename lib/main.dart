@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_remote_config/firebase_remote_config.dart';
 import 'screens/home_screen.dart';
 import 'screens/saved_words_screen.dart';
 import 'services/firebase_options.dart';
@@ -15,24 +14,6 @@ void main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
-  
-  // Firebase Remote Config'i initialize et
-  try {
-    final remoteConfig = FirebaseRemoteConfig.instance;
-    await remoteConfig.setConfigSettings(RemoteConfigSettings(
-      fetchTimeout: const Duration(seconds: 10),
-      minimumFetchInterval: const Duration(minutes: 5),
-    ));
-    
-    // Varsayılan değerler
-    await remoteConfig.setDefaults({
-      'gemini_api_key': 'AIzaSyCbAR_1yQ2QVKbpyWRFj0VpOxAQZ2JBfas',
-    });
-    
-    debugPrint('✅ Firebase Remote Config başlatıldı');
-  } catch (e) {
-    debugPrint('❌ Firebase Remote Config başlatılamadı: $e');
-  }
   
   // AdMob'u güvenli şekilde başlat
   try {

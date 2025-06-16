@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:firebase_database/firebase_database.dart';
-import 'package:firebase_remote_config/firebase_remote_config.dart';
 import '../models/word_model.dart';
 import 'firebase_service.dart';
 
@@ -19,7 +18,7 @@ class GeminiService {
   DateTime? _lastApiKeyFetch;
   static const Duration _apiKeyCacheTimeout = Duration(minutes: 30);
 
-  // Firebase Remote Config'den API anahtarını al
+  // Firebase Realtime Database'den API anahtarını al
   Future<String> _getApiKey() async {
     try {
       // Cache kontrolü
@@ -31,33 +30,34 @@ class GeminiService {
         return _cachedApiKey!;
       }
 
-      debugPrint('🔑 Firebase Remote Config\'den API anahtarı alınıyor...');
+      debugPrint('🔑 Firebase Realtime Database\'den API anahtarı alınıyor...');
       
-      final remoteConfig = FirebaseRemoteConfig.instance;
-      await remoteConfig.setConfigSettings(RemoteConfigSettings(
-        fetchTimeout: const Duration(seconds: 10),
-        minimumFetchInterval: const Duration(minutes: 5),
-      ));
-
-      // Varsayılan değerler
-      await remoteConfig.setDefaults({
-        'gemini_api_key': _defaultApiKey,
-      });
-
-      // Fetch ve activate
-      await remoteConfig.fetchAndActivate();
+      final database = FirebaseDatabase.instance;
+      final configRef = database.ref('config/gemini_api');
       
-      final apiKey = remoteConfig.getString('gemini_api_key');
+      final snapshot = await configRef.get();
+      
+      String apiKey = _defaultApiKey;
+      if (snapshot.exists && snapshot.value != null) {
+        final value = snapshot.value.toString().trim();
+        if (value.isNotEmpty) {
+          apiKey = value;
+          debugPrint('✅ API anahtarı Realtime Database\'den alındı');
+        } else {
+          debugPrint('⚠️ Database\'deki API anahtarı boş, varsayılan kullanılıyor');
+        }
+      } else {
+        debugPrint('⚠️ Database\'de config/gemini_api bulunamadı, varsayılan kullanılıyor');
+      }
       
       // Cache'le
-      _cachedApiKey = apiKey.isNotEmpty ? apiKey : _defaultApiKey;
+      _cachedApiKey = apiKey;
       _lastApiKeyFetch = now;
       
-      debugPrint('✅ API anahtarı Remote Config\'den alındı');
       return _cachedApiKey!;
       
     } catch (e) {
-      debugPrint('⚠️ Remote Config hatası, varsayılan API anahtarı kullanılıyor: $e');
+      debugPrint('⚠️ Realtime Database hatası, varsayılan API anahtarı kullanılıyor: $e');
       _cachedApiKey = _defaultApiKey;
       _lastApiKeyFetch = DateTime.now();
       return _defaultApiKey;
