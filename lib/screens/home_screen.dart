@@ -6,18 +6,16 @@ import '../services/gemini_service.dart';
 import '../services/firebase_service.dart';
 import '../widgets/word_card.dart';
 import '../widgets/search_result_card.dart';
-import '../widgets/arabic_keyboard.dart';
+
 
 class HomeScreen extends StatefulWidget {
   final bool isDarkMode;
   final VoidCallback onThemeToggle;
-  final Function(bool)? onArabicKeyboardToggle;
 
   const HomeScreen({
     super.key,
     required this.isDarkMode,
     required this.onThemeToggle,
-    this.onArabicKeyboardToggle,
   });
 
   @override
@@ -35,7 +33,6 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _isLoading = false;
   bool _isSearching = false;
   bool _showAIButton = false;
-  bool _showArabicKeyboard = false;
   bool _showNotFound = false;
   Timer? _debounceTimer;
   StreamSubscription<List<WordModel>>? _searchSubscription;
@@ -180,6 +177,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      resizeToAvoidBottomInset: true,
       appBar: AppBar(
         automaticallyImplyLeading: false, // Geri butonunu kaldır
         title: const Text(
@@ -226,30 +224,8 @@ class _HomeScreenState extends State<HomeScreen> {
                           color: Color(0xFF8E8E93),
                           size: 22,
                         ),
-                        suffixIcon: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            // Arapça klavye ikonu
-                            IconButton(
-                              icon: Icon(
-                                Icons.keyboard_alt_outlined,
-                                color: _showArabicKeyboard 
-                                    ? const Color(0xFF007AFF) 
-                                    : const Color(0xFF8E8E93),
-                                size: 22,
-                              ),
-                              onPressed: () {
-                                setState(() {
-                                  _showArabicKeyboard = !_showArabicKeyboard;
-                                });
-                                // Parent widget'a durumu bildir
-                                widget.onArabicKeyboardToggle?.call(_showArabicKeyboard);
-                              },
-                              tooltip: 'Arapça Klavye',
-                            ),
-                            // Temizle ikonu
-                            if (_searchController.text.isNotEmpty)
-                              IconButton(
+                        suffixIcon: _searchController.text.isNotEmpty 
+                            ? IconButton(
                                 icon: const Icon(
                                   Icons.clear,
                                   color: Color(0xFF8E8E93),
@@ -265,9 +241,8 @@ class _HomeScreenState extends State<HomeScreen> {
                                     _showNotFound = false;
                                   });
                                 },
-                              ),
-                          ],
-                        ),
+                              )
+                            : null,
                       ),
                       textInputAction: TextInputAction.search,
                       onSubmitted: (_) => _searchWithAI(),
@@ -311,26 +286,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ],
           ),
           
-          // Arapça klavye - Stack'in en altında (banner'ın altında)
-          if (_showArabicKeyboard)
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: 0,
-              child: Container(
-                color: Theme.of(context).scaffoldBackgroundColor,
-                child: ArabicKeyboard(
-                  controller: _searchController,
-                  onClose: () {
-                    setState(() {
-                      _showArabicKeyboard = false;
-                    });
-                    // Parent widget'a durumu bildir
-                    widget.onArabicKeyboardToggle?.call(false);
-                  },
-                ),
-              ),
-            ),
+
         ],
       ),
     );

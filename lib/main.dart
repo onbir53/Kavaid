@@ -213,7 +213,6 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   int _currentIndex = 0;
   VoidCallback? _refreshSavedWords;
-  bool _isArabicKeyboardVisible = false; // Arapça klavye durumu
 
   void _onTabTapped(int index) {
     setState(() => _currentIndex = index);
@@ -224,38 +223,27 @@ class _MainScreenState extends State<MainScreen> {
     }
   }
 
-  // Arapça klavye durumu callback'i
-  void _onArabicKeyboardToggle(bool isVisible) {
-    setState(() {
-      _isArabicKeyboardVisible = isVisible;
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
     // Klavye yüksekliğini al
     final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
     
-    // Arapça klavye yüksekliği (gerçek hesaplama)
-    const arabicKeyboardHeight = 240.0;
-    
     return Scaffold(
-      resizeToAvoidBottomInset: true,
+      resizeToAvoidBottomInset: false,
       body: Stack(
         children: [
-          // Ana içerik alanı - en üstten başlıyor
+          // Ana içerik alanı - en üstten başlıyor, sabit pozisyon
           Positioned(
             top: 0,
             left: 0,
             right: 0,
-            bottom: _calculateBottomSpacing(keyboardHeight, arabicKeyboardHeight),
+            bottom: 144, // Banner (64) + BottomNav (80) = 144 - klavyeden bağımsız sabit
             child: IndexedStack(
               index: _currentIndex,
               children: [
                 HomeScreen(
                   isDarkMode: widget.isDarkMode,
                   onThemeToggle: widget.onThemeToggle,
-                  onArabicKeyboardToggle: _onArabicKeyboardToggle,
                 ), // Sözlük
                 SavedWordsScreen(
                   onRefreshCallback: (callback) => _refreshSavedWords = callback,
@@ -268,11 +256,11 @@ class _MainScreenState extends State<MainScreen> {
             ),
           ),
           
-          // Bottom Navigation Bar - sabit pozisyonda
+          // Bottom Navigation Bar - her zaman sabit pozisyonda (en altta)
           Positioned(
             left: 0,
             right: 0,
-            bottom: _calculateBottomNavPosition(keyboardHeight, arabicKeyboardHeight),
+            bottom: 0,
             child: Container(
               decoration: BoxDecoration(
                 boxShadow: [
@@ -321,12 +309,12 @@ class _MainScreenState extends State<MainScreen> {
             ),
           ),
           
-          // Banner - klavyenin hemen üstünde bitişik
+          // Banner - sistem klavyesinin hemen üstünde bitişik
           AnimatedPositioned(
             duration: const Duration(milliseconds: 200),
             left: 0,
             right: 0,
-            bottom: _calculateBannerPosition(keyboardHeight, arabicKeyboardHeight),
+            bottom: _calculateBannerPosition(keyboardHeight),
             child: Container(
               decoration: BoxDecoration(
                 boxShadow: [
@@ -345,50 +333,16 @@ class _MainScreenState extends State<MainScreen> {
     );
   }
 
-  // İçerik alanının alttan boşluğunu hesapla
-  double _calculateBottomSpacing(double keyboardHeight, double arabicKeyboardHeight) {
-    const bottomNavHeight = 80.0; // BottomNavigationBar yüksekliği
-    const bannerHeight = 64.0; // Banner yüksekliği
-    
-    if (_isArabicKeyboardVisible) {
-      // Arapça klavye + BottomNav + Banner yüksekliği
-      return arabicKeyboardHeight + bottomNavHeight + bannerHeight;
-    } else if (keyboardHeight > 0) {
-      // Sistem klavyesi + BottomNav + Banner yüksekliği  
-      return keyboardHeight + bottomNavHeight + bannerHeight;
-    } else {
-      // BottomNav + Banner yüksekliği (klavye kapalı - banner bottomNav'ın altında)
-      return bottomNavHeight + bannerHeight;
-    }
-  }
-
-  // BottomNavigationBar pozisyonunu hesapla
-  double _calculateBottomNavPosition(double keyboardHeight, double arabicKeyboardHeight) {
-    const bannerHeight = 64.0; // Banner yüksekliği
-    
-    if (_isArabicKeyboardVisible) {
-      // Arapça klavye açıksa klavyenin tam üstünde
-      return arabicKeyboardHeight;
-    } else if (keyboardHeight > 0) {
-      // Sistem klavyesi açıksa klavyenin tam üstünde
-      return keyboardHeight;
-    } else {
-      // Klavye kapalıysa banner'ın üstünde (banner bottomNav'ın altında)
-      return bannerHeight;
-    }
-  }
-
   // Banner pozisyonunu hesapla
-  double _calculateBannerPosition(double keyboardHeight, double arabicKeyboardHeight) {
-    if (_isArabicKeyboardVisible) {
-      // Arapça klavye açıksa klavyenin hemen üstünde bitişik
-      return arabicKeyboardHeight;
-    } else if (keyboardHeight > 0) {
+  double _calculateBannerPosition(double keyboardHeight) {
+    const bottomNavHeight = 80.0; // BottomNavigationBar yüksekliği
+    
+    if (keyboardHeight > 0) {
       // Sistem klavyesi açıksa klavyenin hemen üstünde bitişik
       return keyboardHeight;
     } else {
-      // Klavye kapalıysa bottomNav'ın altında bitişik (en altta)
-      return 0;
+      // Klavye kapalıysa navigation bar'ın hemen üstünde bitişik
+      return bottomNavHeight;
     }
   }
 }
