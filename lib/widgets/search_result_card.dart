@@ -400,6 +400,7 @@ class _SearchResultCardState extends State<SearchResultCard> with TickerProvider
       // Kök (sadece veri, etiket yok)
       if (widget.word.koku?.isNotEmpty == true) {
         chips.add(Container(
+          constraints: const BoxConstraints(maxWidth: 120),
           padding: const EdgeInsets.symmetric(
             horizontal: 10,
             vertical: 5,
@@ -416,40 +417,23 @@ class _SearchResultCardState extends State<SearchResultCard> with TickerProvider
               width: 1,
             ),
           ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                'كök: ',
-                style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w600,
-                  color: isDarkMode 
-                      ? const Color(0xFF8E8E93)
-                      : const Color(0xFF6D6D70),
-                ),
-              ),
-              Flexible(
-                child: Text(
-                  widget.word.koku!,
-                  style: GoogleFonts.scheherazadeNew(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                    color: isDarkMode 
-                        ? const Color(0xFFE5E5EA)
-                        : const Color(0xFF1C1C1E),
-                    fontFeatures: const [
-                      ui.FontFeature.enable('liga'),
-                      ui.FontFeature.enable('calt'),
-                    ],
-                  ),
-                  textDirection: TextDirection.rtl,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  softWrap: false,
-                ),
-              ),
-            ],
+          child: Text(
+            widget.word.koku!,
+            style: GoogleFonts.scheherazadeNew(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: isDarkMode 
+                  ? const Color(0xFFE5E5EA)
+                  : const Color(0xFF1C1C1E),
+              fontFeatures: const [
+                ui.FontFeature.enable('liga'),
+                ui.FontFeature.enable('calt'),
+              ],
+            ),
+            textDirection: TextDirection.rtl,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            softWrap: false,
           ),
         ));
       }
@@ -458,6 +442,7 @@ class _SearchResultCardState extends State<SearchResultCard> with TickerProvider
       if (widget.word.dilbilgiselOzellikler?.containsKey('cogulForm') == true && 
           widget.word.dilbilgiselOzellikler!['cogulForm']?.toString().trim().isNotEmpty == true) {
         chips.add(Container(
+          constraints: const BoxConstraints(maxWidth: 120),
           padding: const EdgeInsets.symmetric(
             horizontal: 10,
             vertical: 5,
@@ -474,40 +459,23 @@ class _SearchResultCardState extends State<SearchResultCard> with TickerProvider
               width: 1,
             ),
           ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                'Çoğul: ',
-                style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w600,
-                  color: isDarkMode 
-                      ? const Color(0xFF8E8E93)
-                      : const Color(0xFF6D6D70),
-                ),
-              ),
-              Flexible(
-                child: Text(
-                  widget.word.dilbilgiselOzellikler!['cogulForm'].toString(),
-                  style: GoogleFonts.scheherazadeNew(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                    color: isDarkMode 
-                        ? const Color(0xFFE5E5EA)
-                        : const Color(0xFF1C1C1E),
-                    fontFeatures: const [
-                      ui.FontFeature.enable('liga'),
-                      ui.FontFeature.enable('calt'),
-                    ],
-                  ),
-                  textDirection: TextDirection.rtl,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  softWrap: false,
-                ),
-              ),
-            ],
+          child: Text(
+            widget.word.dilbilgiselOzellikler!['cogulForm'].toString(),
+            style: GoogleFonts.scheherazadeNew(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: isDarkMode 
+                  ? const Color(0xFFE5E5EA)
+                  : const Color(0xFF1C1C1E),
+              fontFeatures: const [
+                ui.FontFeature.enable('liga'),
+                ui.FontFeature.enable('calt'),
+              ],
+            ),
+            textDirection: TextDirection.rtl,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            softWrap: false,
           ),
         ));
       }
@@ -633,19 +601,23 @@ class _SearchResultCardState extends State<SearchResultCard> with TickerProvider
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         if (example['arapcaCümle'] != null) ...[
-                          Text(
-                            example['arapcaCümle'].toString(),
-                            style: GoogleFonts.scheherazadeNew(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                              color: isDarkMode ? const Color(0xFFE5E5EA) : const Color(0xFF1C1C1E),
-                              height: 1.5,
-                              fontFeatures: const [
-                                ui.FontFeature.enable('liga'),
-                                ui.FontFeature.enable('calt'),
-                              ],
+                          Container(
+                            width: double.infinity,
+                            child: Text(
+                              example['arapcaCümle'].toString(),
+                              style: GoogleFonts.scheherazadeNew(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                                color: isDarkMode ? const Color(0xFFE5E5EA) : const Color(0xFF1C1C1E),
+                                height: 1.5,
+                                fontFeatures: const [
+                                  ui.FontFeature.enable('liga'),
+                                  ui.FontFeature.enable('calt'),
+                                ],
+                              ),
+                              textDirection: TextDirection.rtl,
+                              textAlign: TextAlign.left,
                             ),
-                            textDirection: TextDirection.rtl,
                           ),
                           const SizedBox(height: 6),
                         ],
