@@ -167,7 +167,7 @@ class _SearchResultCardState extends State<SearchResultCard> with TickerProvider
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     
     return Padding(
-      padding: const EdgeInsets.only(bottom: 4),
+      padding: const EdgeInsets.only(bottom: 2),
       child: Container(
         decoration: BoxDecoration(
           color: isDarkMode 
