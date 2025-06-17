@@ -5,7 +5,9 @@ import 'package:google_mobile_ads/google_mobile_ads.dart';
 import '../services/admob_service.dart';
 
 class BannerAdWidget extends StatefulWidget {
-  const BannerAdWidget({Key? key}) : super(key: key);
+  final Function(double)? onHeightChanged;
+  
+  const BannerAdWidget({Key? key, this.onHeightChanged}) : super(key: key);
 
   @override
   State<BannerAdWidget> createState() => BannerAdWidgetState();
@@ -20,9 +22,14 @@ class BannerAdWidgetState extends State<BannerAdWidget> {
   void initState() {
     super.initState();
     _loadBannerAd();
+    
+    // İlk placeholder yüksekliğini bildir
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (widget.onHeightChanged != null) {
+        widget.onHeightChanged!(50.0); // Placeholder yüksekliği
+      }
+    });
   }
-
-
 
   Future<void> _loadBannerAd() async {
     // Web'de veya desteklenmeyen platformlarda reklam yükleme
@@ -78,6 +85,11 @@ class BannerAdWidgetState extends State<BannerAdWidget> {
             _isAdLoaded = true;
             _adSize = platformSize;
           });
+          
+          // Ana ekrana yükseklik değişikliğini bildir
+          if (widget.onHeightChanged != null) {
+            widget.onHeightChanged!(platformSize.height.toDouble());
+          }
         },
         onAdFailedToLoad: (ad, error) {
           print('❌ Adaptive Banner reklam yüklenemedi: $error');
@@ -87,6 +99,11 @@ class BannerAdWidgetState extends State<BannerAdWidget> {
             _isAdLoaded = false;
             _adSize = null;
           });
+          
+          // Hata durumunda placeholder yüksekliğini bildir
+          if (widget.onHeightChanged != null) {
+            widget.onHeightChanged!(50.0);
+          }
         },
         onAdOpened: (ad) {
           print('📱 Banner reklam açıldı');
@@ -113,6 +130,12 @@ class BannerAdWidgetState extends State<BannerAdWidget> {
   Widget build(BuildContext context) {
     // Web'de veya desteklenmeyen platformlarda boş alan döndür
     if (kIsWeb || (!Platform.isAndroid && !Platform.isIOS)) {
+      // Web platformunda yükseklik 0 olarak bildir
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (widget.onHeightChanged != null) {
+          widget.onHeightChanged!(0.0);
+        }
+      });
       return const SizedBox.shrink();
     }
 
@@ -121,8 +144,8 @@ class BannerAdWidgetState extends State<BannerAdWidget> {
       return Container(
         width: MediaQuery.of(context).size.width, // Tam ekran genişliği
         height: _adSize!.height.toDouble(),
-        margin: EdgeInsets.zero,
-        padding: EdgeInsets.zero,
+        margin: EdgeInsets.zero, // Hiç margin yok
+        padding: EdgeInsets.zero, // Hiç padding yok
         color: Theme.of(context).scaffoldBackgroundColor,
         child: OverflowBox(
           maxWidth: MediaQuery.of(context).size.width,
@@ -135,12 +158,12 @@ class BannerAdWidgetState extends State<BannerAdWidget> {
         ),
       );
     } else {
-      // Reklam yüklenene kadar placeholder - tam genişlik
+      // Reklam yüklenene kadar placeholder - tam genişlik ve sabit yükseklik
       return Container(
         width: MediaQuery.of(context).size.width, // Tam ekran genişliği
-        height: 60,
-        margin: EdgeInsets.zero,
-        padding: EdgeInsets.zero,
+        height: 50, // Daha kompakt placeholder yüksekliği
+        margin: EdgeInsets.zero, // Hiç margin yok
+        padding: EdgeInsets.zero, // Hiç padding yok
         color: Theme.of(context).scaffoldBackgroundColor,
         child: const Center(
           child: SizedBox(

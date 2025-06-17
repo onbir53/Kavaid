@@ -258,13 +258,10 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   int _currentIndex = 0;
   VoidCallback? _refreshSavedWords;
-  
-  // Banner reklamı için stateful widget key
-  final GlobalKey<BannerAdWidgetState> _bannerKey = GlobalKey<BannerAdWidgetState>();
 
   void _onTabTapped(int index) {
     setState(() => _currentIndex = index);
-    
+
     // Kaydedilenler sekmesine geçildiğinde listeyi yenile
     if (index == 1 && _refreshSavedWords != null) {
       _refreshSavedWords!();
@@ -273,138 +270,64 @@ class _MainScreenState extends State<MainScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Klavye yüksekliğini al
-    final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
-    
     return Scaffold(
-      resizeToAvoidBottomInset: false,
-      body: Stack(
+      body: IndexedStack(
+        index: _currentIndex,
         children: [
-          // Ana içerik alanı - en üstten başlıyor, banner'ın arkasına kadar uzanıyor
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: _calculateContentBottomPosition(keyboardHeight),
-            child: IndexedStack(
-              index: _currentIndex,
-              children: [
-                HomeScreen(
-                  isDarkMode: widget.isDarkMode,
-                  onThemeToggle: widget.onThemeToggle,
-                ), // Sözlük
-                SavedWordsScreen(
-                  onRefreshCallback: (callback) => _refreshSavedWords = callback,
-                ), // Kaydedilenler
-                ProfileScreen(
-                  isDarkMode: widget.isDarkMode,
-                  onThemeToggle: widget.onThemeToggle,
-                ), // Profil
-              ],
-            ),
+          HomeScreen(
+            isDarkMode: widget.isDarkMode,
+            onThemeToggle: widget.onThemeToggle,
+          ), // Sözlük
+          SavedWordsScreen(
+            onRefreshCallback: (callback) => _refreshSavedWords = callback,
+          ), // Kaydedilenler
+          ProfileScreen(
+            isDarkMode: widget.isDarkMode,
+            onThemeToggle: widget.onThemeToggle,
+          ), // Profil
+        ],
+      ),
+      bottomSheet: const BannerAdWidget(),
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _currentIndex,
+        onTap: _onTabTapped,
+        type: BottomNavigationBarType.fixed,
+        backgroundColor: widget.isDarkMode
+            ? const Color(0xFF2C2C2E)
+            : const Color(0xFFFFFFFF).withOpacity(0.95),
+        selectedItemColor: const Color(0xFF007AFF),
+        unselectedItemColor: const Color(0xFF8E8E93),
+        selectedLabelStyle: const TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+        ),
+        unselectedLabelStyle: const TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w400,
+        ),
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.menu_book_outlined),
+            activeIcon: Icon(Icons.menu_book),
+            label: 'Sözlük',
           ),
-          
-          // Bottom Navigation Bar - her zaman sabit pozisyonda (en altta)
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            child: Container(
-              decoration: BoxDecoration(
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
-                    blurRadius: 4,
-                    offset: const Offset(0, -2),
-                  ),
-                ],
-              ),
-              child: BottomNavigationBar(
-                currentIndex: _currentIndex,
-                onTap: _onTabTapped,
-                type: BottomNavigationBarType.fixed,
-                backgroundColor: widget.isDarkMode 
-                    ? const Color(0xFF2C2C2E)
-                    : const Color(0xFFFFFFFF).withOpacity(0.95),
-                selectedItemColor: const Color(0xFF007AFF),
-                unselectedItemColor: const Color(0xFF8E8E93),
-                selectedLabelStyle: const TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                ),
-                unselectedLabelStyle: const TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w400,
-                ),
-                items: const [
-                  BottomNavigationBarItem(
-                    icon: Icon(Icons.menu_book_outlined),
-                    activeIcon: Icon(Icons.menu_book),
-                    label: 'Sözlük',
-                  ),
-                  BottomNavigationBarItem(
-                    icon: Icon(Icons.bookmark_border),
-                    activeIcon: Icon(Icons.bookmark),
-                    label: 'Kaydedilenler',
-                  ),
-                  BottomNavigationBarItem(
-                    icon: Icon(Icons.person_outline),
-                    activeIcon: Icon(Icons.person),
-                    label: 'Profil',
-                  ),
-                ],
-              ),
-            ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.bookmark_border),
+            activeIcon: Icon(Icons.bookmark),
+            label: 'Kaydedilenler',
           ),
-          
-          // Banner - sistem klavyesinin hemen üstünde bitişik
-          AnimatedPositioned(
-            duration: const Duration(milliseconds: 200),
-            left: 0,
-            right: 0,
-            bottom: _calculateBannerPosition(keyboardHeight),
-            child: Container(
-              decoration: BoxDecoration(
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
-                    blurRadius: 4,
-                    offset: const Offset(0, -2),
-                  ),
-                ],
-              ),
-              child: BannerAdWidget(key: _bannerKey),
-            ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person_outline),
+            activeIcon: Icon(Icons.person),
+            label: 'Profil',
           ),
         ],
       ),
     );
   }
-
-  // Ana içerik alanının bottom pozisyonunu hesapla
-  double _calculateContentBottomPosition(double keyboardHeight) {
-    const bottomNavHeight = 80.0; // BottomNavigationBar yüksekliği
-    
-    // İçerik sadece navigation bar kadar bottom'dan uzak olmalı
-    // Banner ile örtüşebilmeli, böylece banner'ın arkasından kelimeler görünür
-    return bottomNavHeight;
-  }
-
-  // Banner pozisyonunu hesapla
-  double _calculateBannerPosition(double keyboardHeight) {
-    const bottomNavHeight = 80.0; // BottomNavigationBar yüksekliği
-    
-    if (keyboardHeight > 0) {
-      // Sistem klavyesi açıksa klavyenin hemen üstünde bitişik
-      return keyboardHeight;
-    } else {
-      // Klavye kapalıysa navigation bar'ın hemen üstünde bitişik
-      return bottomNavHeight;
-    }
-  }
 }
 
-// Placeholder screens
+// Basit Profil Ekranı
 class ProfileScreen extends StatelessWidget {
   final bool isDarkMode;
   final VoidCallback onThemeToggle;
