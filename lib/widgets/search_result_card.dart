@@ -285,38 +285,41 @@ class _SearchResultCardState extends State<SearchResultCard> with TickerProvider
                     ),
                     const SizedBox(width: 12),
                     // Kaydetme tuşu
-                    InkWell(
+                    GestureDetector(
                       onTap: _toggleSaved,
-                      borderRadius: BorderRadius.circular(16),
-                      child: Container(
-                        padding: const EdgeInsets.all(6),
-                        child: _isLoading
-                            ? SizedBox(
-                                width: 16,
-                                height: 16,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: isDarkMode ? Colors.white54 : const Color(0xFF8E8E93),
-                                ),
-                              )
-                            : Icon(
-                                _isSaved ? Icons.bookmark : Icons.bookmark_border,
-                                color: _isSaved 
+                      child: _isLoading
+                          ? SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 1.5,
+                                color: isDarkMode 
                                     ? const Color(0xFF007AFF)
-                                    : (isDarkMode ? Colors.white54 : const Color(0xFF8E8E93)),
-                                size: 16,
+                                    : const Color(0xFF007AFF).withOpacity(0.8),
                               ),
-                      ),
+                            )
+                          : Icon(
+                              _isSaved ? Icons.bookmark : Icons.bookmark_border,
+                              color: _isSaved 
+                                  ? const Color(0xFF007AFF)
+                                  : (isDarkMode ? const Color(0xFF8E8E93) : const Color(0xFF6D6D70)),
+                              size: 18,
+                            ),
                     ),
-                    const SizedBox(width: 2),
+                    const SizedBox(width: 8),
                     // Açılır menü ikonu
-                    AnimatedRotation(
-                      turns: _isExpanded ? 0.5 : 0,
-                      duration: const Duration(milliseconds: 250),
-                      child: Icon(
-                        Icons.keyboard_arrow_down,
-                        color: isDarkMode ? Colors.white54 : const Color(0xFF8E8E93),
-                        size: 14,
+                    GestureDetector(
+                      onTap: _toggleExpanded,
+                      child: AnimatedRotation(
+                        turns: _isExpanded ? 0.5 : 0,
+                        duration: const Duration(milliseconds: 250),
+                        child: Icon(
+                          Icons.expand_more,
+                          color: isDarkMode 
+                              ? const Color(0xFF8E8E93) 
+                              : const Color(0xFF6D6D70),
+                          size: 18,
+                        ),
                       ),
                     ),
                   ],
@@ -531,7 +534,7 @@ class _SearchResultCardState extends State<SearchResultCard> with TickerProvider
                         decoration: BoxDecoration(
                           color: isDarkMode 
                               ? const Color(0xFF8E8E93).withOpacity(0.2)
-                              : const Color(0xFF34C759).withOpacity(0.1),
+                              : const Color(0xFF007AFF).withOpacity(0.08),
                           borderRadius: const BorderRadius.only(
                             topLeft: Radius.circular(9),
                             bottomRight: Radius.circular(6),
@@ -544,7 +547,7 @@ class _SearchResultCardState extends State<SearchResultCard> with TickerProvider
                             fontWeight: FontWeight.w600,
                             color: isDarkMode 
                                 ? const Color(0xFF8E8E93)
-                                : const Color(0xFF34C759).withOpacity(0.9),
+                                : const Color(0xFF007AFF).withOpacity(0.8),
                             letterSpacing: 0.3,
                           ),
                         ),
