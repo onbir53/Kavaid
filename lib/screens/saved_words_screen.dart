@@ -487,27 +487,25 @@ class _SavedWordCardWidgetState extends State<_SavedWordCardWidget> with TickerP
     
     // Kök ve çoğul sadece expanded durumunda göster
     if (_isExpanded) {
-      // Kök (sadece veri, etiket yok) - Yeşil tema
+      // Kök (sadece veri, etiket yok) - Mavi tema
       if (widget.word.koku?.isNotEmpty == true) {
         chips.add(Container(
           padding: const EdgeInsets.symmetric(
-            horizontal: 8,
-            vertical: 4,
+            horizontal: 10,
+            vertical: 6,
           ),
           decoration: BoxDecoration(
             color: widget.isDarkMode 
-                ? const Color(0xFF30D158).withOpacity(0.15)
-                : const Color(0xFF34C759).withOpacity(0.12),
+                ? const Color(0xFF007AFF).withOpacity(0.15)
+                : const Color(0xFF007AFF).withOpacity(0.12),
             borderRadius: BorderRadius.circular(6),
           ),
           child: Text(
             widget.word.koku!,
             style: GoogleFonts.notoNaskhArabic(
-              fontSize: 11,
+              fontSize: 13,
               fontWeight: FontWeight.w700,
-              color: widget.isDarkMode 
-                  ? const Color(0xFF30D158)
-                  : const Color(0xFF34C759),
+              color: const Color(0xFF007AFF),
             ),
             textDirection: TextDirection.rtl,
             textAlign: TextAlign.center,
@@ -515,28 +513,26 @@ class _SavedWordCardWidgetState extends State<_SavedWordCardWidget> with TickerP
         ));
       }
       
-      // Çoğul (sadece veri, etiket yok) - Turuncu tema
+      // Çoğul (sadece veri, etiket yok) - Mavi tema
       if (widget.word.dilbilgiselOzellikler?.containsKey('cogulForm') == true && 
           widget.word.dilbilgiselOzellikler!['cogulForm']?.toString().trim().isNotEmpty == true) {
         chips.add(Container(
           padding: const EdgeInsets.symmetric(
-            horizontal: 8,
-            vertical: 4,
+            horizontal: 10,
+            vertical: 6,
           ),
           decoration: BoxDecoration(
             color: widget.isDarkMode 
-                ? const Color(0xFFFF9F0A).withOpacity(0.15)
-                : const Color(0xFFFF9500).withOpacity(0.12),
+                ? const Color(0xFF007AFF).withOpacity(0.15)
+                : const Color(0xFF007AFF).withOpacity(0.12),
             borderRadius: BorderRadius.circular(6),
           ),
           child: Text(
             widget.word.dilbilgiselOzellikler!['cogulForm'].toString(),
             style: GoogleFonts.notoNaskhArabic(
-              fontSize: 11,
+              fontSize: 13,
               fontWeight: FontWeight.w700,
-              color: widget.isDarkMode 
-                  ? const Color(0xFFFF9F0A)
-                  : const Color(0xFFFF9500),
+              color: const Color(0xFF007AFF),
             ),
             textDirection: TextDirection.rtl,
             textAlign: TextAlign.center,
@@ -603,7 +599,7 @@ class _SavedWordCardWidgetState extends State<_SavedWordCardWidget> with TickerP
           style: TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.w600,
-            color: widget.isDarkMode ? Colors.white : const Color(0xFF1C1C1E),
+            color: const Color(0xFF007AFF),
           ),
         ),
         const SizedBox(height: 8),

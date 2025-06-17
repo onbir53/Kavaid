@@ -23,7 +23,9 @@ void main() async {
   }
   
   // SavedWordsService'i initialize et
-  await SavedWordsService().initialize();
+  final savedWordsService = SavedWordsService();
+  await savedWordsService.initialize();
+  debugPrint('✅ SavedWordsService başlatıldı: ${savedWordsService.savedWordsCount} kelime yüklendi');
   
   runApp(const KavaidApp());
 }

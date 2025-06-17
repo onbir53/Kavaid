@@ -246,6 +246,9 @@ class SavedWordsService extends ChangeNotifier {
   // Database durumunu kontrol et
   bool get isDatabaseReady => _database != null;
   
+  // Initialization durumunu kontrol et
+  bool get isInitialized => _isInitialized;
+  
   // Test için cache'i sıfırla
   void resetForTesting() {
     _cachedSavedWords = null;

@@ -42,10 +42,12 @@ class _SearchResultCardState extends State<SearchResultCard> with TickerProvider
   @override
   void initState() {
     super.initState();
-    _updateSavedStatus();
     
     // SavedWordsService'i dinle
     _savedWordsService.addListener(_updateSavedStatus);
+    
+    // İlk durum kontrolü
+    _updateSavedStatus();
     
     // Animasyon controller'ı başlat - daha hızlı ve smooth
     _animationController = AnimationController(
@@ -76,6 +78,24 @@ class _SearchResultCardState extends State<SearchResultCard> with TickerProvider
   }
 
   void _updateSavedStatus() {
+    if (!mounted) return;
+    
+    // Eğer initialize edilmemişse, async olarak yükle
+    if (!_savedWordsService.isInitialized) {
+      _initializeAndUpdate();
+      return;
+    }
+    
+    setState(() {
+      _isSaved = _savedWordsService.isWordSavedSync(widget.word);
+    });
+  }
+  
+  Future<void> _initializeAndUpdate() async {
+    if (!mounted) return;
+    
+    await _savedWordsService.initialize();
+    
     if (mounted) {
       setState(() {
         _isSaved = _savedWordsService.isWordSavedSync(widget.word);
@@ -328,27 +348,25 @@ class _SearchResultCardState extends State<SearchResultCard> with TickerProvider
     
     // Kök ve çoğul sadece expanded durumunda göster
     if (_isExpanded) {
-      // Kök (sadece veri, etiket yok) - Yeşil tema
+      // Kök (sadece veri, etiket yok) - Mavi tema
       if (widget.word.koku?.isNotEmpty == true) {
         chips.add(Container(
           padding: const EdgeInsets.symmetric(
-            horizontal: 8,
-            vertical: 4,
+            horizontal: 10,
+            vertical: 6,
           ),
           decoration: BoxDecoration(
             color: isDarkMode 
-                ? const Color(0xFF30D158).withOpacity(0.15)
-                : const Color(0xFF34C759).withOpacity(0.12),
+                ? const Color(0xFF007AFF).withOpacity(0.15)
+                : const Color(0xFF007AFF).withOpacity(0.12),
             borderRadius: BorderRadius.circular(6),
           ),
           child: Text(
             widget.word.koku!,
             style: GoogleFonts.notoNaskhArabic(
-              fontSize: 11,
+              fontSize: 13,
               fontWeight: FontWeight.w700,
-              color: isDarkMode 
-                  ? const Color(0xFF30D158)
-                  : const Color(0xFF34C759),
+              color: const Color(0xFF007AFF),
             ),
             textDirection: TextDirection.rtl,
             textAlign: TextAlign.center,
@@ -356,28 +374,26 @@ class _SearchResultCardState extends State<SearchResultCard> with TickerProvider
         ));
       }
       
-      // Çoğul (sadece veri, etiket yok) - Turuncu tema
+      // Çoğul (sadece veri, etiket yok) - Mavi tema
       if (widget.word.dilbilgiselOzellikler?.containsKey('cogulForm') == true && 
           widget.word.dilbilgiselOzellikler!['cogulForm']?.toString().trim().isNotEmpty == true) {
         chips.add(Container(
           padding: const EdgeInsets.symmetric(
-            horizontal: 8,
-            vertical: 4,
+            horizontal: 10,
+            vertical: 6,
           ),
           decoration: BoxDecoration(
             color: isDarkMode 
-                ? const Color(0xFFFF9F0A).withOpacity(0.15)
-                : const Color(0xFFFF9500).withOpacity(0.12),
+                ? const Color(0xFF007AFF).withOpacity(0.15)
+                : const Color(0xFF007AFF).withOpacity(0.12),
             borderRadius: BorderRadius.circular(6),
           ),
           child: Text(
             widget.word.dilbilgiselOzellikler!['cogulForm'].toString(),
             style: GoogleFonts.notoNaskhArabic(
-              fontSize: 11,
+              fontSize: 13,
               fontWeight: FontWeight.w700,
-              color: isDarkMode 
-                  ? const Color(0xFFFF9F0A)
-                  : const Color(0xFFFF9500),
+              color: const Color(0xFF007AFF),
             ),
             textDirection: TextDirection.rtl,
             textAlign: TextAlign.center,
@@ -444,7 +460,7 @@ class _SearchResultCardState extends State<SearchResultCard> with TickerProvider
           style: TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.w600,
-            color: isDarkMode ? Colors.white : const Color(0xFF1C1C1E),
+            color: const Color(0xFF007AFF),
           ),
         ),
         const SizedBox(height: 8),
