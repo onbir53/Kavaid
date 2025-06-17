@@ -1,65 +1,104 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:sqflite/sqflite.dart';
+import 'package:path/path.dart';
 import '../models/word_model.dart';
 
 class SavedWordsService extends ChangeNotifier {
-  static const String _savedWordsKey = 'kavaid_saved_words';
-  
   // Singleton pattern
   static final SavedWordsService _instance = SavedWordsService._internal();
   factory SavedWordsService() => _instance;
   SavedWordsService._internal();
 
-  // Cache için
+  // Database ve Cache için
+  Database? _database;
   List<WordModel>? _cachedSavedWords;
   Set<String> _savedWordKeys = <String>{};
   bool _isInitialized = false;
-  bool _useCache = false; // SharedPreferences başarısız olursa cache kullan
+
+  // Database'i aç veya oluştur
+  Future<Database> _getDatabase() async {
+    if (_database != null) {
+      return _database!;
+    }
+
+    try {
+      final dbPath = await getDatabasesPath();
+      final path = join(dbPath, 'kavaid_saved_words.db');
+      
+      print('DEBUG: Database path: $path');
+      
+      _database = await openDatabase(
+        path,
+        version: 1,
+        onCreate: (db, version) async {
+          await db.execute('''
+            CREATE TABLE saved_words (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              kelime TEXT UNIQUE NOT NULL,
+              word_data TEXT NOT NULL,
+              created_at INTEGER NOT NULL
+            )
+          ''');
+          print('DEBUG: Database tablosu oluşturuldu');
+        },
+      );
+      
+      print('DEBUG: Database başarıyla açıldı');
+      return _database!;
+    } catch (e) {
+      print('DEBUG: Database açma hatası: $e');
+      rethrow;
+    }
+  }
 
   // Kaydedilen kelimeleri getir
   Future<List<WordModel>> getSavedWords() async {
     try {
-      if (_useCache) {
-        // SharedPreferences çalışmıyorsa cache'den dön
-        print('DEBUG: Cache modunda çalışıyor');
-        return _cachedSavedWords ?? [];
+      // Cache varsa ve güncel ise onu döndür
+      if (_cachedSavedWords != null && _isInitialized) {
+        print('DEBUG: Cache\'den ${_cachedSavedWords!.length} kelime döndürülüyor');
+        return _cachedSavedWords!;
       }
 
-      final prefs = await SharedPreferences.getInstance();
-      final savedWordsJson = prefs.getStringList(_savedWordsKey) ?? [];
-      
-      final savedWords = savedWordsJson
-          .map((json) {
+      final db = await _getDatabase();
+      final List<Map<String, dynamic>> maps = await db.query(
+        'saved_words',
+        orderBy: 'created_at DESC', // En yeni en üstte
+      );
+
+      print('DEBUG: Database\'den ${maps.length} kayıt okundu');
+
+      final savedWords = maps
+          .map((map) {
             try {
-              return WordModel.fromJson(jsonDecode(json));
+              final wordData = jsonDecode(map['word_data'] as String);
+              return WordModel.fromJson(wordData);
             } catch (e) {
-              print('Kelime parse hatası: $e');
+              print('DEBUG: Kelime parse hatası: $e');
               return null;
             }
           })
           .where((word) => word != null)
           .cast<WordModel>()
           .toList();
-      
+
       // Cache'i güncelle
       _cachedSavedWords = savedWords;
       _savedWordKeys = savedWords.map((word) => word.kelime).toSet();
       _isInitialized = true;
-      
-      print('DEBUG: ${savedWords.length} kelime yüklendi');
+
+      print('DEBUG: ${savedWords.length} kelime başarıyla yüklendi (SQLite)');
       return savedWords;
     } catch (e) {
-      print('SharedPreferences hatası: $e');
-      print('DEBUG: Cache moduna geçiliyor');
+      print('DEBUG: getSavedWords hatası: $e');
       
-      // SharedPreferences çalışmıyorsa cache moduna geç
-      _useCache = true;
-      _cachedSavedWords ??= [];
+      // Hata durumunda boş cache döndür
+      _cachedSavedWords = [];
       _savedWordKeys.clear();
       _isInitialized = true;
       
-      return _cachedSavedWords!;
+      return [];
     }
   }
 
@@ -72,45 +111,44 @@ class SavedWordsService extends ChangeNotifier {
       if (!_isInitialized) {
         await getSavedWords();
       }
+
+      final db = await _getDatabase();
       
+      // Eğer kelime zaten varsa, önce sil (en üste eklemek için)
+      await db.delete(
+        'saved_words',
+        where: 'kelime = ?',
+        whereArgs: [word.kelime],
+      );
+
+      // Yeni kelimeyi ekle
+      await db.insert(
+        'saved_words',
+        {
+          'kelime': word.kelime,
+          'word_data': jsonEncode(word.toJson()),
+          'created_at': DateTime.now().millisecondsSinceEpoch,
+        },
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+
+      print('DEBUG: Kelime database\'e kaydedildi');
+
+      // Cache'i yenile
       final savedWords = _cachedSavedWords ?? [];
-      print('DEBUG: Mevcut kayıtlı kelime sayısı: ${savedWords.length}');
-      
-      // Eğer kelime zaten kayıtlıysa, önce kaldır (en üste eklemek için)
       savedWords.removeWhere((savedWord) => savedWord.kelime == word.kelime);
-      
-      // En başa ekle (en yeni en üstte)
       savedWords.insert(0, word);
-      print('DEBUG: Yeni kayıtlı kelime sayısı: ${savedWords.length}');
       
-      // SharedPreferences'a kaydet (sadece cache modunda değilse)
-      if (!_useCache) {
-        try {
-          final prefs = await SharedPreferences.getInstance();
-          final savedWordsJson = savedWords
-              .map((w) => jsonEncode(w.toJson()))
-              .toList();
-          
-          await prefs.setStringList(_savedWordsKey, savedWordsJson);
-          print('DEBUG: SharedPreferences\'a kaydedildi');
-        } catch (e) {
-          print('SharedPreferences kaydetme hatası: $e');
-          print('DEBUG: Cache moduna geçiliyor');
-          _useCache = true;
-        }
-      }
-      
-      // Cache'i güncelle
       _cachedSavedWords = savedWords;
       _savedWordKeys.add(word.kelime);
-      
+
       // Tüm dinleyicileri bilgilendir
       notifyListeners();
-      
-      print('DEBUG: Kelime başarıyla kaydedildi');
+
+      print('DEBUG: Kelime başarıyla kaydedildi (${savedWords.length} toplam)');
       return true;
     } catch (e) {
-      print('Kelime kaydedilirken hata: $e');
+      print('DEBUG: Kelime kaydetme hatası: $e');
       return false;
     }
   }
@@ -124,45 +162,33 @@ class SavedWordsService extends ChangeNotifier {
       if (!_isInitialized) {
         await getSavedWords();
       }
+
+      final db = await _getDatabase();
       
+      // Database'den sil
+      final deletedCount = await db.delete(
+        'saved_words',
+        where: 'kelime = ?',
+        whereArgs: [word.kelime],
+      );
+
+      print('DEBUG: Database\'den $deletedCount kayıt silindi');
+
+      // Cache'den kaldır
       final savedWords = _cachedSavedWords ?? [];
-      print('DEBUG: Kaldırma öncesi kelime sayısı: ${savedWords.length}');
-      
-      // Kelimeyi listeden kaldır
       final initialLength = savedWords.length;
       savedWords.removeWhere((savedWord) => savedWord.kelime == word.kelime);
       
-      print('DEBUG: Kaldırma sonrası kelime sayısı: ${savedWords.length}');
-      print('DEBUG: Kelime kaldırıldı mı: ${initialLength != savedWords.length}');
-      
-      // SharedPreferences'ı güncelle (sadece cache modunda değilse)
-      if (!_useCache) {
-        try {
-          final prefs = await SharedPreferences.getInstance();
-          final savedWordsJson = savedWords
-              .map((w) => jsonEncode(w.toJson()))
-              .toList();
-          
-          await prefs.setStringList(_savedWordsKey, savedWordsJson);
-          print('DEBUG: SharedPreferences\'tan kaldırıldı');
-        } catch (e) {
-          print('SharedPreferences kaldırma hatası: $e');
-          print('DEBUG: Cache moduna geçiliyor');
-          _useCache = true;
-        }
-      }
-      
-      // Cache'i güncelle
       _cachedSavedWords = savedWords;
       _savedWordKeys.remove(word.kelime);
-      
+
       // Tüm dinleyicileri bilgilendir
       notifyListeners();
-      
-      print('DEBUG: Kelime başarıyla kaldırıldı');
-      return true;
+
+      print('DEBUG: Kelime başarıyla kaldırıldı (${savedWords.length} toplam)');
+      return deletedCount > 0;
     } catch (e) {
-      print('Kelime kaldırılırken hata: $e');
+      print('DEBUG: Kelime kaldırma hatası: $e');
       return false;
     }
   }
@@ -179,9 +205,7 @@ class SavedWordsService extends ChangeNotifier {
       await getSavedWords();
     }
     
-    final isSaved = _savedWordKeys.contains(word.kelime);
-    print('DEBUG: ${word.kelime} kayıtlı mı: $isSaved');
-    return isSaved;
+    return _savedWordKeys.contains(word.kelime);
   }
 
   // Tüm kayıtlı kelimeleri temizle
@@ -189,18 +213,10 @@ class SavedWordsService extends ChangeNotifier {
     try {
       print('DEBUG: Tüm kayıtlı kelimeler temizleniyor');
       
-      // SharedPreferences'ı temizle (sadece cache modunda değilse)
-      if (!_useCache) {
-        try {
-          final prefs = await SharedPreferences.getInstance();
-          await prefs.remove(_savedWordsKey);
-          print('DEBUG: SharedPreferences temizlendi');
-        } catch (e) {
-          print('SharedPreferences temizleme hatası: $e');
-          print('DEBUG: Cache moduna geçiliyor');
-          _useCache = true;
-        }
-      }
+      final db = await _getDatabase();
+      
+      // Database'i temizle
+      await db.delete('saved_words');
       
       // Cache'i temizle
       _cachedSavedWords = [];
@@ -211,25 +227,38 @@ class SavedWordsService extends ChangeNotifier {
       
       print('DEBUG: Tüm kayıtlı kelimeler başarıyla temizlendi');
     } catch (e) {
-      print('Kayıtlı kelimeler temizlenirken hata: $e');
+      print('DEBUG: Kayıtlı kelimeler temizleme hatası: $e');
     }
   }
 
   // İlk yükleme için
   Future<void> initialize() async {
     if (!_isInitialized) {
+      print('DEBUG: SavedWordsService (SQLite) initialize ediliyor...');
       await getSavedWords();
+      print('DEBUG: SavedWordsService (SQLite) initialize edildi');
     }
   }
 
-  // Cache durumunu kontrol et
-  bool get isUsingCache => _useCache;
+  // Kaydedilen kelime sayısını al
+  int get savedWordsCount => _cachedSavedWords?.length ?? 0;
+
+  // Database durumunu kontrol et
+  bool get isDatabaseReady => _database != null;
   
   // Test için cache'i sıfırla
   void resetForTesting() {
     _cachedSavedWords = null;
     _savedWordKeys.clear();
     _isInitialized = false;
-    _useCache = false;
+  }
+
+  // Database'i kapat (uygulamadan çıkarken)
+  Future<void> closeDatabase() async {
+    if (_database != null) {
+      await _database!.close();
+      _database = null;
+      print('DEBUG: Database kapatıldı');
+    }
   }
 } 
