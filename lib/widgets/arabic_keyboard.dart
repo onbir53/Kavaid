@@ -3,11 +3,13 @@ import 'package:flutter/material.dart';
 class ArabicKeyboard extends StatelessWidget {
   final TextEditingController controller;
   final VoidCallback? onClose;
+  final VoidCallback? onSearch;
 
   const ArabicKeyboard({
     super.key,
     required this.controller,
     this.onClose,
+    this.onSearch,
   });
 
   // Standart Arapça klavye düzeni (görüntüdeki gibi)
@@ -196,7 +198,7 @@ class ArabicKeyboard extends StatelessWidget {
                             context,
                             text: 'Ara',
                             onPressed: () {
-                              if (onClose != null) onClose!();
+                              if (onSearch != null) onSearch!();
                             },
                             isSearch: true,
                           ),
