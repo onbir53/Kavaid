@@ -12,6 +12,13 @@ class AdMobService {
   bool _isLoadingAppOpenAd = false;
   bool _isShowingAppOpenAd = false;
   DateTime? _appOpenLoadTime;
+  DateTime? _lastAppOpenShowTime;
+  
+  // Reklam frekans kontrolü için sabitler
+  static const Duration _minTimeBetweenAppOpenAds = Duration(minutes: 5); // App Open reklamlar arası minimum süre
+  static const Duration _appOpenAdExpiration = Duration(hours: 4); // App Open reklam geçerlilik süresi
+  static const int _maxAdLoadRetries = 3; // Maksimum reklam yükleme deneme sayısı
+  int _currentRetryCount = 0;
 
   // Adaptive Banner için test reklamları ID'leri
   static const String _testBannerAdUnitIdAndroid = 'ca-app-pub-3940256099942544/9214589741';
@@ -20,6 +27,10 @@ class AdMobService {
   // App Open reklamı için test ID'leri
   static const String _testAppOpenAdUnitIdAndroid = 'ca-app-pub-3940256099942544/9257395921';
   static const String _testAppOpenAdUnitIdIOS = 'ca-app-pub-3940256099942544/5575463023';
+  
+  // Native reklam için test ID'leri
+  static const String _testNativeAdUnitIdAndroid = 'ca-app-pub-3940256099942544/2247696110';
+  static const String _testNativeAdUnitIdIOS = 'ca-app-pub-3940256099942544/3986624511';
   
   // Banner reklam ID'si - Adaptive Banner destekli
   static String get bannerAdUnitId {
@@ -65,6 +76,28 @@ class AdMobService {
     return _testAppOpenAdUnitIdAndroid;
   }
 
+  // Native reklam ID'si
+  static String get nativeAdUnitId {
+    if (kDebugMode) {
+      // Test ID'leri
+      if (Platform.isAndroid) {
+        return _testNativeAdUnitIdAndroid;
+      } else if (Platform.isIOS) {
+        return _testNativeAdUnitIdIOS;
+      }
+    }
+    
+    // Production ID'leri
+    if (Platform.isAndroid) {
+      return 'ca-app-pub-XXXXXXXXXXXXXXXX/XXXXXXXXXX'; // Gerçek Android native ID
+    } else if (Platform.isIOS) {
+      return 'ca-app-pub-XXXXXXXXXXXXXXXX/XXXXXXXXXX'; // Gerçek iOS native ID
+    }
+    
+    // Fallback
+    return _testNativeAdUnitIdAndroid;
+  }
+
   // AdMob'u başlat - sadece mobil platformlarda
   static Future<void> initialize() async {
     if (kIsWeb || (!Platform.isAndroid && !Platform.isIOS)) {
@@ -75,6 +108,15 @@ class AdMobService {
     try {
       await MobileAds.instance.initialize();
       debugPrint('✅ AdMob başlatıldı');
+      
+      // Reklam optimizasyonu için ayarlar
+      await MobileAds.instance.updateRequestConfiguration(
+        RequestConfiguration(
+          testDeviceIds: kDebugMode ? ['YOUR_TEST_DEVICE_ID'] : [],
+          maxAdContentRating: MaxAdContentRating.g, // Genel izleyici kitlesi
+          tagForChildDirectedTreatment: TagForChildDirectedTreatment.unspecified,
+        ),
+      );
       
       // App Open reklamını yükle
       _instance.loadAppOpenAd();
@@ -105,10 +147,20 @@ class AdMobService {
           _appOpenAd = ad;
           _appOpenLoadTime = DateTime.now();
           _isLoadingAppOpenAd = false;
+          _currentRetryCount = 0; // Başarılı yüklemede retry sayacını sıfırla
         },
         onAdFailedToLoad: (LoadAdError error) {
           debugPrint('❌ App Open reklamı yüklenemedi: ${error.message}');
           _isLoadingAppOpenAd = false;
+          
+          // Retry mantığı
+          _currentRetryCount++;
+          if (_currentRetryCount < _maxAdLoadRetries) {
+            debugPrint('🔄 App Open reklamı tekrar denenecek (${_currentRetryCount}/$_maxAdLoadRetries)');
+            Future.delayed(Duration(seconds: 2 * _currentRetryCount), () {
+              loadAppOpenAd();
+            });
+          }
         },
       ),
     );
@@ -117,9 +169,18 @@ class AdMobService {
   // App Open reklamını göster
   void showAppOpenAd() {
     if (!isAppOpenAdAvailable || _isShowingAppOpenAd) {
-      debugPrint('⚠️ App Open reklamı gösterilemiyor');
+      debugPrint('⚠️ App Open reklamı gösterilemiyor - Mevcut değil veya zaten gösteriliyor');
       loadAppOpenAd(); // Yeni reklam yükle
       return;
+    }
+    
+    // Frekans kontrolü
+    if (_lastAppOpenShowTime != null) {
+      final timeSinceLastShow = DateTime.now().difference(_lastAppOpenShowTime!);
+      if (timeSinceLastShow < _minTimeBetweenAppOpenAds) {
+        debugPrint('⏱️ App Open reklamı çok yakın zamanda gösterildi. Bekleniyor...');
+        return;
+      }
     }
 
     _isShowingAppOpenAd = true;
@@ -128,6 +189,7 @@ class AdMobService {
     _appOpenAd!.fullScreenContentCallback = FullScreenContentCallback(
       onAdShowedFullScreenContent: (AppOpenAd ad) {
         debugPrint('📱 App Open reklamı tam ekran gösterildi');
+        _lastAppOpenShowTime = DateTime.now();
       },
       onAdDismissedFullScreenContent: (AppOpenAd ad) {
         debugPrint('📱 App Open reklamı kapatıldı');
@@ -152,9 +214,10 @@ class AdMobService {
   bool get isAppOpenAdAvailable {
     if (_appOpenAd == null) return false;
     
-    // Reklam 4 saatten eskiyse geçersiz
+    // Reklam süresi dolmuş mu kontrol et
     if (_appOpenLoadTime != null && 
-        DateTime.now().difference(_appOpenLoadTime!).inHours >= 4) {
+        DateTime.now().difference(_appOpenLoadTime!) > _appOpenAdExpiration) {
+      debugPrint('⏰ App Open reklamı süresi dolmuş, dispose ediliyor');
       _appOpenAd?.dispose();
       _appOpenAd = null;
       return false;
@@ -169,5 +232,11 @@ class AdMobService {
       // Uygulama öne çıktığında reklam göster
       showAppOpenAd();
     }
+  }
+  
+  // Tüm reklamları dispose et (uygulama kapanırken kullan)
+  void dispose() {
+    _appOpenAd?.dispose();
+    _appOpenAd = null;
   }
 } 

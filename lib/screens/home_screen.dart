@@ -8,6 +8,7 @@ import '../widgets/word_card.dart';
 import '../widgets/search_result_card.dart';
 import '../widgets/arabic_keyboard.dart';
 import '../widgets/banner_ad_widget.dart';
+import '../widgets/native_ad_widget.dart';
 
 
 class HomeScreen extends StatefulWidget {
@@ -557,18 +558,39 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     if (_isSearching && _searchResults.isNotEmpty) {
+      // Native reklam gösterme mantığı
+      final int adFrequency = 7; // Her 7 sonuçtan sonra 1 reklam
+      final int totalAds = _searchResults.length >= 5 ? (_searchResults.length ~/ adFrequency).clamp(0, 2) : 0; // En fazla 2 reklam, en az 5 sonuç varsa göster
+      final int totalItems = _searchResults.length + totalAds;
+      
       slivers.add(
         SliverPadding(
           padding: const EdgeInsets.fromLTRB(8, 12, 8, 80),
           sliver: SliverList(
             delegate: SliverChildBuilderDelegate(
               (context, index) {
-                return SearchResultCard(
-                  word: _searchResults[index],
-                  onTap: () => _selectWord(_searchResults[index]),
-                );
+                // Reklam pozisyonlarını hesapla
+                final int adsBefore = totalAds > 0 ? (index / (adFrequency + 1)).floor() : 0;
+                final bool isAdPosition = totalAds > 0 && 
+                    adsBefore < totalAds && 
+                    (index + 1) % (adFrequency + 1) == 0;
+                
+                if (isAdPosition) {
+                  // Native reklam göster
+                  return const NativeAdWidget();
+                } else {
+                  // Normal arama sonucu
+                  final int actualIndex = index - adsBefore;
+                  if (actualIndex < _searchResults.length) {
+                    return SearchResultCard(
+                      word: _searchResults[actualIndex],
+                      onTap: () => _selectWord(_searchResults[actualIndex]),
+                    );
+                  }
+                }
+                return null;
               },
-              childCount: _searchResults.length,
+              childCount: totalItems,
             ),
           ),
         ),

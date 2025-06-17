@@ -1,0 +1,266 @@
+import 'package:flutter/material.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'package:flutter/foundation.dart';
+import '../services/admob_service.dart';
+
+class NativeAdWidget extends StatefulWidget {
+  final String? adUnitId; // Özel ad unit ID kullanmak için
+  
+  const NativeAdWidget({
+    super.key,
+    this.adUnitId,
+  });
+
+  @override
+  State<NativeAdWidget> createState() => _NativeAdWidgetState();
+}
+
+class _NativeAdWidgetState extends State<NativeAdWidget> with AutomaticKeepAliveClientMixin {
+  NativeAd? _nativeAd;
+  bool _nativeAdIsLoaded = false;
+  bool _isLoading = false;
+  int _retryCount = 0;
+  static const int _maxRetries = 2;
+  static const Duration _retryDelay = Duration(seconds: 2);
+
+  @override
+  bool get wantKeepAlive => _nativeAdIsLoaded; // Yüklü reklamı canlı tut
+
+  @override
+  void initState() {
+    super.initState();
+    if (!kIsWeb && (defaultTargetPlatform == TargetPlatform.android || 
+        defaultTargetPlatform == TargetPlatform.iOS)) {
+      // Widget görünür olduğunda reklamı yükle (lazy loading)
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _loadNativeAd();
+        }
+      });
+    }
+  }
+
+  void _loadNativeAd() {
+    if (_isLoading || _nativeAdIsLoaded) return;
+    
+    setState(() {
+      _isLoading = true;
+    });
+
+    _nativeAd = NativeAd(
+      adUnitId: widget.adUnitId ?? AdMobService.nativeAdUnitId,
+      request: const AdRequest(
+        nonPersonalizedAds: false,
+      ),
+      listener: NativeAdListener(
+        onAdLoaded: (Ad ad) {
+          if (mounted) {
+            setState(() {
+              _nativeAdIsLoaded = true;
+              _isLoading = false;
+              _retryCount = 0;
+            });
+          }
+          debugPrint('✅ Native reklam yüklendi');
+        },
+        onAdFailedToLoad: (Ad ad, LoadAdError error) {
+          debugPrint('❌ Native reklam yüklenemedi: ${error.message}');
+          ad.dispose();
+          if (mounted) {
+            setState(() {
+              _nativeAd = null;
+              _nativeAdIsLoaded = false;
+              _isLoading = false;
+            });
+            _handleLoadError();
+          }
+        },
+        onAdClicked: (Ad ad) {
+          debugPrint('📱 Native reklama tıklandı');
+        },
+        onAdImpression: (Ad ad) {
+          debugPrint('👁️ Native reklam görüntülendi');
+        },
+      ),
+      nativeTemplateStyle: NativeTemplateStyle(
+        templateType: TemplateType.medium,
+        cornerRadius: 8,
+        callToActionTextStyle: NativeTemplateTextStyle(
+          textColor: Colors.white,
+          backgroundColor: const Color(0xFF007AFF),
+          style: NativeTemplateFontStyle.normal,
+          size: 14,
+        ),
+        primaryTextStyle: NativeTemplateTextStyle(
+          textColor: Colors.black87,
+          style: NativeTemplateFontStyle.bold,
+          size: 16,
+        ),
+        secondaryTextStyle: NativeTemplateTextStyle(
+          textColor: Colors.black54,
+          style: NativeTemplateFontStyle.normal,
+          size: 14,
+        ),
+        tertiaryTextStyle: NativeTemplateTextStyle(
+          textColor: Colors.black54,
+          style: NativeTemplateFontStyle.normal,
+          size: 12,
+        ),
+      ),
+    )..load();
+  }
+
+  void _handleLoadError() {
+    if (_retryCount < _maxRetries) {
+      _retryCount++;
+      debugPrint('🔄 Native reklam tekrar denenecek ($_retryCount/$_maxRetries)');
+      Future.delayed(_retryDelay * _retryCount, () {
+        if (mounted) {
+          _loadNativeAd();
+        }
+      });
+    } else {
+      debugPrint('❌ Native reklam maksimum deneme sayısına ulaştı');
+    }
+  }
+
+  @override
+  void dispose() {
+    _nativeAd?.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    super.build(context); // AutomaticKeepAliveClientMixin için
+    
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    
+    // Web'de veya desteklenmeyen platformlarda hiçbir şey gösterme
+    if (kIsWeb || (!kReleaseMode && defaultTargetPlatform != TargetPlatform.android && 
+        defaultTargetPlatform != TargetPlatform.iOS)) {
+      return const SizedBox.shrink();
+    }
+    
+    // Reklam yüklü değilse ve maksimum retry'a ulaşıldıysa hiçbir şey gösterme
+    if (!_nativeAdIsLoaded && _retryCount >= _maxRetries) {
+      return const SizedBox.shrink();
+    }
+    
+    // Reklam yükleniyorsa veya retry devam ediyorsa placeholder göster
+    if (!_nativeAdIsLoaded || _nativeAd == null) {
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 6),
+        child: Container(
+          height: 100,
+          decoration: BoxDecoration(
+            color: isDarkMode ? const Color(0xFF1C1C1E) : Colors.white,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: isDarkMode 
+                  ? const Color(0xFF48484A).withOpacity(0.3)
+                  : const Color(0xFFE5E5EA).withOpacity(0.5),
+              width: 0.5,
+            ),
+          ),
+          child: const Center(
+            child: SizedBox(
+              width: 16,
+              height: 16,
+              child: CircularProgressIndicator(
+                strokeWidth: 1.5,
+                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF8E8E93)),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: Container(
+        decoration: BoxDecoration(
+          gradient: isDarkMode 
+              ? null
+              : const LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Colors.white,
+                    Color(0xFFFAFAFA),
+                  ],
+                ),
+          color: isDarkMode ? const Color(0xFF1C1C1E) : null,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: isDarkMode 
+                ? const Color(0xFF48484A)
+                : const Color(0xFFE5E5EA),
+            width: 0.5,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: isDarkMode 
+                  ? Colors.black.withOpacity(0.4)
+                  : const Color(0xFF007AFF).withOpacity(0.12),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+              spreadRadius: 1,
+            ),
+            if (!isDarkMode) ...[
+              BoxShadow(
+                color: Colors.white.withOpacity(0.8),
+                blurRadius: 1,
+                offset: const Offset(0, -1),
+                spreadRadius: 0,
+              ),
+            ],
+          ],
+        ),
+        child: Stack(
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: SizedBox(
+                height: 120,
+                child: AdWidget(ad: _nativeAd!),
+              ),
+            ),
+            // Reklam etiketi - sağ üst köşe
+            Positioned(
+              top: 4,
+              right: 4,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: isDarkMode 
+                      ? const Color(0xFF007AFF).withOpacity(0.2)
+                      : const Color(0xFF007AFF).withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(4),
+                  border: Border.all(
+                    color: isDarkMode 
+                        ? const Color(0xFF007AFF).withOpacity(0.3)
+                        : const Color(0xFF007AFF).withOpacity(0.2),
+                    width: 0.5,
+                  ),
+                ),
+                child: Text(
+                  'Reklam',
+                  style: TextStyle(
+                    fontSize: 9,
+                    fontWeight: FontWeight.w600,
+                    color: isDarkMode 
+                        ? const Color(0xFF007AFF)
+                        : const Color(0xFF007AFF).withOpacity(0.9),
+                    letterSpacing: 0.2,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+} 

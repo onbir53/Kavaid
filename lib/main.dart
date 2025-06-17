@@ -46,9 +46,9 @@ class _KavaidAppState extends State<KavaidApp> with WidgetsBindingObserver {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     
-    // İlk başlatmada App Open reklamını göster (biraz gecikme ile)
+    // İlk başlatmada App Open reklamını göster (daha uzun gecikme ile - kullanıcı deneyimi için)
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      Future.delayed(const Duration(milliseconds: 1000), () {
+      Future.delayed(const Duration(seconds: 2), () {
         if (_isAppInForeground) {
           AdMobService().showAppOpenAd();
         }
