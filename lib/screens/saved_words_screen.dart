@@ -325,27 +325,50 @@ class _SavedWordCardWidgetState extends State<_SavedWordCardWidget> with TickerP
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 2),
+      padding: const EdgeInsets.only(bottom: 6),
       child: Container(
         decoration: BoxDecoration(
-          color: widget.isDarkMode 
-              ? const Color(0xFF2C2C2E) 
-              : Colors.white,
-          borderRadius: BorderRadius.circular(6),
+          gradient: widget.isDarkMode 
+              ? const LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Color(0xFF2C2C2E),
+                    Color(0xFF1C1C1E),
+                  ],
+                )
+              : const LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Colors.white,
+                    Color(0xFFFAFAFA),
+                  ],
+                ),
+          borderRadius: BorderRadius.circular(8),
           border: Border.all(
             color: widget.isDarkMode 
                 ? const Color(0xFF48484A)
-                : const Color(0xFFD1D1D6),
-            width: 0.8,
+                : const Color(0xFFE5E5EA),
+            width: 0.5,
           ),
           boxShadow: [
             BoxShadow(
               color: widget.isDarkMode 
-                  ? Colors.black.withOpacity(0.25)
-                  : Colors.black.withOpacity(0.08),
-              blurRadius: 4,
-              offset: const Offset(0, 2),
+                  ? Colors.black.withOpacity(0.4)
+                  : const Color(0xFF007AFF).withOpacity(0.12),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+              spreadRadius: 1,
             ),
+            if (!widget.isDarkMode) ...[
+              BoxShadow(
+                color: Colors.white.withOpacity(0.8),
+                blurRadius: 1,
+                offset: const Offset(0, -1),
+                spreadRadius: 0,
+              ),
+            ],
           ],
         ),
         child: Column(

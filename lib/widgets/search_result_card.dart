@@ -167,27 +167,50 @@ class _SearchResultCardState extends State<SearchResultCard> with TickerProvider
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     
     return Padding(
-      padding: const EdgeInsets.only(bottom: 2),
+      padding: const EdgeInsets.only(bottom: 6),
       child: Container(
         decoration: BoxDecoration(
-          color: isDarkMode 
-              ? const Color(0xFF2C2C2E) 
-              : Colors.white,
-          borderRadius: BorderRadius.circular(6),
+          gradient: isDarkMode 
+              ? const LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Color(0xFF2C2C2E),
+                    Color(0xFF1C1C1E),
+                  ],
+                )
+              : const LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Colors.white,
+                    Color(0xFFFAFAFA),
+                  ],
+                ),
+          borderRadius: BorderRadius.circular(8),
           border: Border.all(
             color: isDarkMode 
                 ? const Color(0xFF48484A)
-                : const Color(0xFFD1D1D6),
-            width: 0.8,
+                : const Color(0xFFE5E5EA),
+            width: 0.5,
           ),
           boxShadow: [
             BoxShadow(
               color: isDarkMode 
-                  ? Colors.black.withOpacity(0.25)
-                  : Colors.black.withOpacity(0.08),
-              blurRadius: 4,
-              offset: const Offset(0, 2),
+                  ? Colors.black.withOpacity(0.4)
+                  : const Color(0xFF007AFF).withOpacity(0.12),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+              spreadRadius: 1,
             ),
+            if (!isDarkMode) ...[
+              BoxShadow(
+                color: Colors.white.withOpacity(0.8),
+                blurRadius: 1,
+                offset: const Offset(0, -1),
+                spreadRadius: 0,
+              ),
+            ],
           ],
         ),
         child: Column(
@@ -332,17 +355,28 @@ class _SearchResultCardState extends State<SearchResultCard> with TickerProvider
           vertical: 4,
         ),
         decoration: BoxDecoration(
-          color: const Color(0xFF007AFF).withOpacity(0.12),
-          borderRadius: BorderRadius.circular(6),
+          gradient: const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Color(0x20007AFF),
+              Color(0x150051D5),
+            ],
+          ),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: const Color(0xFF007AFF).withOpacity(0.2),
+            width: 0.5,
+          ),
         ),
-                                child: Text(
-                          widget.word.dilbilgiselOzellikler!['tur'].toString(),
-                          style: const TextStyle(
-                            fontSize: 9,
-                            fontWeight: FontWeight.w600,
-                            color: Color(0xFF007AFF),
-                          ),
-                        ),
+        child: Text(
+          widget.word.dilbilgiselOzellikler!['tur'].toString(),
+          style: const TextStyle(
+            fontSize: 9,
+            fontWeight: FontWeight.w700,
+            color: Color(0xFF007AFF),
+          ),
+        ),
       ));
     }
     

@@ -76,8 +76,54 @@ class _WordCardState extends State<WordCard> {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    
+    return Container(
       margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        gradient: isDarkMode 
+            ? const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Color(0xFF2C2C2E),
+                  Color(0xFF1C1C1E),
+                ],
+              )
+            : const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Colors.white,
+                  Color(0xFFFAFAFA),
+                ],
+              ),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isDarkMode 
+              ? const Color(0xFF48484A)
+              : const Color(0xFFE5E5EA),
+          width: 0.5,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: isDarkMode 
+                ? Colors.black.withOpacity(0.3)
+                : const Color(0xFF007AFF).withOpacity(0.1),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+            spreadRadius: 0,
+          ),
+          if (!isDarkMode) ...[
+            BoxShadow(
+              color: Colors.white.withOpacity(0.8),
+              blurRadius: 1,
+              offset: const Offset(0, -1),
+              spreadRadius: 0,
+            ),
+          ],
+        ],
+      ),
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
@@ -89,10 +135,10 @@ class _WordCardState extends State<WordCard> {
                 Expanded(
                   child: Text(
                     widget.word.kelime,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 28,
                       fontWeight: FontWeight.bold,
-                      color: Color(0xFF1C1C1E),
+                      color: isDarkMode ? Colors.white : const Color(0xFF1C1C1E),
                     ),
                   ),
                 ),
@@ -138,21 +184,21 @@ class _WordCardState extends State<WordCard> {
             
             // Anlam
             if (widget.word.anlam?.isNotEmpty == true) ...[
-              const Text(
+              Text(
                 'Anlam',
                 style: TextStyle(
                   fontSize: 16, // Biraz küçülttüm
                   fontWeight: FontWeight.w500, // Daha hafif
-                  color: Color(0xFF1C1C1E),
+                  color: isDarkMode ? Colors.white : const Color(0xFF1C1C1E),
                   letterSpacing: 0.5, // Estetik harf aralığı
                 ),
               ),
               const SizedBox(height: 8),
               Text(
                 widget.word.anlam!,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 17,
-                  color: Color(0xFF1C1C1E),
+                  color: isDarkMode ? const Color(0xFFE5E5EA) : const Color(0xFF1C1C1E),
                   height: 1.5,
                   fontWeight: FontWeight.w400,
                   letterSpacing: 0.3,
@@ -163,12 +209,12 @@ class _WordCardState extends State<WordCard> {
             
             // Kök
             if (widget.word.koku?.isNotEmpty == true) ...[
-              const Text(
+              Text(
                 'Kök',
                 style: TextStyle(
                   fontSize: 16, // Biraz küçülttüm
                   fontWeight: FontWeight.w500, // Daha hafif
-                  color: Color(0xFF1C1C1E),
+                  color: isDarkMode ? Colors.white : const Color(0xFF1C1C1E),
                   letterSpacing: 0.5, // Estetik harf aralığı
                 ),
               ),
@@ -187,12 +233,12 @@ class _WordCardState extends State<WordCard> {
             
             // Dilbilgisel özellikler
             if (widget.word.dilbilgiselOzellikler?.isNotEmpty == true) ...[
-              const Text(
+              Text(
                 'Dilbilgisel Özellikler',
                 style: TextStyle(
                   fontSize: 16, // Biraz küçülttüm
                   fontWeight: FontWeight.w500, // Daha hafif
-                  color: Color(0xFF1C1C1E),
+                  color: isDarkMode ? Colors.white : const Color(0xFF1C1C1E),
                   letterSpacing: 0.5, // Estetik harf aralığı
                 ),
               ),
@@ -224,12 +270,12 @@ class _WordCardState extends State<WordCard> {
             
             // Örnek cümleler
             if (widget.word.ornekCumleler?.isNotEmpty == true) ...[
-              const Text(
+              Text(
                 'Örnek Cümleler',
                 style: TextStyle(
                   fontSize: 16, // Biraz küçülttüm
                   fontWeight: FontWeight.w500, // Daha hafif
-                  color: Color(0xFF1C1C1E),
+                  color: isDarkMode ? Colors.white : const Color(0xFF1C1C1E),
                   letterSpacing: 0.5, // Estetik harf aralığı
                 ),
               ),
@@ -265,12 +311,12 @@ class _WordCardState extends State<WordCard> {
             
             // Fiil çekimleri
             if (widget.word.fiilCekimler?.isNotEmpty == true) ...[
-              const Text(
+              Text(
                 'Fiil Çekimleri',
                 style: TextStyle(
                   fontSize: 16, // Biraz küçülttüm
                   fontWeight: FontWeight.w500, // Daha hafif
-                  color: Color(0xFF1C1C1E),
+                  color: isDarkMode ? Colors.white : const Color(0xFF1C1C1E),
                   letterSpacing: 0.5, // Estetik harf aralığı
                 ),
               ),

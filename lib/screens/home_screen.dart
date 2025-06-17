@@ -181,8 +181,21 @@ class _HomeScreenState extends State<HomeScreen> {
       body: CustomScrollView(
         slivers: <Widget>[
           SliverAppBar(
-            backgroundColor: const Color(0xFF007AFF),
+            backgroundColor: Colors.transparent,
             foregroundColor: Colors.white,
+            flexibleSpace: Container(
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Color(0xFF007AFF),
+                    Color(0xFF0051D5),
+                    Color(0xFF003F99),
+                  ],
+                ),
+              ),
+            ),
             pinned: true,
             floating: true,
             automaticallyImplyLeading: false,
