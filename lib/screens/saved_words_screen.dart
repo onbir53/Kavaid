@@ -329,14 +329,7 @@ class _SavedWordCardWidgetState extends State<_SavedWordCardWidget> with TickerP
       child: Container(
         decoration: BoxDecoration(
           gradient: widget.isDarkMode 
-              ? const LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    Color(0xFF2C2C2E),
-                    Color(0xFF1C1C1E),
-                  ],
-                )
+              ? null
               : const LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
@@ -345,6 +338,7 @@ class _SavedWordCardWidgetState extends State<_SavedWordCardWidget> with TickerP
                     Color(0xFFFAFAFA),
                   ],
                 ),
+          color: widget.isDarkMode ? const Color(0xFF1C1C1E) : null,
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
             color: widget.isDarkMode 

@@ -85,14 +85,7 @@ class _RecentWordsSectionState extends State<RecentWordsSection> {
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(15),
-          gradient: LinearGradient(
-            colors: [
-              theme.colorScheme.primaryContainer,
-              theme.colorScheme.secondaryContainer,
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
+          color: theme.colorScheme.primaryContainer,
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

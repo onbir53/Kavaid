@@ -82,14 +82,7 @@ class _WordCardState extends State<WordCard> {
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
         gradient: isDarkMode 
-            ? const LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  Color(0xFF2C2C2E),
-                  Color(0xFF1C1C1E),
-                ],
-              )
+            ? null
             : const LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
@@ -98,6 +91,7 @@ class _WordCardState extends State<WordCard> {
                   Color(0xFFFAFAFA),
                 ],
               ),
+        color: isDarkMode ? const Color(0xFF1C1C1E) : null,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: isDarkMode 
