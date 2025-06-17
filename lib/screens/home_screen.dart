@@ -178,58 +178,81 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       resizeToAvoidBottomInset: true,
-      appBar: AppBar(
-        automaticallyImplyLeading: false,
-        toolbarHeight: 56, // Daha kompakt AppBar
-        titleSpacing: 20, // Sol tarafa padding
-        title: const Text(
-          'Kavaid',
-          style: TextStyle(
-            fontSize: 22, // Küçültüldü
-            fontWeight: FontWeight.w700, // Biraz daha hafif
-            letterSpacing: 0.8, // Daha az harf aralığı
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(60), // Daha kompakt AppBar
+        child: Container(
+          decoration: const BoxDecoration(
+            color: Color(0xFF007AFF),
           ),
-        ),
-        centerTitle: false, // Sol tarafa yasla
-        elevation: 0, // Gölgeyi kaldır
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 20, top: 4), // Daha yukarı ve sağa
-            child: IconButton(
-              icon: Icon(
-                widget.isDarkMode 
-                    ? Icons.light_mode_outlined 
-                    : Icons.dark_mode_outlined,
-                size: 26, // Biraz küçült
+          child: SafeArea(
+            child: AppBar(
+              automaticallyImplyLeading: false,
+              titleSpacing: 20, // Sol tarafa padding
+              backgroundColor: Colors.transparent, // Şeffaf arka plan
+              foregroundColor: Colors.white, // Beyaz yazı
+              title: const Text(
+                'Kavaid',
+                style: TextStyle(
+                  fontSize: 22, // Küçültüldü
+                  fontWeight: FontWeight.w700, // Biraz daha hafif
+                  letterSpacing: 0.8, // Daha az harf aralığı
+                  color: Colors.white, // Beyaz yazı
+                ),
               ),
-              onPressed: widget.onThemeToggle,
-              splashRadius: 20, // Daha küçük tap alanı
+              centerTitle: false, // Sol tarafa yasla
+              elevation: 0, // Gölgeyi kaldır
+              actions: [
+                Padding(
+                  padding: const EdgeInsets.only(right: 20), // Sağ padding
+                  child: IconButton(
+                    icon: const Icon(
+                      Icons.light_mode_outlined,
+                      color: Colors.white, // Beyaz ikon
+                      size: 26, // Biraz küçült
+                    ),
+                    onPressed: widget.onThemeToggle,
+                    splashRadius: 20, // Daha küçük tap alanı
+                  ),
+                ),
+              ],
             ),
           ),
-        ],
+        ),
       ),
       body: Stack(
         children: [
           // Ana içerik
           Column(
             children: [
-              // Arama alanı - AppBar'a daha yakın
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 4, 20, 12), // Üst padding azaltıldı
-                child: Column(
-                  children: [
-                    Container(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(12),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.08),
-                            blurRadius: 8,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: TextField(
+              // Header container - AppBar'dan input alanının altına kadar
+              Container(
+                width: double.infinity,
+                decoration: const BoxDecoration(
+                  color: Color(0xFF007AFF), // Temada kullanılan mavi renk
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black12,
+                      blurRadius: 8,
+                      offset: Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 6),
+                  child: Column(
+                    children: [
+                      Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(12),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.08),
+                              blurRadius: 8,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: TextField(
                         controller: _searchController,
                         focusNode: _searchFocusNode,
                         autofocus: true,
@@ -297,39 +320,40 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                         textInputAction: TextInputAction.search,
                         onSubmitted: (_) => _searchWithAI(),
-                      ),
-                    ),
-                    
-                    // AI ile Ara butonu
-                    if (_showAIButton && !_isLoading)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 14), // Biraz daha fazla boşluk
-                        child: SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton(
-                            onPressed: _searchWithAI,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF007AFF),
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(vertical: 16), // Daha yüksek
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
+                                              ),
+                        ),
+                      
+                      // AI ile Ara butonu
+                      if (_showAIButton && !_isLoading)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 14), // Biraz daha fazla boşluk
+                          child: SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton(
+                              onPressed: _searchWithAI,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF007AFF),
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(vertical: 16), // Daha yüksek
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                elevation: 2,
+                                shadowColor: const Color(0xFF007AFF).withOpacity(0.3),
                               ),
-                              elevation: 2,
-                              shadowColor: const Color(0xFF007AFF).withOpacity(0.3),
-                            ),
-                            child: const Text(
-                              'Ara',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                                letterSpacing: 0.5,
-                              ),  
+                              child: const Text(
+                                'Ara',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                  letterSpacing: 0.5,
+                                ),  
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
               
@@ -368,7 +392,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     if (_isSearching && _searchResults.isNotEmpty) {
       return ListView.builder(
-        padding: const EdgeInsets.fromLTRB(20, 0, 20, 80), // Banner alanında padding
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 80), // Üst padding artırıldı
         itemCount: _searchResults.length,
         itemBuilder: (context, index) {
           return SearchResultCard(
@@ -381,7 +405,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     if (_selectedWord != null) {
       return SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(20, 0, 20, 80), // Banner alanında padding
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 80), // Üst padding artırıldı
         child: WordCard(word: _selectedWord!),
       );
     }
