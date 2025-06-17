@@ -338,8 +338,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: InkWell(
                   onTap: _searchWithAI,
                   borderRadius: BorderRadius.circular(14),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(vertical: 18),
+                                     child: Container(
+                     padding: const EdgeInsets.symmetric(vertical: 14),
                     child: const Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
