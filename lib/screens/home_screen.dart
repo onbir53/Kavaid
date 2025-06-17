@@ -179,26 +179,31 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       resizeToAvoidBottomInset: true,
       appBar: AppBar(
-        automaticallyImplyLeading: false, // Geri butonunu kaldır
+        automaticallyImplyLeading: false,
+        toolbarHeight: 56, // Daha kompakt AppBar
+        titleSpacing: 20, // Sol tarafa padding
         title: const Text(
           'Kavaid',
           style: TextStyle(
-            fontSize: 24, // Biraz büyüttüm
-            fontWeight: FontWeight.w700, // Kalın ve tok
-            letterSpacing: 0.8, // Estetik harf aralığı
+            fontSize: 26, // Biraz daha büyük
+            fontWeight: FontWeight.w800, // Daha kalın
+            letterSpacing: 1.0, // Daha geniş harf aralığı
           ),
         ),
+        centerTitle: false, // Sol tarafa yasla
+        elevation: 0, // Gölgeyi kaldır
         actions: [
           Padding(
-            padding: const EdgeInsets.only(right: 16),
+            padding: const EdgeInsets.only(right: 20, top: 4), // Daha yukarı ve sağa
             child: IconButton(
               icon: Icon(
                 widget.isDarkMode 
                     ? Icons.light_mode_outlined 
                     : Icons.dark_mode_outlined,
-                size: 28,
+                size: 26, // Biraz küçült
               ),
               onPressed: widget.onThemeToggle,
+              splashRadius: 20, // Daha küçük tap alanı
             ),
           ),
         ],
@@ -208,50 +213,97 @@ class _HomeScreenState extends State<HomeScreen> {
           // Ana içerik
           Column(
             children: [
-              // Arama alanı
+              // Arama alanı - AppBar'a daha yakın
               Padding(
-                padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
+                padding: const EdgeInsets.fromLTRB(20, 4, 20, 12), // Üst padding azaltıldı
                 child: Column(
                   children: [
-                    TextField(
-                      controller: _searchController,
-                      focusNode: _searchFocusNode,
-                      autofocus: true,
-                      decoration: InputDecoration(
-                        hintText: 'Arapça veya Türkçe kelime ara',
-                        prefixIcon: const Icon(
-                          Icons.search,
-                          color: Color(0xFF8E8E93),
-                          size: 22,
-                        ),
-                        suffixIcon: _searchController.text.isNotEmpty 
-                            ? IconButton(
-                                icon: const Icon(
-                                  Icons.clear,
-                                  color: Color(0xFF8E8E93),
-                                  size: 20,
-                                ),
-                                onPressed: () {
-                                  _searchController.clear();
-                                  setState(() {
-                                    _searchResults = [];
-                                    _selectedWord = null;
-                                    _isSearching = false;
-                                    _showAIButton = false;
-                                    _showNotFound = false;
-                                  });
-                                },
-                              )
-                            : null,
+                    Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.08),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
                       ),
-                      textInputAction: TextInputAction.search,
-                      onSubmitted: (_) => _searchWithAI(),
+                      child: TextField(
+                        controller: _searchController,
+                        focusNode: _searchFocusNode,
+                        autofocus: true,
+                        textAlign: TextAlign.start, // Sola hizalı
+                        textAlignVertical: TextAlignVertical.center, // Dikey ortala
+                        decoration: InputDecoration(
+                          hintText: 'Arapça veya Türkçe kelime ara',
+                          hintStyle: TextStyle(
+                            color: widget.isDarkMode 
+                                ? const Color(0xFF8E8E93)
+                                : const Color(0xFF6D6D70),
+                            fontSize: 16,
+                          ),
+                          prefixIcon: Icon(
+                            Icons.search,
+                            color: widget.isDarkMode 
+                                ? const Color(0xFF8E8E93)
+                                : const Color(0xFF6D6D70),
+                            size: 22,
+                          ),
+                          suffixIcon: _searchController.text.isNotEmpty 
+                              ? IconButton(
+                                  icon: Icon(
+                                    Icons.clear,
+                                    color: widget.isDarkMode 
+                                        ? const Color(0xFF8E8E93)
+                                        : const Color(0xFF6D6D70),
+                                    size: 20,
+                                  ),
+                                  onPressed: () {
+                                    _searchController.clear();
+                                    setState(() {
+                                      _searchResults = [];
+                                      _selectedWord = null;
+                                      _isSearching = false;
+                                      _showAIButton = false;
+                                      _showNotFound = false;
+                                    });
+                                  },
+                                )
+                              : null,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide.none,
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide.none,
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(
+                              color: Color(0xFF007AFF),
+                              width: 2,
+                            ),
+                          ),
+                          filled: true,
+                          fillColor: widget.isDarkMode 
+                              ? const Color(0xFF2C2C2E)
+                              : Colors.white,
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16, 
+                            vertical: 16,
+                          ),
+                        ),
+                        textInputAction: TextInputAction.search,
+                        onSubmitted: (_) => _searchWithAI(),
+                      ),
                     ),
                     
                     // AI ile Ara butonu
                     if (_showAIButton && !_isLoading)
                       Padding(
-                        padding: const EdgeInsets.only(top: 12),
+                        padding: const EdgeInsets.only(top: 14), // Biraz daha fazla boşluk
                         child: SizedBox(
                           width: double.infinity,
                           child: ElevatedButton(
@@ -259,17 +311,19 @@ class _HomeScreenState extends State<HomeScreen> {
                             style: ElevatedButton.styleFrom(
                               backgroundColor: const Color(0xFF007AFF),
                               foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              padding: const EdgeInsets.symmetric(vertical: 16), // Daha yüksek
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               elevation: 2,
+                              shadowColor: const Color(0xFF007AFF).withOpacity(0.3),
                             ),
                             child: const Text(
                               'Ara',
                               style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w600,
+                                letterSpacing: 0.5,
                               ),  
                             ),
                           ),
@@ -285,8 +339,6 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ],
           ),
-          
-
         ],
       ),
     );
