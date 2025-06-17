@@ -329,22 +329,22 @@ class _SavedWordCardWidgetState extends State<_SavedWordCardWidget> with TickerP
       child: Container(
         decoration: BoxDecoration(
           color: widget.isDarkMode 
-              ? const Color(0xFF1C1C1E) 
+              ? const Color(0xFF2C2C2E) 
               : Colors.white,
           borderRadius: BorderRadius.circular(6),
           border: Border.all(
             color: widget.isDarkMode 
-                ? const Color(0xFF2C2C2E)
-                : const Color(0xFFE5E5EA),
-            width: 0.5,
+                ? const Color(0xFF48484A)
+                : const Color(0xFFD1D1D6),
+            width: 0.8,
           ),
           boxShadow: [
             BoxShadow(
               color: widget.isDarkMode 
-                  ? Colors.black.withOpacity(0.1)
-                  : Colors.black.withOpacity(0.03),
-              blurRadius: 2,
-              offset: const Offset(0, 1),
+                  ? Colors.black.withOpacity(0.25)
+                  : Colors.black.withOpacity(0.08),
+              blurRadius: 4,
+              offset: const Offset(0, 2),
             ),
           ],
         ),
@@ -445,10 +445,10 @@ class _SavedWordCardWidgetState extends State<_SavedWordCardWidget> with TickerP
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Container(
-                        height: 0.5,
+                        height: 1.0,
                         color: widget.isDarkMode 
-                            ? const Color(0xFF2C2C2E)
-                            : const Color(0xFFE5E5EA),
+                            ? const Color(0xFF48484A)
+                            : const Color(0xFFD1D1D6),
                       ),
                       const SizedBox(height: 8),
                       
@@ -618,14 +618,14 @@ class _SavedWordCardWidgetState extends State<_SavedWordCardWidget> with TickerP
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 color: widget.isDarkMode 
-                    ? const Color(0xFF2C2C2E)
-                    : const Color(0xFFF8F9FA),
+                    ? const Color(0xFF3C3C3E)
+                    : const Color(0xFFF2F2F7),
                 borderRadius: BorderRadius.circular(4),
                 border: Border.all(
                   color: widget.isDarkMode 
-                      ? const Color(0xFF3C3C3E)
-                      : const Color(0xFFE5E5EA),
-                  width: 0.5,
+                      ? const Color(0xFF48484A)
+                      : const Color(0xFFD1D1D6),
+                  width: 1.0,
                 ),
               ),
               child: Column(
@@ -688,13 +688,13 @@ class _SavedWordCardWidgetState extends State<_SavedWordCardWidget> with TickerP
           height: 45,
           decoration: BoxDecoration(
             color: widget.isDarkMode 
-                ? const Color(0xFF2C2C2E)
-                : const Color(0xFFF8F9FA),
+                ? const Color(0xFF3C3C3E)
+                : const Color(0xFFF2F2F7),
             borderRadius: BorderRadius.circular(4),
             border: Border.all(
               color: widget.isDarkMode 
-                  ? const Color(0xFF3C3C3E)
-                  : const Color(0xFFE5E5EA),
+                  ? const Color(0xFF48484A)
+                  : const Color(0xFFD1D1D6),
               width: 1.0,
             ),
           ),
