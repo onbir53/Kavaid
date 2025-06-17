@@ -170,27 +170,28 @@ class _MainScreenState extends State<MainScreen> {
           children: [
             // Başlık ve arama çubuğu
             Container(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(10),
               child: Column(
                 children: [
                   // Başlık
                   Text(
                     'Kavaid',
                     style: GoogleFonts.inter(
-                      fontSize: 28,
-                      fontWeight: FontWeight.w700,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w500,
                       color: isDarkMode ? Colors.white : const Color(0xFF1C1C1E),
                     ),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 10),
                   
                   // Arama çubuğu
                   Container(
+                    height: 34,
                     decoration: BoxDecoration(
                       color: isDarkMode 
                           ? const Color(0xFF1C1C1E) 
                           : Colors.white,
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(10),
                       border: Border.all(
                         color: isDarkMode 
                             ? const Color(0xFF2C2C2E)
@@ -202,8 +203,8 @@ class _MainScreenState extends State<MainScreen> {
                           color: isDarkMode 
                               ? Colors.black.withOpacity(0.15)
                               : Colors.black.withOpacity(0.02),
-                          blurRadius: 4,
-                          offset: const Offset(0, 2),
+                          blurRadius: 3,
+                          offset: const Offset(0, 1),
                         ),
                       ],
                     ),
@@ -211,18 +212,20 @@ class _MainScreenState extends State<MainScreen> {
                       controller: _searchController,
                       onChanged: _performSearch,
                       style: TextStyle(
-                        fontSize: 16,
+                        fontSize: 14,
                         color: isDarkMode ? Colors.white : const Color(0xFF1C1C1E),
                       ),
                       decoration: InputDecoration(
                         hintText: 'Arapça kelime veya Türkçe anlam ara...',
                         hintStyle: TextStyle(
+                          fontSize: 14,
                           color: isDarkMode 
                               ? const Color(0xFF8E8E93)
                               : const Color(0xFF6D6D70),
                         ),
                         prefixIcon: Icon(
                           Icons.search,
+                          size: 18,
                           color: isDarkMode 
                               ? const Color(0xFF8E8E93)
                               : const Color(0xFF6D6D70),
@@ -232,6 +235,7 @@ class _MainScreenState extends State<MainScreen> {
                                 onPressed: _clearSearch,
                                 icon: Icon(
                                   Icons.clear,
+                                  size: 16,
                                   color: isDarkMode 
                                       ? const Color(0xFF8E8E93)
                                       : const Color(0xFF6D6D70),
@@ -240,8 +244,8 @@ class _MainScreenState extends State<MainScreen> {
                             : null,
                         border: InputBorder.none,
                         contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 14,
+                          horizontal: 8,
+                          vertical: 6,
                         ),
                       ),
                     ),
@@ -265,29 +269,29 @@ class _MainScreenState extends State<MainScreen> {
                             children: [
                               Icon(
                                 Icons.search,
-                                size: 64,
+                                size: 48,
                                 color: isDarkMode 
                                     ? const Color(0xFF8E8E93)
                                     : const Color(0xFF6D6D70),
                               ),
-                              const SizedBox(height: 16),
+                              const SizedBox(height: 12),
                               Text(
                                 _searchController.text.isEmpty
                                     ? 'Aramaya başlamak için kelime yazın'
                                     : 'Sonuç bulunamadı',
                                 style: TextStyle(
-                                  fontSize: 16,
+                                  fontSize: 14,
                                   color: isDarkMode 
                                       ? const Color(0xFF8E8E93)
                                       : const Color(0xFF6D6D70),
                                 ),
                               ),
                               if (_searchController.text.isEmpty) ...[
-                                const SizedBox(height: 8),
+                                const SizedBox(height: 6),
                                 Text(
                                   'Test için "تهنئة" veya "tebrik" yazın',
                                   style: TextStyle(
-                                    fontSize: 14,
+                                    fontSize: 12,
                                     color: isDarkMode 
                                         ? const Color(0xFF8E8E93)
                                         : const Color(0xFF6D6D70),
@@ -298,7 +302,7 @@ class _MainScreenState extends State<MainScreen> {
                           ),
                         )
                       : ListView.builder(
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
                           itemCount: _searchResults.length,
                           itemBuilder: (context, index) {
                             final word = _searchResults[index];

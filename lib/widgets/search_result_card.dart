@@ -167,13 +167,13 @@ class _SearchResultCardState extends State<SearchResultCard> with TickerProvider
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     
     return Padding(
-      padding: const EdgeInsets.only(bottom: 6),
+      padding: const EdgeInsets.only(bottom: 4),
       child: Container(
         decoration: BoxDecoration(
           color: isDarkMode 
               ? const Color(0xFF1C1C1E) 
               : Colors.white,
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(6),
           border: Border.all(
             color: isDarkMode 
                 ? const Color(0xFF2C2C2E)
@@ -185,7 +185,7 @@ class _SearchResultCardState extends State<SearchResultCard> with TickerProvider
               color: isDarkMode 
                   ? Colors.black.withOpacity(0.1)
                   : Colors.black.withOpacity(0.03),
-              blurRadius: 3,
+              blurRadius: 2,
               offset: const Offset(0, 1),
             ),
           ],
@@ -195,9 +195,9 @@ class _SearchResultCardState extends State<SearchResultCard> with TickerProvider
             // Ana kart içeriği
             InkWell(
               onTap: _toggleExpanded,
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(6),
               child: Container(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(12),
                 child: Row(
                   children: [
                     Expanded(
@@ -213,7 +213,7 @@ class _SearchResultCardState extends State<SearchResultCard> with TickerProvider
                                       ? widget.word.harekeliKelime! 
                                       : widget.word.kelime,
                                   style: GoogleFonts.notoNaskhArabic(
-                                    fontSize: 22,
+                                    fontSize: 18,
                                     fontWeight: FontWeight.w800,
                                     color: isDarkMode ? Colors.white : const Color(0xFF1C1C1E),
                                     height: 1.2,
@@ -226,13 +226,13 @@ class _SearchResultCardState extends State<SearchResultCard> with TickerProvider
                               ..._buildWordInfoChips(isDarkMode),
                             ],
                           ),
-                          const SizedBox(height: 6),
+                          const SizedBox(height: 4),
                           // Türkçe anlam
                           if (widget.word.anlam?.isNotEmpty == true) ...[
                             Text(
                               widget.word.anlam!,
                               style: TextStyle(
-                                fontSize: 15,
+                                fontSize: 13,
                                 color: isDarkMode 
                                     ? const Color(0xFF8E8E93) 
                                     : const Color(0xFF6D6D70),
@@ -267,7 +267,7 @@ class _SearchResultCardState extends State<SearchResultCard> with TickerProvider
                                 color: _isSaved 
                                     ? const Color(0xFF007AFF)
                                     : (isDarkMode ? Colors.white54 : const Color(0xFF8E8E93)),
-                                size: 18,
+                                size: 16,
                               ),
                       ),
                     ),
@@ -279,7 +279,7 @@ class _SearchResultCardState extends State<SearchResultCard> with TickerProvider
                       child: Icon(
                         Icons.keyboard_arrow_down,
                         color: isDarkMode ? Colors.white54 : const Color(0xFF8E8E93),
-                        size: 16,
+                        size: 14,
                       ),
                     ),
                   ],
@@ -293,7 +293,7 @@ class _SearchResultCardState extends State<SearchResultCard> with TickerProvider
               child: FadeTransition(
                 opacity: _fadeAnimation,
                 child: Container(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                  padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -303,7 +303,7 @@ class _SearchResultCardState extends State<SearchResultCard> with TickerProvider
                             ? const Color(0xFF2C2C2E)
                             : const Color(0xFFE5E5EA),
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 8),
                       
                       // Fiil çekimleri (yan yana, sadece varsa göster) - EN ÜSTTE
                       _buildConjugationRow(isDarkMode),
@@ -335,14 +335,14 @@ class _SearchResultCardState extends State<SearchResultCard> with TickerProvider
           color: const Color(0xFF007AFF).withOpacity(0.12),
           borderRadius: BorderRadius.circular(6),
         ),
-        child: Text(
-          widget.word.dilbilgiselOzellikler!['tur'].toString(),
-          style: const TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.w600,
-            color: Color(0xFF007AFF),
-          ),
-        ),
+                                child: Text(
+                          widget.word.dilbilgiselOzellikler!['tur'].toString(),
+                          style: const TextStyle(
+                            fontSize: 9,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF007AFF),
+                          ),
+                        ),
       ));
     }
     
@@ -435,7 +435,7 @@ class _SearchResultCardState extends State<SearchResultCard> with TickerProvider
     if (conjugations.isEmpty) return const SizedBox.shrink();
     
     return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.only(bottom: 10),
       child: Row(
         children: conjugations.entries.map((entry) {
           return Expanded(
@@ -458,17 +458,17 @@ class _SearchResultCardState extends State<SearchResultCard> with TickerProvider
         Text(
           'Örnek Cümleler',
           style: TextStyle(
-            fontSize: 13,
+            fontSize: 11,
             fontWeight: FontWeight.w600,
             color: const Color(0xFF007AFF),
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 6),
         ...widget.word.ornekCumleler!.take(2).map((example) {
           return Padding(
-            padding: const EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.only(bottom: 8),
             child: Container(
-              padding: const EdgeInsets.all(18),
+              padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 color: isDarkMode 
                     ? const Color(0xFF2C2C2E)
@@ -488,14 +488,14 @@ class _SearchResultCardState extends State<SearchResultCard> with TickerProvider
                     Text(
                       example['arapcaCümle'].toString(),
                       style: GoogleFonts.notoNaskhArabic(
-                        fontSize: 18,
+                        fontSize: 14,
                         fontWeight: FontWeight.w800,
                         color: isDarkMode ? Colors.white : const Color(0xFF1C1C1E),
                         height: 1.4,
                       ),
                       textDirection: TextDirection.rtl,
                     ),
-                    const SizedBox(height: 10),
+                    const SizedBox(height: 6),
                   ],
                   Text(
                     example['turkceAnlam']?.toString() ?? 
@@ -503,7 +503,7 @@ class _SearchResultCardState extends State<SearchResultCard> with TickerProvider
                     example['turkce']?.toString() ?? 
                     example.toString(),
                     style: TextStyle(
-                      fontSize: 16,
+                      fontSize: 12,
                       fontWeight: FontWeight.w500,
                       color: isDarkMode 
                           ? const Color(0xFF8E8E93)
@@ -529,16 +529,16 @@ class _SearchResultCardState extends State<SearchResultCard> with TickerProvider
         Text(
           title,
           style: const TextStyle(
-            fontSize: 12,
+            fontSize: 10,
             fontWeight: FontWeight.w700,
             color: Color(0xFF007AFF),
           ),
         ),
-        const SizedBox(height: 6),
+        const SizedBox(height: 4),
         // Arapça metin için kutu
         Container(
           width: double.infinity,
-          height: 60,
+          height: 45,
           decoration: BoxDecoration(
             color: isDarkMode 
                 ? const Color(0xFF2C2C2E)
@@ -555,7 +555,7 @@ class _SearchResultCardState extends State<SearchResultCard> with TickerProvider
             child: Text(
               text,
               style: GoogleFonts.notoNaskhArabic(
-                fontSize: 18,
+                fontSize: 14,
                 fontWeight: FontWeight.w800,
                 color: isDarkMode ? Colors.white : const Color(0xFF1C1C1E),
                 height: 1.2,
