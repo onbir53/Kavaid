@@ -135,6 +135,8 @@ class _WordCardState extends State<WordCard> {
                       fontWeight: FontWeight.bold,
                       color: isDarkMode ? Colors.white : const Color(0xFF1C1C1E),
                     ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
                 InkWell(

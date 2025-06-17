@@ -223,29 +223,44 @@ class _SearchResultCardState extends State<SearchResultCard> with TickerProvider
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Row(
+                            crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
                               // Harekeli Arapça kelime
                               Flexible(
-                                child: Text(
-                                  widget.word.harekeliKelime?.isNotEmpty == true 
-                                      ? widget.word.harekeliKelime! 
-                                      : widget.word.kelime,
-                                  style: GoogleFonts.scheherazadeNew(
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.w700,
-                                    color: isDarkMode ? Colors.white : const Color(0xFF1C1C1E),
-                                    height: 1.4,
-                                    fontFeatures: const [
-                                      ui.FontFeature.enable('liga'),
-                                      ui.FontFeature.enable('calt'),
-                                    ],
+                                child: Container(
+                                  constraints: BoxConstraints(
+                                    maxWidth: MediaQuery.of(context).size.width * 0.4,
                                   ),
-                                  textDirection: TextDirection.rtl,
+                                  child: Text(
+                                    widget.word.harekeliKelime?.isNotEmpty == true 
+                                        ? widget.word.harekeliKelime! 
+                                        : widget.word.kelime,
+                                    style: GoogleFonts.scheherazadeNew(
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.w700,
+                                      color: isDarkMode ? Colors.white : const Color(0xFF1C1C1E),
+                                      height: 1.4,
+                                      fontFeatures: const [
+                                        ui.FontFeature.enable('liga'),
+                                        ui.FontFeature.enable('calt'),
+                                      ],
+                                    ),
+                                    textDirection: TextDirection.rtl,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    softWrap: false,
+                                  ),
                                 ),
                               ),
                               const SizedBox(width: 8),
                               // Kelime türü chip'i
-                              ..._buildWordInfoChips(isDarkMode),
+                              Flexible(
+                                child: Wrap(
+                                  spacing: 6,
+                                  runSpacing: 4,
+                                  children: _buildWordInfoChips(isDarkMode),
+                                ),
+                              ),
                             ],
                           ),
                           const SizedBox(height: 4),
@@ -350,23 +365,31 @@ class _SearchResultCardState extends State<SearchResultCard> with TickerProvider
     if (widget.word.dilbilgiselOzellikler?.containsKey('tur') == true) {
       chips.add(Container(
         padding: const EdgeInsets.symmetric(
-          horizontal: 8,
-          vertical: 4,
+          horizontal: 10,
+          vertical: 5,
         ),
         decoration: BoxDecoration(
-          color: const Color(0x20007AFF),
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-            color: const Color(0xFF007AFF).withOpacity(0.2),
-            width: 0.5,
+          gradient: const LinearGradient(
+            colors: [Color(0xFF007AFF), Color(0xFF0051D5)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
           ),
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF007AFF).withOpacity(0.3),
+              blurRadius: 6,
+              offset: const Offset(0, 2),
+            ),
+          ],
         ),
         child: Text(
           widget.word.dilbilgiselOzellikler!['tur'].toString(),
           style: const TextStyle(
-            fontSize: 9,
+            fontSize: 10,
             fontWeight: FontWeight.w700,
-            color: Color(0xFF007AFF),
+            color: Colors.white,
+            letterSpacing: 0.3,
           ),
         ),
       ));
@@ -374,63 +397,117 @@ class _SearchResultCardState extends State<SearchResultCard> with TickerProvider
     
     // Kök ve çoğul sadece expanded durumunda göster
     if (_isExpanded) {
-      // Kök (sadece veri, etiket yok) - Mavi tema
+      // Kök (sadece veri, etiket yok)
       if (widget.word.koku?.isNotEmpty == true) {
         chips.add(Container(
           padding: const EdgeInsets.symmetric(
-            horizontal: 8,
-            vertical: 4,
+            horizontal: 10,
+            vertical: 5,
           ),
           decoration: BoxDecoration(
             color: isDarkMode 
-                ? const Color(0xFF007AFF).withOpacity(0.15)
-                : const Color(0xFF007AFF).withOpacity(0.12),
-            borderRadius: BorderRadius.circular(6),
-          ),
-          child: Text(
-            widget.word.koku!,
-            style: GoogleFonts.scheherazadeNew(
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-              color: const Color(0xFF007AFF),
-              fontFeatures: const [
-                ui.FontFeature.enable('liga'),
-                ui.FontFeature.enable('calt'),
-              ],
+                ? const Color(0xFF2C2C2E)
+                : const Color(0xFFF2F2F7),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: isDarkMode 
+                  ? const Color(0xFF48484A).withOpacity(0.5)
+                  : const Color(0xFFE5E5EA),
+              width: 1,
             ),
-            textDirection: TextDirection.rtl,
-            textAlign: TextAlign.center,
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'كök: ',
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w600,
+                  color: isDarkMode 
+                      ? const Color(0xFF8E8E93)
+                      : const Color(0xFF6D6D70),
+                ),
+              ),
+              Flexible(
+                child: Text(
+                  widget.word.koku!,
+                  style: GoogleFonts.scheherazadeNew(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: isDarkMode 
+                        ? const Color(0xFFE5E5EA)
+                        : const Color(0xFF1C1C1E),
+                    fontFeatures: const [
+                      ui.FontFeature.enable('liga'),
+                      ui.FontFeature.enable('calt'),
+                    ],
+                  ),
+                  textDirection: TextDirection.rtl,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  softWrap: false,
+                ),
+              ),
+            ],
           ),
         ));
       }
       
-      // Çoğul (sadece veri, etiket yok) - Mavi tema
+      // Çoğul (sadece veri, etiket yok)
       if (widget.word.dilbilgiselOzellikler?.containsKey('cogulForm') == true && 
           widget.word.dilbilgiselOzellikler!['cogulForm']?.toString().trim().isNotEmpty == true) {
         chips.add(Container(
           padding: const EdgeInsets.symmetric(
-            horizontal: 8,
-            vertical: 4,
+            horizontal: 10,
+            vertical: 5,
           ),
           decoration: BoxDecoration(
             color: isDarkMode 
-                ? const Color(0xFF007AFF).withOpacity(0.15)
-                : const Color(0xFF007AFF).withOpacity(0.12),
-            borderRadius: BorderRadius.circular(6),
-          ),
-          child: Text(
-            widget.word.dilbilgiselOzellikler!['cogulForm'].toString(),
-            style: GoogleFonts.scheherazadeNew(
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-              color: const Color(0xFF007AFF),
-              fontFeatures: const [
-                ui.FontFeature.enable('liga'),
-                ui.FontFeature.enable('calt'),
-              ],
+                ? const Color(0xFF2C2C2E)
+                : const Color(0xFFF2F2F7),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: isDarkMode 
+                  ? const Color(0xFF48484A).withOpacity(0.5)
+                  : const Color(0xFFE5E5EA),
+              width: 1,
             ),
-            textDirection: TextDirection.rtl,
-            textAlign: TextAlign.center,
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Çoğul: ',
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w600,
+                  color: isDarkMode 
+                      ? const Color(0xFF8E8E93)
+                      : const Color(0xFF6D6D70),
+                ),
+              ),
+              Flexible(
+                child: Text(
+                  widget.word.dilbilgiselOzellikler!['cogulForm'].toString(),
+                  style: GoogleFonts.scheherazadeNew(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: isDarkMode 
+                        ? const Color(0xFFE5E5EA)
+                        : const Color(0xFF1C1C1E),
+                    fontFeatures: const [
+                      ui.FontFeature.enable('liga'),
+                      ui.FontFeature.enable('calt'),
+                    ],
+                  ),
+                  textDirection: TextDirection.rtl,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  softWrap: false,
+                ),
+              ),
+            ],
           ),
         ));
       }
@@ -439,7 +516,7 @@ class _SearchResultCardState extends State<SearchResultCard> with TickerProvider
     // Chip'ler arasına boşluk ekle
     final spacedChips = <Widget>[];
     for (int i = 0; i < chips.length; i++) {
-      if (i > 0) spacedChips.add(const SizedBox(width: 8));
+      if (i > 0) spacedChips.add(const SizedBox(width: 6));
       spacedChips.add(chips[i]);
     }
     
@@ -489,71 +566,130 @@ class _SearchResultCardState extends State<SearchResultCard> with TickerProvider
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Örnek Cümleler',
-          style: TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.w600,
-            color: const Color(0xFF007AFF),
-          ),
-        ),
-        const SizedBox(height: 6),
-        ...widget.word.ornekCumleler!.take(2).map((example) {
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 8),
-            child: Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
+        const SizedBox(height: 4),
+        Container(
+          decoration: BoxDecoration(
+            gradient: isDarkMode 
+                ? null
+                : const LinearGradient(
+                    colors: [
+                      Color(0xFFF8F9FA),
+                      Color(0xFFF2F2F7),
+                    ],
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                  ),
+            color: isDarkMode ? const Color(0xFF2C2C2E) : null,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: isDarkMode 
+                  ? const Color(0xFF48484A).withOpacity(0.5)
+                  : const Color(0xFFE5E5EA),
+              width: 1.0,
+            ),
+            boxShadow: [
+              BoxShadow(
                 color: isDarkMode 
-                    ? const Color(0xFF3C3C3E)
-                    : const Color(0xFFF2F2F7),
-                borderRadius: BorderRadius.circular(4),
-                border: Border.all(
+                    ? Colors.black.withOpacity(0.2)
+                    : Colors.black.withOpacity(0.04),
+                blurRadius: 4,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Başlık - Kutu içinde üstte
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
                   color: isDarkMode 
-                      ? const Color(0xFF48484A)
-                      : const Color(0xFFD1D1D6),
-                  width: 1.0,
+                      ? const Color(0xFF007AFF).withOpacity(0.15)
+                      : const Color(0xFF007AFF).withOpacity(0.08),
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(7),
+                    topRight: Radius.circular(7),
+                  ),
+                ),
+                child: const Text(
+                  'Örnek Cümleler',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF007AFF),
+                    letterSpacing: 0.5,
+                  ),
                 ),
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (example['arapcaCümle'] != null) ...[
-                    Text(
-                      example['arapcaCümle'].toString(),
-                      style: GoogleFonts.scheherazadeNew(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: isDarkMode ? Colors.white : const Color(0xFF1C1C1E),
-                        height: 1.5,
-                        fontFeatures: const [
-                          ui.FontFeature.enable('liga'),
-                          ui.FontFeature.enable('calt'),
+              // İçerik
+              Padding(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  children: widget.word.ornekCumleler!.take(2).map((example) {
+                    final isLast = example == widget.word.ornekCumleler!.take(2).last;
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (example['arapcaCümle'] != null) ...[
+                          Text(
+                            example['arapcaCümle'].toString(),
+                            style: GoogleFonts.scheherazadeNew(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: isDarkMode ? const Color(0xFFE5E5EA) : const Color(0xFF1C1C1E),
+                              height: 1.5,
+                              fontFeatures: const [
+                                ui.FontFeature.enable('liga'),
+                                ui.FontFeature.enable('calt'),
+                              ],
+                            ),
+                            textDirection: TextDirection.rtl,
+                          ),
+                          const SizedBox(height: 6),
                         ],
-                      ),
-                      textDirection: TextDirection.rtl,
-                    ),
-                    const SizedBox(height: 6),
-                  ],
-                  Text(
-                    example['turkceAnlam']?.toString() ?? 
-                    example['turkceCeviri']?.toString() ?? 
-                    example['turkce']?.toString() ?? 
-                    example.toString(),
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                      color: isDarkMode 
-                          ? const Color(0xFF8E8E93)
-                          : const Color(0xFF6D6D70),
-                      height: 1.4,
-                    ),
-                  ),
-                ],
+                        Text(
+                          example['turkceAnlam']?.toString() ?? 
+                          example['turkceCeviri']?.toString() ?? 
+                          example['turkce']?.toString() ?? 
+                          example.toString(),
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                            color: isDarkMode 
+                                ? const Color(0xFF8E8E93)
+                                : const Color(0xFF6D6D70),
+                            height: 1.4,
+                            letterSpacing: 0.2,
+                          ),
+                        ),
+                        if (!isLast) ...[
+                          const SizedBox(height: 12),
+                          Container(
+                            height: 1,
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: [
+                                  Colors.transparent,
+                                  isDarkMode 
+                                      ? const Color(0xFF48484A).withOpacity(0.3)
+                                      : const Color(0xFFE5E5EA).withOpacity(0.5),
+                                  Colors.transparent,
+                                ],
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                        ],
+                      ],
+                    );
+                  }).toList(),
+                ),
               ),
-            ),
-          );
-        }).toList(),
+            ],
+          ),
+        ),
       ],
     );
   }
@@ -563,31 +699,65 @@ class _SearchResultCardState extends State<SearchResultCard> with TickerProvider
       crossAxisAlignment: CrossAxisAlignment.center,
       mainAxisSize: MainAxisSize.min,
       children: [
-        // Başlık kutunun üstünde
-        Text(
-          title,
-          style: const TextStyle(
-            fontSize: 10,
-            fontWeight: FontWeight.w700,
-            color: Color(0xFF007AFF),
+        // Başlık
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+          decoration: BoxDecoration(
+            color: isDarkMode 
+                ? const Color(0xFF007AFF).withOpacity(0.15)
+                : const Color(0xFF007AFF).withOpacity(0.08),
+            borderRadius: const BorderRadius.only(
+              topLeft: Radius.circular(8),
+              topRight: Radius.circular(8),
+            ),
+          ),
+          child: Text(
+            title,
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w700,
+              color: const Color(0xFF007AFF),
+              letterSpacing: 0.5,
+            ),
           ),
         ),
-        const SizedBox(height: 4),
         // Arapça metin için kutu
         Container(
           width: double.infinity,
-          height: 45,
+          height: 48,
           decoration: BoxDecoration(
-            color: isDarkMode 
-                ? const Color(0xFF3C3C3E)
-                : const Color(0xFFF2F2F7),
-            borderRadius: BorderRadius.circular(4),
+            gradient: isDarkMode 
+                ? null
+                : const LinearGradient(
+                    colors: [
+                      Color(0xFFF8F9FA),
+                      Color(0xFFF2F2F7),
+                    ],
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                  ),
+            color: isDarkMode ? const Color(0xFF2C2C2E) : null,
+            borderRadius: const BorderRadius.only(
+              bottomLeft: Radius.circular(8),
+              bottomRight: Radius.circular(8),
+              topLeft: Radius.circular(8),
+              topRight: Radius.circular(8),
+            ),
             border: Border.all(
               color: isDarkMode 
-                  ? const Color(0xFF48484A)
-                  : const Color(0xFFD1D1D6),
+                  ? const Color(0xFF48484A).withOpacity(0.5)
+                  : const Color(0xFFE5E5EA),
               width: 1.0,
             ),
+            boxShadow: [
+              BoxShadow(
+                color: isDarkMode 
+                    ? Colors.black.withOpacity(0.2)
+                    : Colors.black.withOpacity(0.04),
+                blurRadius: 4,
+                offset: const Offset(0, 2),
+              ),
+            ],
           ),
           child: Center(
             child: Text(
@@ -595,7 +765,7 @@ class _SearchResultCardState extends State<SearchResultCard> with TickerProvider
               style: GoogleFonts.scheherazadeNew(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
-                color: isDarkMode ? Colors.white : const Color(0xFF1C1C1E),
+                color: isDarkMode ? const Color(0xFFE5E5EA) : const Color(0xFF1C1C1E),
                 height: 1.4,
                 fontFeatures: const [
                   ui.FontFeature.enable('liga'),
@@ -604,8 +774,9 @@ class _SearchResultCardState extends State<SearchResultCard> with TickerProvider
               ),
               textDirection: TextDirection.rtl,
               textAlign: TextAlign.center,
-              maxLines: 2,
+              maxLines: 1,
               overflow: TextOverflow.ellipsis,
+              softWrap: false,
             ),
           ),
         ),
