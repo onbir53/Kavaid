@@ -491,8 +491,8 @@ class _SavedWordCardWidgetState extends State<_SavedWordCardWidget> with TickerP
       if (widget.word.koku?.isNotEmpty == true) {
         chips.add(Container(
           padding: const EdgeInsets.symmetric(
-            horizontal: 10,
-            vertical: 6,
+            horizontal: 8,
+            vertical: 4,
           ),
           decoration: BoxDecoration(
             color: widget.isDarkMode 
@@ -503,7 +503,7 @@ class _SavedWordCardWidgetState extends State<_SavedWordCardWidget> with TickerP
           child: Text(
             widget.word.koku!,
             style: GoogleFonts.notoNaskhArabic(
-              fontSize: 13,
+              fontSize: 11,
               fontWeight: FontWeight.w700,
               color: const Color(0xFF007AFF),
             ),
@@ -518,8 +518,8 @@ class _SavedWordCardWidgetState extends State<_SavedWordCardWidget> with TickerP
           widget.word.dilbilgiselOzellikler!['cogulForm']?.toString().trim().isNotEmpty == true) {
         chips.add(Container(
           padding: const EdgeInsets.symmetric(
-            horizontal: 10,
-            vertical: 6,
+            horizontal: 8,
+            vertical: 4,
           ),
           decoration: BoxDecoration(
             color: widget.isDarkMode 
@@ -530,7 +530,7 @@ class _SavedWordCardWidgetState extends State<_SavedWordCardWidget> with TickerP
           child: Text(
             widget.word.dilbilgiselOzellikler!['cogulForm'].toString(),
             style: GoogleFonts.notoNaskhArabic(
-              fontSize: 13,
+              fontSize: 11,
               fontWeight: FontWeight.w700,
               color: const Color(0xFF007AFF),
             ),

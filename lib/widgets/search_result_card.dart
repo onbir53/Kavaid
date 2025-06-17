@@ -352,8 +352,8 @@ class _SearchResultCardState extends State<SearchResultCard> with TickerProvider
       if (widget.word.koku?.isNotEmpty == true) {
         chips.add(Container(
           padding: const EdgeInsets.symmetric(
-            horizontal: 10,
-            vertical: 6,
+            horizontal: 8,
+            vertical: 4,
           ),
           decoration: BoxDecoration(
             color: isDarkMode 
@@ -364,7 +364,7 @@ class _SearchResultCardState extends State<SearchResultCard> with TickerProvider
           child: Text(
             widget.word.koku!,
             style: GoogleFonts.notoNaskhArabic(
-              fontSize: 13,
+              fontSize: 11,
               fontWeight: FontWeight.w700,
               color: const Color(0xFF007AFF),
             ),
@@ -379,8 +379,8 @@ class _SearchResultCardState extends State<SearchResultCard> with TickerProvider
           widget.word.dilbilgiselOzellikler!['cogulForm']?.toString().trim().isNotEmpty == true) {
         chips.add(Container(
           padding: const EdgeInsets.symmetric(
-            horizontal: 10,
-            vertical: 6,
+            horizontal: 8,
+            vertical: 4,
           ),
           decoration: BoxDecoration(
             color: isDarkMode 
@@ -391,7 +391,7 @@ class _SearchResultCardState extends State<SearchResultCard> with TickerProvider
           child: Text(
             widget.word.dilbilgiselOzellikler!['cogulForm'].toString(),
             style: GoogleFonts.notoNaskhArabic(
-              fontSize: 13,
+              fontSize: 11,
               fontWeight: FontWeight.w700,
               color: const Color(0xFF007AFF),
             ),
