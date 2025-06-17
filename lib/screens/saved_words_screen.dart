@@ -325,13 +325,13 @@ class _SavedWordCardWidgetState extends State<_SavedWordCardWidget> with TickerP
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 6),
+      padding: const EdgeInsets.only(bottom: 4),
       child: Container(
         decoration: BoxDecoration(
           color: widget.isDarkMode 
               ? const Color(0xFF1C1C1E) 
               : Colors.white,
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(6),
           border: Border.all(
             color: widget.isDarkMode 
                 ? const Color(0xFF2C2C2E)
@@ -343,7 +343,7 @@ class _SavedWordCardWidgetState extends State<_SavedWordCardWidget> with TickerP
               color: widget.isDarkMode 
                   ? Colors.black.withOpacity(0.1)
                   : Colors.black.withOpacity(0.03),
-              blurRadius: 3,
+              blurRadius: 2,
               offset: const Offset(0, 1),
             ),
           ],
@@ -353,9 +353,9 @@ class _SavedWordCardWidgetState extends State<_SavedWordCardWidget> with TickerP
             // Ana kart içeriği
             InkWell(
               onTap: _toggleExpanded,
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(6),
               child: Container(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(12),
                 child: Row(
                   children: [
                     Expanded(
@@ -364,36 +364,38 @@ class _SavedWordCardWidgetState extends State<_SavedWordCardWidget> with TickerP
                         children: [
                           Row(
                             children: [
-                              // Arapça kelime
-                              Text(
-                                widget.word.harekeliKelime?.isNotEmpty == true 
-                                    ? widget.word.harekeliKelime! 
-                                    : widget.word.kelime,
-                                style: GoogleFonts.notoNaskhArabic(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.w800,
-                                  color: widget.isDarkMode ? Colors.white : const Color(0xFF1C1C1E),
+                              // Harekeli Arapça kelime
+                              Flexible(
+                                child: Text(
+                                  widget.word.harekeliKelime?.isNotEmpty == true 
+                                      ? widget.word.harekeliKelime! 
+                                      : widget.word.kelime,
+                                  style: GoogleFonts.notoNaskhArabic(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w800,
+                                    color: widget.isDarkMode ? Colors.white : const Color(0xFF1C1C1E),
+                                    height: 1.2,
+                                  ),
+                                  textDirection: TextDirection.rtl,
                                 ),
-                                textDirection: TextDirection.rtl,
                               ),
                               const SizedBox(width: 8),
-                              // Kelime türü, kök ve çoğul
+                              // Kelime türü chip'i
                               ..._buildWordInfoChips(),
                             ],
                           ),
-                          const SizedBox(height: 5),
+                          const SizedBox(height: 4),
                           // Türkçe anlam
                           if (widget.word.anlam?.isNotEmpty == true) ...[
                             Text(
                               widget.word.anlam!,
                               style: TextStyle(
-                                fontSize: 15,
+                                fontSize: 13,
                                 color: widget.isDarkMode 
                                     ? const Color(0xFF8E8E93) 
                                     : const Color(0xFF6D6D70),
                                 height: 1.3,
                                 fontWeight: FontWeight.w400,
-                                letterSpacing: 0.2,
                               ),
                               maxLines: _isExpanded ? null : 2,
                               overflow: _isExpanded ? null : TextOverflow.ellipsis,
@@ -402,29 +404,29 @@ class _SavedWordCardWidgetState extends State<_SavedWordCardWidget> with TickerP
                         ],
                       ),
                     ),
-                    const SizedBox(width: 10),
-                    // Silme tuşu
+                    const SizedBox(width: 12),
+                    // Silme tuşu (bookmark icon)
                     InkWell(
                       onTap: widget.onRemove,
-                      borderRadius: BorderRadius.circular(20),
+                      borderRadius: BorderRadius.circular(16),
                       child: Container(
-                        padding: const EdgeInsets.all(8),
+                        padding: const EdgeInsets.all(6),
                         child: Icon(
                           Icons.bookmark,
                           color: const Color(0xFF007AFF),
-                          size: 20,
+                          size: 16,
                         ),
                       ),
                     ),
-                    const SizedBox(width: 4),
+                    const SizedBox(width: 2),
                     // Açılır menü ikonu
                     AnimatedRotation(
                       turns: _isExpanded ? 0.5 : 0,
-                      duration: const Duration(milliseconds: 300),
+                      duration: const Duration(milliseconds: 250),
                       child: Icon(
                         Icons.keyboard_arrow_down,
                         color: widget.isDarkMode ? Colors.white54 : const Color(0xFF8E8E93),
-                        size: 18,
+                        size: 14,
                       ),
                     ),
                   ],
@@ -438,7 +440,7 @@ class _SavedWordCardWidgetState extends State<_SavedWordCardWidget> with TickerP
               child: FadeTransition(
                 opacity: _fadeAnimation,
                 child: Container(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                  padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -448,7 +450,7 @@ class _SavedWordCardWidgetState extends State<_SavedWordCardWidget> with TickerP
                             ? const Color(0xFF2C2C2E)
                             : const Color(0xFFE5E5EA),
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 8),
                       
                       // Fiil çekimleri (yan yana, sadece varsa göster) - EN ÜSTTE
                       _buildConjugationRow(),
@@ -483,7 +485,7 @@ class _SavedWordCardWidgetState extends State<_SavedWordCardWidget> with TickerP
         child: Text(
           widget.word.dilbilgiselOzellikler!['tur'].toString(),
           style: const TextStyle(
-            fontSize: 11,
+            fontSize: 10,
             fontWeight: FontWeight.w600,
             color: Color(0xFF007AFF),
           ),
@@ -509,7 +511,7 @@ class _SavedWordCardWidgetState extends State<_SavedWordCardWidget> with TickerP
           child: Text(
             widget.word.koku!,
             style: GoogleFonts.notoNaskhArabic(
-              fontSize: 11,
+              fontSize: 10,
               fontWeight: FontWeight.w700,
               color: const Color(0xFF007AFF),
             ),
@@ -536,7 +538,7 @@ class _SavedWordCardWidgetState extends State<_SavedWordCardWidget> with TickerP
           child: Text(
             widget.word.dilbilgiselOzellikler!['cogulForm'].toString(),
             style: GoogleFonts.notoNaskhArabic(
-              fontSize: 11,
+              fontSize: 10,
               fontWeight: FontWeight.w700,
               color: const Color(0xFF007AFF),
             ),
@@ -580,7 +582,7 @@ class _SavedWordCardWidgetState extends State<_SavedWordCardWidget> with TickerP
     if (conjugations.isEmpty) return const SizedBox.shrink();
     
     return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.only(bottom: 10),
       child: Row(
         children: conjugations.entries.map((entry) {
           return Expanded(
@@ -603,17 +605,17 @@ class _SavedWordCardWidgetState extends State<_SavedWordCardWidget> with TickerP
         Text(
           'Örnek Cümleler',
           style: TextStyle(
-            fontSize: 13,
+            fontSize: 11,
             fontWeight: FontWeight.w600,
             color: const Color(0xFF007AFF),
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 6),
         ...widget.word.ornekCumleler!.take(2).map((example) {
           return Padding(
-            padding: const EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.only(bottom: 8),
             child: Container(
-              padding: const EdgeInsets.all(18),
+              padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 color: widget.isDarkMode 
                     ? const Color(0xFF2C2C2E)
@@ -633,14 +635,14 @@ class _SavedWordCardWidgetState extends State<_SavedWordCardWidget> with TickerP
                     Text(
                       example['arapcaCümle'].toString(),
                       style: GoogleFonts.notoNaskhArabic(
-                        fontSize: 18,
+                        fontSize: 14,
                         fontWeight: FontWeight.w800,
                         color: widget.isDarkMode ? Colors.white : const Color(0xFF1C1C1E),
                         height: 1.4,
                       ),
                       textDirection: TextDirection.rtl,
                     ),
-                    const SizedBox(height: 10),
+                    const SizedBox(height: 6),
                   ],
                   Text(
                     example['turkceAnlam']?.toString() ?? 
@@ -648,7 +650,7 @@ class _SavedWordCardWidgetState extends State<_SavedWordCardWidget> with TickerP
                     example['turkce']?.toString() ?? 
                     example.toString(),
                     style: TextStyle(
-                      fontSize: 16,
+                      fontSize: 12,
                       fontWeight: FontWeight.w500,
                       color: widget.isDarkMode 
                           ? const Color(0xFF8E8E93)
@@ -674,16 +676,16 @@ class _SavedWordCardWidgetState extends State<_SavedWordCardWidget> with TickerP
         Text(
           title,
           style: const TextStyle(
-            fontSize: 12,
+            fontSize: 10,
             fontWeight: FontWeight.w700,
             color: Color(0xFF007AFF),
           ),
         ),
-        const SizedBox(height: 6),
+        const SizedBox(height: 4),
         // Arapça metin için kutu
         Container(
           width: double.infinity,
-          height: 60,
+          height: 45,
           decoration: BoxDecoration(
             color: widget.isDarkMode 
                 ? const Color(0xFF2C2C2E)
@@ -700,7 +702,7 @@ class _SavedWordCardWidgetState extends State<_SavedWordCardWidget> with TickerP
             child: Text(
               text,
               style: GoogleFonts.notoNaskhArabic(
-                fontSize: 18,
+                fontSize: 14,
                 fontWeight: FontWeight.w800,
                 color: widget.isDarkMode ? Colors.white : const Color(0xFF1C1C1E),
                 height: 1.2,
