@@ -177,7 +177,7 @@ class _MainScreenState extends State<MainScreen> {
                   Text(
                     'Kavaid',
                     style: GoogleFonts.inter(
-                      fontSize: 18,
+                      fontSize: 16,
                       fontWeight: FontWeight.w500,
                       color: isDarkMode ? Colors.white : const Color(0xFF1C1C1E),
                     ),
@@ -186,12 +186,12 @@ class _MainScreenState extends State<MainScreen> {
                   
                   // Arama çubuğu
                   Container(
-                    height: 34,
+                    height: 24,
                     decoration: BoxDecoration(
                       color: isDarkMode 
                           ? const Color(0xFF1C1C1E) 
                           : Colors.white,
-                      borderRadius: BorderRadius.circular(10),
+                      borderRadius: BorderRadius.circular(8),
                       border: Border.all(
                         color: isDarkMode 
                             ? const Color(0xFF2C2C2E)
@@ -212,20 +212,20 @@ class _MainScreenState extends State<MainScreen> {
                       controller: _searchController,
                       onChanged: _performSearch,
                       style: TextStyle(
-                        fontSize: 14,
+                        fontSize: 11,
                         color: isDarkMode ? Colors.white : const Color(0xFF1C1C1E),
                       ),
                       decoration: InputDecoration(
                         hintText: 'Arapça kelime veya Türkçe anlam ara...',
                         hintStyle: TextStyle(
-                          fontSize: 14,
+                          fontSize: 11,
                           color: isDarkMode 
                               ? const Color(0xFF8E8E93)
                               : const Color(0xFF6D6D70),
                         ),
                         prefixIcon: Icon(
                           Icons.search,
-                          size: 18,
+                          size: 14,
                           color: isDarkMode 
                               ? const Color(0xFF8E8E93)
                               : const Color(0xFF6D6D70),
@@ -235,7 +235,7 @@ class _MainScreenState extends State<MainScreen> {
                                 onPressed: _clearSearch,
                                 icon: Icon(
                                   Icons.clear,
-                                  size: 16,
+                                  size: 12,
                                   color: isDarkMode 
                                       ? const Color(0xFF8E8E93)
                                       : const Color(0xFF6D6D70),
@@ -244,8 +244,8 @@ class _MainScreenState extends State<MainScreen> {
                             : null,
                         border: InputBorder.none,
                         contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 6,
+                          horizontal: 4,
+                          vertical: 2,
                         ),
                       ),
                     ),

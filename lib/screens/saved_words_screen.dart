@@ -160,7 +160,13 @@ class _SavedWordsScreenState extends State<SavedWordsScreen> with AutomaticKeepA
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Kaydedilenler'),
+        title: const Text(
+          'Kaydedilenler',
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
         actions: [
           if (_savedWords.isNotEmpty) ...[
             IconButton(

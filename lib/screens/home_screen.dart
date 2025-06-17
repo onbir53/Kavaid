@@ -185,9 +185,9 @@ class _HomeScreenState extends State<HomeScreen> {
         title: const Text(
           'Kavaid',
           style: TextStyle(
-            fontSize: 26, // Biraz daha büyük
-            fontWeight: FontWeight.w800, // Daha kalın
-            letterSpacing: 1.0, // Daha geniş harf aralığı
+            fontSize: 22, // Küçültüldü
+            fontWeight: FontWeight.w700, // Biraz daha hafif
+            letterSpacing: 0.8, // Daha az harf aralığı
           ),
         ),
         centerTitle: false, // Sol tarafa yasla
@@ -241,14 +241,14 @@ class _HomeScreenState extends State<HomeScreen> {
                             color: widget.isDarkMode 
                                 ? const Color(0xFF8E8E93)
                                 : const Color(0xFF6D6D70),
-                            fontSize: 16,
+                            fontSize: 15,
                           ),
                           prefixIcon: Icon(
                             Icons.search,
                             color: widget.isDarkMode 
                                 ? const Color(0xFF8E8E93)
                                 : const Color(0xFF6D6D70),
-                            size: 22,
+                            size: 20,
                           ),
                           suffixIcon: _searchController.text.isNotEmpty 
                               ? IconButton(
@@ -257,7 +257,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                     color: widget.isDarkMode 
                                         ? const Color(0xFF8E8E93)
                                         : const Color(0xFF6D6D70),
-                                    size: 20,
+                                    size: 18,
                                   ),
                                   onPressed: () {
                                     _searchController.clear();
@@ -292,7 +292,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               : Colors.white,
                           contentPadding: const EdgeInsets.symmetric(
                             horizontal: 16, 
-                            vertical: 16,
+                            vertical: 12,
                           ),
                         ),
                         textInputAction: TextInputAction.search,

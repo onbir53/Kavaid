@@ -419,7 +419,13 @@ class ProfileScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Profil'),
+        title: const Text(
+          'Profil',
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
         actions: [
           Padding(
             padding: const EdgeInsets.only(right: 16),
