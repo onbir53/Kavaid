@@ -207,7 +207,7 @@ class _HomeScreenState extends State<HomeScreen> {
             bottom: PreferredSize(
               preferredSize: const Size.fromHeight(52.0),
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
                 child: SizedBox(
                   height: 44,
                   child: Container(
@@ -312,27 +312,54 @@ class _HomeScreenState extends State<HomeScreen> {
       slivers.add(
         SliverToBoxAdapter(
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-            child: SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: _searchWithAI,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF007AFF),
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  elevation: 2,
-                  shadowColor: const Color(0xFF007AFF).withOpacity(0.3),
+            padding: const EdgeInsets.fromLTRB(8, 12, 8, 0),
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Color(0xFF007AFF),
+                    Color(0xFF0051D5),
+                  ],
                 ),
-                child: const Text(
-                  'Ara',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 0.5,
+                borderRadius: BorderRadius.circular(14),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF007AFF).withOpacity(0.4),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                    spreadRadius: 0,
+                  ),
+                ],
+              ),
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: _searchWithAI,
+                  borderRadius: BorderRadius.circular(14),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 18),
+                    child: const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.search,
+                          color: Colors.white,
+                          size: 20,
+                        ),
+                        SizedBox(width: 8),
+                        Text(
+                          'Ara',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                            letterSpacing: 0.3,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -372,7 +399,7 @@ class _HomeScreenState extends State<HomeScreen> {
     if (_isSearching && _searchResults.isNotEmpty) {
       slivers.add(
         SliverPadding(
-          padding: const EdgeInsets.fromLTRB(20, 12, 20, 80),
+          padding: const EdgeInsets.fromLTRB(8, 12, 8, 80),
           sliver: SliverList(
             delegate: SliverChildBuilderDelegate(
               (context, index) {
@@ -392,7 +419,7 @@ class _HomeScreenState extends State<HomeScreen> {
     if (_selectedWord != null) {
       slivers.add(
         SliverPadding(
-          padding: const EdgeInsets.fromLTRB(20, 12, 20, 80),
+          padding: const EdgeInsets.fromLTRB(8, 12, 8, 80),
           sliver: SliverToBoxAdapter(
             child: WordCard(word: _selectedWord!),
           ),
