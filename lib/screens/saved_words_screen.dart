@@ -190,16 +190,16 @@ class _SavedWordsScreenState extends State<SavedWordsScreen> with AutomaticKeepA
                     children: [
                       Icon(
                         Icons.bookmark_border,
-                        size: 64,
+                        size: 48,
                         color: isDarkMode 
                             ? const Color(0xFF8E8E93)
                             : const Color(0xFF8E8E93),
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 12),
                       Text(
                         'Henüz kaydedilen kelime yok',
                         style: TextStyle(
-                          fontSize: 18,
+                          fontSize: 14,
                           color: isDarkMode 
                               ? const Color(0xFF8E8E93)
                               : const Color(0xFF8E8E93),

@@ -445,7 +445,7 @@ class ProfileScreen extends StatelessWidget {
         child: Text(
           'Profil ayarları burada olacak',
           style: TextStyle(
-            fontSize: 17,
+            fontSize: 14,
             color: Color(0xFF8E8E93),
           ),
         ),
