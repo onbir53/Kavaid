@@ -7,16 +7,19 @@ import '../services/firebase_service.dart';
 import '../widgets/word_card.dart';
 import '../widgets/search_result_card.dart';
 import '../widgets/arabic_keyboard.dart';
+import '../widgets/banner_ad_widget.dart';
 
 
 class HomeScreen extends StatefulWidget {
   final bool isDarkMode;
   final VoidCallback onThemeToggle;
+  final Function(bool)? onArabicKeyboardStateChanged;
 
   const HomeScreen({
     super.key,
     required this.isDarkMode,
     required this.onThemeToggle,
+    this.onArabicKeyboardStateChanged,
   });
 
   @override
@@ -341,6 +344,8 @@ class _HomeScreenState extends State<HomeScreen> {
                                         _searchFocusNode.unfocus();
                                       }
                                     });
+                                    // Main ekrana klavye durumunu bildir
+                                    widget.onArabicKeyboardStateChanged?.call(_showArabicKeyboard);
                                   },
                                   child: Container(
                                     width: 32,
@@ -433,19 +438,29 @@ class _HomeScreenState extends State<HomeScreen> {
           // Arapça klavye
           if (_showArabicKeyboard)
             Positioned(
-              bottom: 50, // Banner'ın üstünde
+              bottom: 0, // En altta
               left: 0,
               right: 0,
-              child: SizedBox(
-                height: 280,
-                child: ArabicKeyboard(
-                  controller: _searchController,
-                  onClose: () {
-                    setState(() {
-                      _showArabicKeyboard = false;
-                    });
-                  },
-                ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Banner klavyenin üstünde
+                  const BannerAdWidget(),
+                  // Klavye
+                  SizedBox(
+                    height: 280,
+                    child: ArabicKeyboard(
+                      controller: _searchController,
+                      onClose: () {
+                        setState(() {
+                          _showArabicKeyboard = false;
+                        });
+                        // Main ekrana klavye durumunu bildir
+                        widget.onArabicKeyboardStateChanged?.call(false);
+                      },
+                    ),
+                  ),
+                ],
               ),
             ),
         ],

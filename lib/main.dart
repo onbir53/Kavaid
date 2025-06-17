@@ -258,6 +258,7 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   int _currentIndex = 0;
   VoidCallback? _refreshSavedWords;
+  bool _showArabicKeyboard = false;
 
   void _onTabTapped(int index) {
     setState(() => _currentIndex = index);
@@ -266,6 +267,12 @@ class _MainScreenState extends State<MainScreen> {
     if (index == 1 && _refreshSavedWords != null) {
       _refreshSavedWords!();
     }
+  }
+
+  void _setArabicKeyboardState(bool show) {
+    setState(() {
+      _showArabicKeyboard = show;
+    });
   }
 
   @override
@@ -277,6 +284,7 @@ class _MainScreenState extends State<MainScreen> {
           HomeScreen(
             isDarkMode: widget.isDarkMode,
             onThemeToggle: widget.onThemeToggle,
+            onArabicKeyboardStateChanged: _setArabicKeyboardState,
           ), // Sözlük
           SavedWordsScreen(
             onRefreshCallback: (callback) => _refreshSavedWords = callback,
@@ -287,7 +295,7 @@ class _MainScreenState extends State<MainScreen> {
           ), // Profil
         ],
       ),
-      bottomSheet: const BannerAdWidget(),
+      bottomSheet: _showArabicKeyboard ? null : const BannerAdWidget(),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           boxShadow: [
