@@ -342,7 +342,10 @@ class _SearchResultCardState extends State<SearchResultCard> with TickerProvider
                       ),
                       const SizedBox(height: 8),
                       
-                      // Fiil çekimleri (yan yana, sadece varsa göster) - EN ÜSTTE
+                      // Kök ve çoğul bilgileri (yan yana, sadece varsa göster)
+                      _buildRootAndPluralRow(isDarkMode),
+                      
+                      // Fiil çekimleri (yan yana, sadece varsa göster)
                       _buildConjugationRow(isDarkMode),
                       
                       // Örnek cümleler
@@ -365,165 +368,217 @@ class _SearchResultCardState extends State<SearchResultCard> with TickerProvider
     if (widget.word.dilbilgiselOzellikler?.containsKey('tur') == true) {
       chips.add(Container(
         padding: const EdgeInsets.symmetric(
-          horizontal: 10,
-          vertical: 5,
+          horizontal: 8,
+          vertical: 3,
         ),
         decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [Color(0xFF007AFF), Color(0xFF0051D5)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
+          color: isDarkMode 
+              ? const Color(0xFF007AFF).withOpacity(0.2)
+              : const Color(0xFF007AFF).withOpacity(0.12),
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(
+            color: isDarkMode 
+                ? const Color(0xFF007AFF).withOpacity(0.3)
+                : const Color(0xFF007AFF).withOpacity(0.2),
+            width: 0.5,
           ),
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: [
-            BoxShadow(
-              color: const Color(0xFF007AFF).withOpacity(0.3),
-              blurRadius: 6,
-              offset: const Offset(0, 2),
-            ),
-          ],
         ),
         child: Text(
           widget.word.dilbilgiselOzellikler!['tur'].toString(),
-          style: const TextStyle(
-            fontSize: 10,
-            fontWeight: FontWeight.w700,
-            color: Colors.white,
-            letterSpacing: 0.3,
+          style: TextStyle(
+            fontSize: 8,
+            fontWeight: FontWeight.w600,
+            color: isDarkMode 
+                ? const Color(0xFF007AFF)
+                : const Color(0xFF007AFF).withOpacity(0.9),
+            letterSpacing: 0.2,
           ),
         ),
       ));
     }
     
-    // Kök ve çoğul sadece expanded durumunda göster
-    if (_isExpanded) {
-      // Kök (sadece veri, etiket yok)
-      if (widget.word.koku?.isNotEmpty == true) {
-        chips.add(Container(
-          constraints: const BoxConstraints(maxWidth: 120),
-          padding: const EdgeInsets.symmetric(
-            horizontal: 10,
-            vertical: 5,
-          ),
-          decoration: BoxDecoration(
-            color: isDarkMode 
-                ? const Color(0xFF2C2C2E)
-                : const Color(0xFFF2F2F7),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: isDarkMode 
-                  ? const Color(0xFF48484A).withOpacity(0.5)
-                  : const Color(0xFFE5E5EA),
-              width: 1,
-            ),
-          ),
-          child: Text(
-            widget.word.koku!,
-            style: GoogleFonts.scheherazadeNew(
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-              color: isDarkMode 
-                  ? const Color(0xFFE5E5EA)
-                  : const Color(0xFF1C1C1E),
-              fontFeatures: const [
-                ui.FontFeature.enable('liga'),
-                ui.FontFeature.enable('calt'),
-              ],
-            ),
-            textDirection: TextDirection.rtl,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            softWrap: false,
-          ),
-        ));
-      }
-      
-      // Çoğul (sadece veri, etiket yok)
-      if (widget.word.dilbilgiselOzellikler?.containsKey('cogulForm') == true && 
-          widget.word.dilbilgiselOzellikler!['cogulForm']?.toString().trim().isNotEmpty == true) {
-        chips.add(Container(
-          constraints: const BoxConstraints(maxWidth: 120),
-          padding: const EdgeInsets.symmetric(
-            horizontal: 10,
-            vertical: 5,
-          ),
-          decoration: BoxDecoration(
-            color: isDarkMode 
-                ? const Color(0xFF2C2C2E)
-                : const Color(0xFFF2F2F7),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: isDarkMode 
-                  ? const Color(0xFF48484A).withOpacity(0.5)
-                  : const Color(0xFFE5E5EA),
-              width: 1,
-            ),
-          ),
-          child: Text(
-            widget.word.dilbilgiselOzellikler!['cogulForm'].toString(),
-            style: GoogleFonts.scheherazadeNew(
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-              color: isDarkMode 
-                  ? const Color(0xFFE5E5EA)
-                  : const Color(0xFF1C1C1E),
-              fontFeatures: const [
-                ui.FontFeature.enable('liga'),
-                ui.FontFeature.enable('calt'),
-              ],
-            ),
-            textDirection: TextDirection.rtl,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            softWrap: false,
-          ),
-        ));
-      }
-    }
-    
-    // Chip'ler arasına boşluk ekle
-    final spacedChips = <Widget>[];
-    for (int i = 0; i < chips.length; i++) {
-      if (i > 0) spacedChips.add(const SizedBox(width: 6));
-      spacedChips.add(chips[i]);
-    }
-    
-    return spacedChips;
+    return chips;
   }
 
-  Widget _buildConjugationRow(bool isDarkMode) {
-    if (widget.word.fiilCekimler?.isNotEmpty != true) return const SizedBox.shrink();
+  Widget _buildRootAndPluralRow(bool isDarkMode) {
+    final hasRoot = widget.word.koku?.isNotEmpty == true;
+    final hasPlural = widget.word.dilbilgiselOzellikler?.containsKey('cogulForm') == true && 
+                      widget.word.dilbilgiselOzellikler!['cogulForm']?.toString().trim().isNotEmpty == true;
     
-    final conjugations = <String, String>{};
-    final fiilCekimler = widget.word.fiilCekimler!;
-    
-    // Sadece dolu olanları ekle
-    if (fiilCekimler.containsKey('maziForm') && fiilCekimler['maziForm']?.toString().trim().isNotEmpty == true) {
-      conjugations['Mazi'] = fiilCekimler['maziForm'].toString();
-    }
-    if (fiilCekimler.containsKey('muzariForm') && fiilCekimler['muzariForm']?.toString().trim().isNotEmpty == true) {
-      conjugations['Müzari'] = fiilCekimler['muzariForm'].toString();
-    }
-    if (fiilCekimler.containsKey('mastarForm') && fiilCekimler['mastarForm']?.toString().trim().isNotEmpty == true) {
-      conjugations['Mastar'] = fiilCekimler['mastarForm'].toString();
-    }
-    if (fiilCekimler.containsKey('emirForm') && fiilCekimler['emirForm']?.toString().trim().isNotEmpty == true) {
-      conjugations['Emir'] = fiilCekimler['emirForm'].toString();
-    }
-    
-    if (conjugations.isEmpty) return const SizedBox.shrink();
+    if (!hasRoot && !hasPlural) return const SizedBox.shrink();
     
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: Row(
-        children: conjugations.entries.map((entry) {
-          return Expanded(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 4),
-              child: _buildConjugationChip(entry.key, entry.value, isDarkMode),
+        children: [
+          if (hasRoot) ...[
+            Expanded(
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: isDarkMode 
+                        ? [
+                            const Color(0xFF2C2C2E),
+                            const Color(0xFF2C2C2E).withOpacity(0.8),
+                          ]
+                        : [
+                            const Color(0xFFF8F9FA),
+                            const Color(0xFFF2F3F5),
+                          ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: isDarkMode 
+                        ? const Color(0xFF48484A).withOpacity(0.3)
+                        : const Color(0xFFE5E5EA).withOpacity(0.8),
+                    width: 0.5,
+                  ),
+                ),
+                child: Stack(
+                  children: [
+                    // Üst etiket
+                    Positioned(
+                      top: 0,
+                      left: 0,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: isDarkMode 
+                              ? const Color(0xFF8E8E93).withOpacity(0.2)
+                              : const Color(0xFF007AFF).withOpacity(0.08),
+                          borderRadius: const BorderRadius.only(
+                            topLeft: Radius.circular(9),
+                            bottomRight: Radius.circular(6),
+                          ),
+                        ),
+                        child: Text(
+                          'Kök',
+                          style: TextStyle(
+                            fontSize: 9,
+                            fontWeight: FontWeight.w600,
+                            color: isDarkMode 
+                                ? const Color(0xFF8E8E93)
+                                : const Color(0xFF007AFF).withOpacity(0.8),
+                            letterSpacing: 0.3,
+                          ),
+                        ),
+                      ),
+                    ),
+                    // Ana içerik
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(8, 26, 8, 8),
+                      child: Center(
+                        child: Text(
+                          widget.word.koku!,
+                          style: GoogleFonts.scheherazadeNew(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
+                            color: isDarkMode 
+                                ? Colors.white
+                                : const Color(0xFF1C1C1E),
+                            height: 1.2,
+                            fontFeatures: const [
+                              ui.FontFeature.enable('liga'),
+                              ui.FontFeature.enable('calt'),
+                            ],
+                          ),
+                          textDirection: TextDirection.rtl,
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
-          );
-        }).toList(),
+          ],
+          if (hasRoot && hasPlural) const SizedBox(width: 8),
+          if (hasPlural) ...[
+            Expanded(
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: isDarkMode 
+                        ? [
+                            const Color(0xFF2C2C2E),
+                            const Color(0xFF2C2C2E).withOpacity(0.8),
+                          ]
+                        : [
+                            const Color(0xFFF8F9FA),
+                            const Color(0xFFF2F3F5),
+                          ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: isDarkMode 
+                        ? const Color(0xFF48484A).withOpacity(0.3)
+                        : const Color(0xFFE5E5EA).withOpacity(0.8),
+                    width: 0.5,
+                  ),
+                ),
+                child: Stack(
+                  children: [
+                    // Üst etiket
+                    Positioned(
+                      top: 0,
+                      left: 0,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: isDarkMode 
+                              ? const Color(0xFF8E8E93).withOpacity(0.2)
+                              : const Color(0xFF34C759).withOpacity(0.1),
+                          borderRadius: const BorderRadius.only(
+                            topLeft: Radius.circular(9),
+                            bottomRight: Radius.circular(6),
+                          ),
+                        ),
+                        child: Text(
+                          'Çoğul',
+                          style: TextStyle(
+                            fontSize: 9,
+                            fontWeight: FontWeight.w600,
+                            color: isDarkMode 
+                                ? const Color(0xFF8E8E93)
+                                : const Color(0xFF34C759).withOpacity(0.9),
+                            letterSpacing: 0.3,
+                          ),
+                        ),
+                      ),
+                    ),
+                    // Ana içerik
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(8, 26, 8, 8),
+                      child: Center(
+                        child: Text(
+                          widget.word.dilbilgiselOzellikler!['cogulForm'].toString(),
+                          style: GoogleFonts.scheherazadeNew(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
+                            color: isDarkMode 
+                                ? Colors.white
+                                : const Color(0xFF1C1C1E),
+                            height: 1.2,
+                            fontFeatures: const [
+                              ui.FontFeature.enable('liga'),
+                              ui.FontFeature.enable('calt'),
+                            ],
+                          ),
+                          textDirection: TextDirection.rtl,
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }
@@ -663,6 +718,43 @@ class _SearchResultCardState extends State<SearchResultCard> with TickerProvider
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildConjugationRow(bool isDarkMode) {
+    if (widget.word.fiilCekimler?.isNotEmpty != true) return const SizedBox.shrink();
+    
+    final conjugations = <String, String>{};
+    final fiilCekimler = widget.word.fiilCekimler!;
+    
+    // Sadece dolu olanları ekle
+    if (fiilCekimler.containsKey('maziForm') && fiilCekimler['maziForm']?.toString().trim().isNotEmpty == true) {
+      conjugations['Mazi'] = fiilCekimler['maziForm'].toString();
+    }
+    if (fiilCekimler.containsKey('muzariForm') && fiilCekimler['muzariForm']?.toString().trim().isNotEmpty == true) {
+      conjugations['Müzari'] = fiilCekimler['muzariForm'].toString();
+    }
+    if (fiilCekimler.containsKey('mastarForm') && fiilCekimler['mastarForm']?.toString().trim().isNotEmpty == true) {
+      conjugations['Mastar'] = fiilCekimler['mastarForm'].toString();
+    }
+    if (fiilCekimler.containsKey('emirForm') && fiilCekimler['emirForm']?.toString().trim().isNotEmpty == true) {
+      conjugations['Emir'] = fiilCekimler['emirForm'].toString();
+    }
+    
+    if (conjugations.isEmpty) return const SizedBox.shrink();
+    
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Row(
+        children: conjugations.entries.map((entry) {
+          return Expanded(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              child: _buildConjugationChip(entry.key, entry.value, isDarkMode),
+            ),
+          );
+        }).toList(),
+      ),
     );
   }
 
