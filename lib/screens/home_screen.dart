@@ -179,7 +179,7 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       resizeToAvoidBottomInset: true,
       appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(60), // Daha kompakt AppBar
+        preferredSize: const Size.fromHeight(45), // Çok daha kompakt AppBar
         child: Container(
           decoration: const BoxDecoration(
             color: Color(0xFF007AFF),
@@ -187,31 +187,31 @@ class _HomeScreenState extends State<HomeScreen> {
           child: SafeArea(
             child: AppBar(
               automaticallyImplyLeading: false,
-              titleSpacing: 20, // Sol tarafa padding
+              titleSpacing: 16, // Daha az sol padding
               backgroundColor: Colors.transparent, // Şeffaf arka plan
               foregroundColor: Colors.white, // Beyaz yazı
               title: const Text(
                 'Kavaid',
                 style: TextStyle(
-                  fontSize: 22, // Küçültüldü
-                  fontWeight: FontWeight.w700, // Biraz daha hafif
-                  letterSpacing: 0.8, // Daha az harf aralığı
+                  fontSize: 18, // Daha da küçült
+                  fontWeight: FontWeight.w600, // Daha hafif
+                  letterSpacing: 0.5, // Daha az harf aralığı
                   color: Colors.white, // Beyaz yazı
                 ),
               ),
               centerTitle: false, // Sol tarafa yasla
               elevation: 0, // Gölgeyi kaldır
               actions: [
-                Padding(
-                  padding: const EdgeInsets.only(right: 20), // Sağ padding
+                                  Padding(
+                  padding: const EdgeInsets.only(right: 12), // Daha az sağ padding
                   child: IconButton(
                     icon: const Icon(
                       Icons.light_mode_outlined,
                       color: Colors.white, // Beyaz ikon
-                      size: 26, // Biraz küçült
+                      size: 22, // Daha küçük ikon
                     ),
                     onPressed: widget.onThemeToggle,
-                    splashRadius: 20, // Daha küçük tap alanı
+                    splashRadius: 16, // Daha küçük tap alanı
                   ),
                 ),
               ],
@@ -238,7 +238,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ],
                 ),
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 6),
+                  padding: const EdgeInsets.fromLTRB(16, 2, 16, 8),
                   child: Column(
                     children: [
                       Container(
@@ -324,9 +324,9 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                       
                       // AI ile Ara butonu
-                      if (_showAIButton && !_isLoading)
+                                              if (_showAIButton && !_isLoading)
                         Padding(
-                          padding: const EdgeInsets.only(top: 14), // Biraz daha fazla boşluk
+                          padding: const EdgeInsets.only(top: 8), // Daha az boşluk
                           child: SizedBox(
                             width: double.infinity,
                             child: ElevatedButton(
