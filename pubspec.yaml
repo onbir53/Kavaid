@@ -52,6 +52,9 @@ dependencies:
   
   # Google Mobile Ads (AdMob)
   google_mobile_ads: ^5.1.0
+  
+  # Local Storage
+  shared_preferences: ^2.3.4
 
 dev_dependencies:
   flutter_test:
