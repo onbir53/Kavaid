@@ -2,6 +2,9 @@
     <!-- AdMob için gerekli internet permission -->
     <uses-permission android:name="android.permission.INTERNET" />
     
+    <!-- Ağ durumu kontrolü için -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
+    
     <application
         android:label="kavaid"
         android:name="${applicationName}"

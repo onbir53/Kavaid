@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'services/connectivity_service.dart';
 import 'screens/home_screen.dart';
 import 'screens/saved_words_screen.dart';
 import 'services/firebase_options.dart';
@@ -259,6 +260,63 @@ class _MainScreenState extends State<MainScreen> {
   int _currentIndex = 0;
   VoidCallback? _refreshSavedWords;
   bool _showArabicKeyboard = false;
+  final ConnectivityService _connectivityService = ConnectivityService();
+
+  @override
+  void initState() {
+    super.initState();
+    
+    // İnternet bağlantısını kontrol et
+    _checkInitialConnectivity();
+    
+    // Bağlantı değişikliklerini dinle
+    _connectivityService.startListening((hasConnection) {
+      debugPrint('📶 Bağlantı durumu değişti: $hasConnection');
+      if (mounted) {
+        if (!hasConnection) {
+          debugPrint('❌ Bağlantı kesildi! Dialog gösterilecek...');
+          ConnectivityService.showNoInternetDialog(
+            context,
+            onRetry: () {
+              _checkInitialConnectivity();
+            },
+          );
+        } else {
+          debugPrint('✅ Bağlantı geri geldi!');
+        }
+      }
+    });
+  }
+  
+  Future<void> _checkInitialConnectivity() async {
+    debugPrint('🔍 İlk bağlantı kontrolü başlatılıyor...');
+    final hasConnection = await _connectivityService.hasInternetConnection();
+    debugPrint('📱 İlk kontrol sonucu - İnternet var mı: $hasConnection');
+    
+    if (mounted) {
+      if (!hasConnection) {
+        debugPrint('❌ İnternet bağlantısı yok! Dialog gösterilecek...');
+        // İlk açılışta internet yoksa dialog göster
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          ConnectivityService.showNoInternetDialog(
+            context,
+            onRetry: () {
+              debugPrint('🔄 Tekrar dene butonuna basıldı');
+              _checkInitialConnectivity();
+            },
+          );
+        });
+      } else {
+        debugPrint('✅ İnternet bağlantısı mevcut');
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _connectivityService.stopListening();
+    super.dispose();
+  }
 
   void _onTabTapped(int index) {
     setState(() => _currentIndex = index);

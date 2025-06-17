@@ -53,6 +53,9 @@ dependencies:
   # Google Mobile Ads (AdMob)
   google_mobile_ads: ^5.1.0
   
+  # Network Connectivity
+  connectivity_plus: ^6.0.5
+  
   # Local Storage
   shared_preferences: ^2.3.4
   sqflite: ^2.4.1
