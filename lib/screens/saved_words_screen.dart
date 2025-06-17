@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'dart:ui' as ui;
 import '../models/word_model.dart';
 import '../services/saved_words_service.dart';
 import '../widgets/word_card.dart';
@@ -387,11 +388,15 @@ class _SavedWordCardWidgetState extends State<_SavedWordCardWidget> with TickerP
                                   widget.word.harekeliKelime?.isNotEmpty == true 
                                       ? widget.word.harekeliKelime! 
                                       : widget.word.kelime,
-                                  style: GoogleFonts.notoNaskhArabic(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.w800,
+                                  style: GoogleFonts.scheherazadeNew(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.w700,
                                     color: widget.isDarkMode ? Colors.white : const Color(0xFF1C1C1E),
-                                    height: 1.2,
+                                    height: 1.4,
+                                    fontFeatures: const [
+                                      ui.FontFeature.enable('liga'),
+                                      ui.FontFeature.enable('calt'),
+                                    ],
                                   ),
                                   textDirection: TextDirection.rtl,
                                 ),
@@ -527,10 +532,14 @@ class _SavedWordCardWidgetState extends State<_SavedWordCardWidget> with TickerP
           ),
           child: Text(
             widget.word.koku!,
-            style: GoogleFonts.notoNaskhArabic(
-              fontSize: 10,
+            style: GoogleFonts.scheherazadeNew(
+              fontSize: 12,
               fontWeight: FontWeight.w700,
               color: const Color(0xFF007AFF),
+              fontFeatures: const [
+                ui.FontFeature.enable('liga'),
+                ui.FontFeature.enable('calt'),
+              ],
             ),
             textDirection: TextDirection.rtl,
             textAlign: TextAlign.center,
@@ -554,10 +563,14 @@ class _SavedWordCardWidgetState extends State<_SavedWordCardWidget> with TickerP
           ),
           child: Text(
             widget.word.dilbilgiselOzellikler!['cogulForm'].toString(),
-            style: GoogleFonts.notoNaskhArabic(
-              fontSize: 10,
+            style: GoogleFonts.scheherazadeNew(
+              fontSize: 12,
               fontWeight: FontWeight.w700,
               color: const Color(0xFF007AFF),
+              fontFeatures: const [
+                ui.FontFeature.enable('liga'),
+                ui.FontFeature.enable('calt'),
+              ],
             ),
             textDirection: TextDirection.rtl,
             textAlign: TextAlign.center,
@@ -651,11 +664,15 @@ class _SavedWordCardWidgetState extends State<_SavedWordCardWidget> with TickerP
                   if (example['arapcaCümle'] != null) ...[
                     Text(
                       example['arapcaCümle'].toString(),
-                      style: GoogleFonts.notoNaskhArabic(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w800,
+                      style: GoogleFonts.scheherazadeNew(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
                         color: widget.isDarkMode ? Colors.white : const Color(0xFF1C1C1E),
-                        height: 1.4,
+                        height: 1.5,
+                        fontFeatures: const [
+                          ui.FontFeature.enable('liga'),
+                          ui.FontFeature.enable('calt'),
+                        ],
                       ),
                       textDirection: TextDirection.rtl,
                     ),
@@ -718,11 +735,15 @@ class _SavedWordCardWidgetState extends State<_SavedWordCardWidget> with TickerP
           child: Center(
             child: Text(
               text,
-              style: GoogleFonts.notoNaskhArabic(
-                fontSize: 14,
-                fontWeight: FontWeight.w800,
+              style: GoogleFonts.scheherazadeNew(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
                 color: widget.isDarkMode ? Colors.white : const Color(0xFF1C1C1E),
-                height: 1.2,
+                height: 1.4,
+                fontFeatures: const [
+                  ui.FontFeature.enable('liga'),
+                  ui.FontFeature.enable('calt'),
+                ],
               ),
               textDirection: TextDirection.rtl,
               textAlign: TextAlign.center,

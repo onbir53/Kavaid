@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'dart:ui' as ui;
 import '../models/word_model.dart';
 import '../services/saved_words_service.dart';
 
@@ -165,10 +166,14 @@ class _WordCardState extends State<WordCard> {
               const SizedBox(height: 8),
               Text(
                 widget.word.harekeliKelime!,
-                style: GoogleFonts.amiri(
-                  fontSize: 26, // Biraz büyüttüm
+                style: GoogleFonts.scheherazadeNew(
+                  fontSize: 28, // Biraz büyüttüm
                   fontWeight: FontWeight.w700, // Daha kalın
                   color: const Color(0xFF007AFF),
+                  fontFeatures: const [
+                    ui.FontFeature.enable('liga'),
+                    ui.FontFeature.enable('calt'),
+                  ],
                 ),
                 textDirection: TextDirection.rtl,
               ),
@@ -215,10 +220,14 @@ class _WordCardState extends State<WordCard> {
               const SizedBox(height: 8),
               Text(
                 widget.word.koku!,
-                style: GoogleFonts.amiri(
-                  fontSize: 18, // Biraz büyüttüm
-                  fontWeight: FontWeight.w600, // Kalın
+                style: GoogleFonts.scheherazadeNew(
+                  fontSize: 20, // Biraz büyüttüm
+                  fontWeight: FontWeight.w700, // Kalın
                   color: const Color(0xFF007AFF),
+                  fontFeatures: const [
+                    ui.FontFeature.enable('liga'),
+                    ui.FontFeature.enable('calt'),
+                  ],
                 ),
                 textDirection: TextDirection.rtl,
               ),
@@ -244,14 +253,24 @@ class _WordCardState extends State<WordCard> {
                   return Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFE5E5EA),
+                      color: isDarkMode 
+                          ? const Color(0xFF3A3A3C).withOpacity(0.8)
+                          : const Color(0xFFE5E5EA).withOpacity(0.8),
                       borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: isDarkMode 
+                            ? const Color(0xFF48484A)
+                            : const Color(0xFFD1D1D6),
+                        width: 0.5,
+                      ),
                     ),
                     child: Text(
                       '${entry.key}: ${entry.value}',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 13, // Biraz küçülttüm
-                        color: Color(0xFF1C1C1E),
+                        color: isDarkMode 
+                            ? const Color(0xFFE5E5EA)
+                            : const Color(0xFF1C1C1E),
                         fontWeight: FontWeight.w500, // Orta kalınlık
                         letterSpacing: 0.2, // Estetik harf aralığı
                       ),
@@ -280,22 +299,54 @@ class _WordCardState extends State<WordCard> {
                   child: Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFF8F9FA),
+                      color: isDarkMode 
+                          ? const Color(0xFF2C2C2E)
+                          : const Color(0xFFF8F9FA),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                        color: const Color(0xFFE5E5EA),
+                        color: isDarkMode 
+                            ? const Color(0xFF48484A)
+                            : const Color(0xFFE5E5EA),
                         width: 1,
                       ),
                     ),
-                    child: Text(
-                      example['text'] ?? example['turkce'] ?? example.toString(),
-                      style: const TextStyle(
-                        fontSize: 16, // Biraz büyüttüm
-                        color: Color(0xFF1C1C1E),
-                        height: 1.6, // Daha rahat satır aralığı
-                        fontWeight: FontWeight.w400, // Daha hafif
-                        letterSpacing: 0.2, // Estetik harf aralığı
-                      ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Arapça cümle
+                        if (example['arapcaCümle'] != null) ...[
+                          Text(
+                            example['arapcaCümle']!,
+                            style: GoogleFonts.scheherazadeNew(
+                              fontSize: 20,
+                              color: isDarkMode 
+                                  ? const Color(0xFFE5E5EA)
+                                  : const Color(0xFF1C1C1E),
+                              height: 1.6,
+                              fontWeight: FontWeight.w600,
+                              fontFeatures: const [
+                                ui.FontFeature.enable('liga'),
+                                ui.FontFeature.enable('calt'),
+                              ],
+                            ),
+                            textDirection: TextDirection.rtl,
+                          ),
+                          const SizedBox(height: 8),
+                        ],
+                        // Türkçe anlam
+                        Text(
+                          example['turkceAnlam'] ?? example['text'] ?? example['turkce'] ?? example.toString(),
+                          style: TextStyle(
+                            fontSize: 15,
+                            color: isDarkMode 
+                                ? const Color(0xFF8E8E93)
+                                : const Color(0xFF6D6D70),
+                            height: 1.5,
+                            fontWeight: FontWeight.w400,
+                            letterSpacing: 0.2,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 );
@@ -322,14 +373,24 @@ class _WordCardState extends State<WordCard> {
                   return Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFE5E5EA),
+                      color: isDarkMode 
+                          ? const Color(0xFF3A3A3C).withOpacity(0.8)
+                          : const Color(0xFFE5E5EA).withOpacity(0.8),
                       borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: isDarkMode 
+                            ? const Color(0xFF48484A)
+                            : const Color(0xFFD1D1D6),
+                        width: 0.5,
+                      ),
                     ),
                     child: Text(
                       '${entry.key}: ${entry.value}',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 13, // Biraz küçülttüm
-                        color: Color(0xFF1C1C1E),
+                        color: isDarkMode 
+                            ? const Color(0xFFE5E5EA)
+                            : const Color(0xFF1C1C1E),
                         fontWeight: FontWeight.w500, // Orta kalınlık
                         letterSpacing: 0.2, // Estetik harf aralığı
                       ),

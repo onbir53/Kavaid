@@ -25,7 +25,6 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
-  final ScrollController _scrollController = ScrollController();
   final GeminiService _geminiService = GeminiService();
   final FirebaseService _firebaseService = FirebaseService();
   
@@ -42,26 +41,22 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     _searchController.addListener(_onSearchChanged);
-    _scrollController.addListener(_onScrollChanged);
     
-    // Uygulama açıldığında klavyeyi otomatik aç
+    // Widget build edildikten sonra otomatik olarak klavyeyi aç
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _searchFocusNode.requestFocus();
+      // Kısa bir gecikme ekleyerek klavyenin açılmasını garanti altına al
+      Future.delayed(const Duration(milliseconds: 100), () {
+        if (mounted) {
+          _searchFocusNode.requestFocus();
+        }
+      });
     });
-  }
-
-  void _onScrollChanged() {
-    // Scroll başladığında klavyeyi kapat
-    if (_searchFocusNode.hasFocus) {
-      _searchFocusNode.unfocus();
-    }
   }
 
   @override
   void dispose() {
     _searchController.dispose();
     _searchFocusNode.dispose();
-    _scrollController.dispose();
     _debounceTimer?.cancel();
     _searchSubscription?.cancel();
     super.dispose();
@@ -188,143 +183,153 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       resizeToAvoidBottomInset: true,
-      body: CustomScrollView(
-        controller: _scrollController,
-        slivers: <Widget>[
-          SliverAppBar(
-            backgroundColor: Colors.transparent,
-            foregroundColor: Colors.white,
-            flexibleSpace: Container(
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    Color(0xFF007AFF),
-                    Color(0xFF0051D5),
-                    Color(0xFF003F99),
-                  ],
+      body: NotificationListener<ScrollNotification>(
+        onNotification: (notification) {
+          // Kullanıcı scroll yapmaya başladığında klavyeyi kapat
+          if (notification is UserScrollNotification) {
+            if (_searchFocusNode.hasFocus) {
+              _searchFocusNode.unfocus();
+            }
+          }
+          return false;
+        },
+        child: CustomScrollView(
+          slivers: <Widget>[
+            SliverAppBar(
+              backgroundColor: Colors.transparent,
+              foregroundColor: Colors.white,
+              flexibleSpace: Container(
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      Color(0xFF007AFF),
+                      Color(0xFF0051D5),
+                      Color(0xFF003F99),
+                    ],
+                  ),
                 ),
               ),
-            ),
-            pinned: true,
-            floating: true,
-            automaticallyImplyLeading: false,
-            title: const Text(
-              'Kavaid',
-              style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.white),
-            ),
-            centerTitle: false,
-            actions: [
-              Padding(
-                padding: const EdgeInsets.only(right: 12),
-                child: IconButton(
-                  icon: const Icon(Icons.light_mode_outlined, size: 22),
-                  onPressed: widget.onThemeToggle,
-                  splashRadius: 16,
-                ),
+              pinned: true,
+              floating: true,
+              automaticallyImplyLeading: false,
+              title: const Text(
+                'Kavaid',
+                style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white),
               ),
-            ],
-            bottom: PreferredSize(
-              preferredSize: const Size.fromHeight(52.0),
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
-                child: SizedBox(
-                  height: 44,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(8),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.08),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: TextField(
-                      controller: _searchController,
-                      focusNode: _searchFocusNode,
-                      autofocus: true,
-                      textAlign: TextAlign.start,
-                      textAlignVertical: TextAlignVertical.center,
-                      decoration: InputDecoration(
-                        hintText: 'Arapça veya Türkçe kelime ara',
-                        hintStyle: TextStyle(
-                          color: widget.isDarkMode
-                              ? const Color(0xFF8E8E93)
-                              : const Color(0xFF6D6D70),
-                          fontSize: 15,
-                        ),
-                        prefixIcon: Icon(
-                          Icons.search,
-                          color: widget.isDarkMode
-                              ? const Color(0xFF8E8E93)
-                              : const Color(0xFF6D6D70),
-                          size: 20,
-                        ),
-                        suffixIcon: _searchController.text.isNotEmpty
-                            ? IconButton(
-                                icon: Icon(
-                                  Icons.clear,
-                                  color: widget.isDarkMode
-                                      ? const Color(0xFF8E8E93)
-                                      : const Color(0xFF6D6D70),
-                                  size: 18,
-                                ),
-                                onPressed: () {
-                                  _searchController.clear();
-                                  setState(() {
-                                    _searchResults = [];
-                                    _selectedWord = null;
-                                    _isSearching = false;
-                                    _showAIButton = false;
-                                    _showNotFound = false;
-                                  });
-                                },
-                              )
-                            : null,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: widget.isDarkMode
-                              ? const BorderSide(color: Colors.white, width: 1.0)
-                              : BorderSide.none,
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: widget.isDarkMode
-                              ? const BorderSide(color: Colors.white, width: 1.0)
-                              : BorderSide.none,
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: const BorderSide(
-                            color: Colors.white,
-                            width: 2.5,
+              centerTitle: false,
+              actions: [
+                Padding(
+                  padding: const EdgeInsets.only(right: 12),
+                  child: IconButton(
+                    icon: const Icon(Icons.light_mode_outlined, size: 22),
+                    onPressed: widget.onThemeToggle,
+                    splashRadius: 16,
+                  ),
+                ),
+              ],
+              bottom: PreferredSize(
+                preferredSize: const Size.fromHeight(52.0),
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
+                  child: SizedBox(
+                    height: 44,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(8),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.08),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: TextField(
+                        controller: _searchController,
+                        focusNode: _searchFocusNode,
+                        autofocus: true,
+                        textAlign: TextAlign.start,
+                        textAlignVertical: TextAlignVertical.center,
+                        decoration: InputDecoration(
+                          hintText: 'Arapça veya Türkçe kelime ara',
+                          hintStyle: TextStyle(
+                            color: widget.isDarkMode
+                                ? const Color(0xFF8E8E93)
+                                : const Color(0xFF6D6D70),
+                            fontSize: 15,
+                          ),
+                          prefixIcon: Icon(
+                            Icons.search,
+                            color: widget.isDarkMode
+                                ? const Color(0xFF8E8E93)
+                                : const Color(0xFF6D6D70),
+                            size: 20,
+                          ),
+                          suffixIcon: _searchController.text.isNotEmpty
+                              ? IconButton(
+                                  icon: Icon(
+                                    Icons.clear,
+                                    color: widget.isDarkMode
+                                        ? const Color(0xFF8E8E93)
+                                        : const Color(0xFF6D6D70),
+                                    size: 18,
+                                  ),
+                                  onPressed: () {
+                                    _searchController.clear();
+                                    setState(() {
+                                      _searchResults = [];
+                                      _selectedWord = null;
+                                      _isSearching = false;
+                                      _showAIButton = false;
+                                      _showNotFound = false;
+                                    });
+                                  },
+                                )
+                              : null,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: widget.isDarkMode
+                                ? const BorderSide(color: Colors.white, width: 1.0)
+                                : BorderSide.none,
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: widget.isDarkMode
+                                ? const BorderSide(color: Colors.white, width: 1.0)
+                                : BorderSide.none,
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: const BorderSide(
+                              color: Colors.white,
+                              width: 2.5,
+                            ),
+                          ),
+                          filled: true,
+                          fillColor: widget.isDarkMode
+                              ? const Color(0xFF2C2C2E)
+                              : Colors.white,
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 10,
                           ),
                         ),
-                        filled: true,
-                        fillColor: widget.isDarkMode
-                            ? const Color(0xFF2C2C2E)
-                            : Colors.white,
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 10,
-                        ),
+                        textInputAction: TextInputAction.search,
+                        onSubmitted: (_) => _searchWithAI(),
                       ),
-                      textInputAction: TextInputAction.search,
-                      onSubmitted: (_) => _searchWithAI(),
                     ),
                   ),
                 ),
               ),
             ),
-          ),
-          ..._buildMainContentSlivers(),
-        ],
+            ..._buildMainContentSlivers(),
+          ],
+        ),
       ),
     );
   }

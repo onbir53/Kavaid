@@ -18,6 +18,7 @@ class MainScreen extends StatefulWidget {
 
 class _MainScreenState extends State<MainScreen> {
   final TextEditingController _searchController = TextEditingController();
+  final FocusNode _searchFocusNode = FocusNode();
   final SavedWordsService _savedWordsService = SavedWordsService();
   List<WordModel> _searchResults = [];
   bool _isLoading = false;
@@ -26,11 +27,22 @@ class _MainScreenState extends State<MainScreen> {
   void initState() {
     super.initState();
     _savedWordsService.initialize();
+    
+    // Widget build edildikten sonra otomatik olarak klavyeyi aç
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      // Kısa bir gecikme ekleyerek klavyenin açılmasını garanti altına al
+      Future.delayed(const Duration(milliseconds: 100), () {
+        if (mounted) {
+          _searchFocusNode.requestFocus();
+        }
+      });
+    });
   }
 
   @override
   void dispose() {
     _searchController.dispose();
+    _searchFocusNode.dispose();
     super.dispose();
   }
 
@@ -210,6 +222,8 @@ class _MainScreenState extends State<MainScreen> {
                     ),
                     child: TextField(
                       controller: _searchController,
+                      focusNode: _searchFocusNode,
+                      autofocus: true,
                       onChanged: _performSearch,
                       style: TextStyle(
                         fontSize: 11,
