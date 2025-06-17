@@ -288,40 +288,76 @@ class _MainScreenState extends State<MainScreen> {
         ],
       ),
       bottomSheet: const BannerAdWidget(),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _currentIndex,
-        onTap: _onTabTapped,
-        type: BottomNavigationBarType.fixed,
-        backgroundColor: widget.isDarkMode
-            ? const Color(0xFF2C2C2E)
-            : const Color(0xFFFFFFFF).withOpacity(0.95),
-        selectedItemColor: const Color(0xFF007AFF),
-        unselectedItemColor: const Color(0xFF8E8E93),
-        selectedLabelStyle: const TextStyle(
-          fontSize: 11,
-          fontWeight: FontWeight.w600,
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          boxShadow: [
+            BoxShadow(
+              color: widget.isDarkMode
+                  ? Colors.black.withOpacity(0.3)
+                  : Colors.black.withOpacity(0.08),
+              blurRadius: 10,
+              offset: const Offset(0, -2),
+            ),
+          ],
         ),
-        unselectedLabelStyle: const TextStyle(
-          fontSize: 11,
-          fontWeight: FontWeight.w400,
+        child: BottomNavigationBar(
+          currentIndex: _currentIndex,
+          onTap: _onTabTapped,
+          type: BottomNavigationBarType.fixed,
+          backgroundColor: widget.isDarkMode
+              ? const Color(0xFF1C1C1E)
+              : Colors.white,
+          selectedItemColor: const Color(0xFF007AFF),
+          unselectedItemColor: widget.isDarkMode
+              ? const Color(0xFF8E8E93)
+              : const Color(0xFF8E8E93),
+          selectedLabelStyle: const TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+            letterSpacing: 0.2,
+          ),
+          unselectedLabelStyle: const TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w400,
+          ),
+          elevation: 0,
+          iconSize: 24,
+          items: [
+            BottomNavigationBarItem(
+              icon: Container(
+                padding: const EdgeInsets.symmetric(vertical: 2),
+                child: const Icon(Icons.menu_book_outlined),
+              ),
+              activeIcon: Container(
+                padding: const EdgeInsets.symmetric(vertical: 2),
+                child: const Icon(Icons.menu_book),
+              ),
+              label: 'Sözlük',
+            ),
+            BottomNavigationBarItem(
+              icon: Container(
+                padding: const EdgeInsets.symmetric(vertical: 2),
+                child: const Icon(Icons.bookmark_border),
+              ),
+              activeIcon: Container(
+                padding: const EdgeInsets.symmetric(vertical: 2),
+                child: const Icon(Icons.bookmark),
+              ),
+              label: 'Kaydedilenler',
+            ),
+            BottomNavigationBarItem(
+              icon: Container(
+                padding: const EdgeInsets.symmetric(vertical: 2),
+                child: const Icon(Icons.person_outline),
+              ),
+              activeIcon: Container(
+                padding: const EdgeInsets.symmetric(vertical: 2),
+                child: const Icon(Icons.person),
+              ),
+              label: 'Profil',
+            ),
+          ],
         ),
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.menu_book_outlined),
-            activeIcon: Icon(Icons.menu_book),
-            label: 'Sözlük',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.bookmark_border),
-            activeIcon: Icon(Icons.bookmark),
-            label: 'Kaydedilenler',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person_outline),
-            activeIcon: Icon(Icons.person),
-            label: 'Profil',
-          ),
-        ],
       ),
     );
   }

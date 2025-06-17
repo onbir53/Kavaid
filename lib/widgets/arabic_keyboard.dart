@@ -83,104 +83,152 @@ class ArabicKeyboard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    
     return Container(
       width: double.infinity,
+      height: 280,
       margin: EdgeInsets.zero,
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.only(top: 8),
       decoration: BoxDecoration(
-        color: Theme.of(context).brightness == Brightness.dark
+        color: isDarkMode
             ? const Color(0xFF1C1C1E)
             : const Color(0xFFF2F2F7),
-        border: Border(
-          top: BorderSide(
-            color: Theme.of(context).brightness == Brightness.dark
-                ? const Color(0xFF2C2C2E)
-                : const Color(0xFFE5E5EA),
-            width: 0.5,
+        boxShadow: [
+          BoxShadow(
+            color: isDarkMode
+                ? Colors.black.withOpacity(0.5)
+                : Colors.black.withOpacity(0.15),
+            blurRadius: 20,
+            offset: const Offset(0, -5),
           ),
-        ),
+        ],
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Minimal başlık
+          // Hareke satırı - en üstte ve kapatma butonu
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+            margin: const EdgeInsets.symmetric(horizontal: 8),
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              color: isDarkMode
+                  ? const Color(0xFF007AFF).withOpacity(0.1)
+                  : const Color(0xFF007AFF).withOpacity(0.05),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: const Color(0xFF007AFF).withOpacity(0.2),
+                width: 0.5,
+              ),
+            ),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
-                  'ع',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF007AFF),
-                  ),
-                ),
-                GestureDetector(
-                  onTap: onClose,
-                  child: const Icon(
-                    Icons.keyboard_hide,
-                    size: 20,
-                    color: Color(0xFF8E8E93),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          
-          // Hareke satırı - en üstte
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: _diacritics.map((diacritic) {
-                return Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 0.5),
-                    child: _buildKey(diacritic, isDiacritic: true),
-                  ),
-                );
-              }).toList(),
-            ),
-          ),
-          
-          // Ana harfler
-          ..._arabicKeys.map((row) {
-            return Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: row.map((letter) {
+                // Harekeler
+                ..._diacritics.map((diacritic) {
                   return Expanded(
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 0.5),
-                      child: _buildKey(letter),
+                      padding: const EdgeInsets.symmetric(horizontal: 2),
+                      child: _buildDiacriticKey(context, diacritic),
                     ),
                   );
                 }).toList(),
-              ),
-            );
-          }).toList(),
-          
-          // Son satır: Boşluk ve kontrol butonları
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-            child: Row(
-              children: [
-                Expanded(
-                  child: _buildKey('⌫', isBackspace: true),
-                ),
+                // Kapatma butonu
                 const SizedBox(width: 4),
-                Expanded(
-                  flex: 4,
-                  child: _buildKey(' ', isSpace: true),
-                ),
-                const SizedBox(width: 4),
-                Expanded(
-                  child: _buildReturnKey(),
+                Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: onClose,
+                    borderRadius: BorderRadius.circular(6),
+                    child: Container(
+                      height: 36,
+                      width: 40,
+                      decoration: BoxDecoration(
+                        color: isDarkMode
+                            ? const Color(0xFF48484A).withOpacity(0.3)
+                            : const Color(0xFF8E8E93).withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Icon(
+                        Icons.keyboard_hide_rounded,
+                        size: 20,
+                        color: isDarkMode
+                            ? const Color(0xFF8E8E93)
+                            : const Color(0xFF8E8E93),
+                      ),
+                    ),
+                  ),
                 ),
               ],
+            ),
+          ),
+          
+          const SizedBox(height: 10),
+          
+          // Ana harfler
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  ..._arabicKeys.map((row) {
+                    return Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: row.map((letter) {
+                        return Expanded(
+                          child: Padding(
+                            padding: const EdgeInsets.all(2),
+                            child: _buildKey(context, letter),
+                          ),
+                        );
+                      }).toList(),
+                    );
+                  }).toList(),
+                  
+                  // Son satır: Boşluk ve kontrol butonları
+                  Row(
+                    children: [
+                      Expanded(
+                        flex: 3,
+                        child: Padding(
+                          padding: const EdgeInsets.all(2),
+                          child: _buildSpecialKey(
+                            context,
+                            text: 'Ara',
+                            onPressed: () {
+                              if (onClose != null) onClose!();
+                            },
+                            isSearch: true,
+                          ),
+                        ),
+                      ),
+                      Expanded(
+                        flex: 6,
+                        child: Padding(
+                          padding: const EdgeInsets.all(2),
+                          child: _buildSpecialKey(
+                            context,
+                            text: 'Boşluk',
+                            onPressed: _addSpace,
+                            isSpace: true,
+                          ),
+                        ),
+                      ),
+                      Expanded(
+                        flex: 2,
+                        child: Padding(
+                          padding: const EdgeInsets.all(2),
+                          child: _buildSpecialKey(
+                            context,
+                            icon: Icons.backspace_outlined,
+                            onPressed: _backspace,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
         ],
@@ -188,98 +236,168 @@ class ArabicKeyboard extends StatelessWidget {
     );
   }
 
-  Widget _buildKey(String text, {bool isDiacritic = false, bool isBackspace = false, bool isSpace = false}) {
-    return GestureDetector(
-      onTap: () {
-        if (isBackspace) {
-          _backspace();
-        } else if (isSpace) {
-          _addSpace();
-        } else {
-          _insertText(text);
-        }
-      },
-      child: Container(
-        height: 36,
-        decoration: BoxDecoration(
-          color: isDiacritic 
-              ? const Color(0xFFE3F2FD)
-              : Colors.white,
-          borderRadius: BorderRadius.circular(6),
-          border: Border.all(
-            color: isDiacritic 
-                ? const Color(0xFF007AFF).withOpacity(0.3)
-                : Colors.grey.shade300,
-            width: 0.5,
+  Widget _buildKey(BuildContext context, String text) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () => _insertText(text),
+        borderRadius: BorderRadius.circular(8),
+        splashColor: const Color(0xFF007AFF).withOpacity(0.3),
+        highlightColor: const Color(0xFF007AFF).withOpacity(0.1),
+        child: Ink(
+          decoration: BoxDecoration(
+            color: isDarkMode
+                ? const Color(0xFF2C2C2E)
+                : Colors.white,
+            borderRadius: BorderRadius.circular(8),
+            boxShadow: [
+              BoxShadow(
+                color: isDarkMode
+                    ? Colors.black.withOpacity(0.3)
+                    : Colors.black.withOpacity(0.08),
+                blurRadius: 4,
+                offset: const Offset(0, 2),
+              ),
+            ],
+            border: Border.all(
+              color: isDarkMode
+                  ? const Color(0xFF48484A).withOpacity(0.3)
+                  : const Color(0xFFE5E5EA).withOpacity(0.5),
+              width: 0.5,
+            ),
           ),
-        ),
-        child: Center(
-          child: isBackspace
-              ? const Icon(
-                  Icons.backspace_outlined,
-                  size: 18,
-                  color: Color(0xFF8E8E93),
-                )
-              : Text(
-                  isSpace ? 'Space' : text,
-                  style: TextStyle(
-                    fontSize: isSpace ? 12 : 18,
-                    fontWeight: FontWeight.w400,
-                    color: isDiacritic 
-                        ? const Color(0xFF007AFF)
-                        : const Color(0xFF1C1C1E),
-                  ),
-                ),
+          child: Container(
+            height: 48,
+            alignment: Alignment.center,
+            child: Text(
+              text,
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.w600,
+                color: isDarkMode
+                    ? Colors.white
+                    : const Color(0xFF1C1C1E),
+              ),
+            ),
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildSpecialKey({
+  Widget _buildDiacriticKey(BuildContext context, String diacritic) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () => _insertText(diacritic),
+        borderRadius: BorderRadius.circular(6),
+        splashColor: const Color(0xFF007AFF).withOpacity(0.4),
+        highlightColor: const Color(0xFF007AFF).withOpacity(0.2),
+        child: Ink(
+          height: 36,
+          decoration: BoxDecoration(
+            color: isDarkMode
+                ? const Color(0xFF007AFF).withOpacity(0.2)
+                : const Color(0xFF007AFF).withOpacity(0.1),
+            borderRadius: BorderRadius.circular(6),
+          ),
+          child: Center(
+            child: Text(
+              diacritic,
+              style: const TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF007AFF),
+                height: 1.0,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSpecialKey(
+    BuildContext context, {
     String? text,
     IconData? icon,
     required VoidCallback onPressed,
     bool isSearch = false,
+    bool isSpace = false,
   }) {
-    return GestureDetector(
-      onTap: onPressed,
-      child: Container(
-        height: 36,
-        decoration: BoxDecoration(
-          color: isSearch 
-              ? const Color(0xFF007AFF)
-              : const Color(0xFFE5E5EA),
-          borderRadius: BorderRadius.circular(6),
-        ),
-        child: Center(
-          child: icon != null
-              ? Icon(
-                  icon,
-                  color: isSearch ? Colors.white : const Color(0xFF8E8E93),
-                  size: 18,
-                )
-              : Text(
-                  text!,
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                    color: isSearch ? Colors.white : const Color(0xFF8E8E93),
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onPressed,
+        borderRadius: BorderRadius.circular(8),
+        child: Container(
+          height: 48,
+          decoration: BoxDecoration(
+            gradient: isSearch 
+                ? const LinearGradient(
+                    colors: [Color(0xFF007AFF), Color(0xFF0051D5)],
+                  )
+                : null,
+            color: isSearch 
+                ? null
+                : (isSpace
+                    ? (isDarkMode
+                        ? const Color(0xFF3C3C3E)
+                        : const Color(0xFFE5E5EA))
+                    : (isDarkMode
+                        ? const Color(0xFF2C2C2E)
+                        : Colors.white)),
+            borderRadius: BorderRadius.circular(8),
+            boxShadow: [
+              BoxShadow(
+                color: isSearch
+                    ? const Color(0xFF007AFF).withOpacity(0.3)
+                    : (isDarkMode
+                        ? Colors.black.withOpacity(0.3)
+                        : Colors.black.withOpacity(0.08)),
+                blurRadius: isSearch ? 8 : 4,
+                offset: const Offset(0, 2),
+              ),
+            ],
+            border: isSearch ? null : Border.all(
+              color: isDarkMode
+                  ? const Color(0xFF48484A).withOpacity(0.3)
+                  : const Color(0xFFE5E5EA).withOpacity(0.5),
+              width: 0.5,
+            ),
+          ),
+          child: Center(
+            child: icon != null
+                ? Icon(
+                    icon,
+                    color: isSearch 
+                        ? Colors.white 
+                        : (isDarkMode
+                            ? const Color(0xFF8E8E93)
+                            : const Color(0xFF8E8E93)),
+                    size: 22,
+                  )
+                : Text(
+                    text!,
+                    style: TextStyle(
+                      fontSize: isSpace ? 14 : 16,
+                      fontWeight: FontWeight.w600,
+                      color: isSearch 
+                          ? Colors.white 
+                          : (isDarkMode
+                              ? const Color(0xFF8E8E93)
+                              : const Color(0xFF6D6D70)),
+                    ),
                   ),
-                ),
+          ),
         ),
       ),
-    );
-  }
-
-  Widget _buildReturnKey() {
-    return _buildSpecialKey(
-      text: 'Ara',
-      onPressed: () {
-        if (onClose != null) {
-          onClose!();
-        }
-      },
-      isSearch: true,
     );
   }
 } 

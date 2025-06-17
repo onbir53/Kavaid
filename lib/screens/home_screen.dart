@@ -6,6 +6,7 @@ import '../services/gemini_service.dart';
 import '../services/firebase_service.dart';
 import '../widgets/word_card.dart';
 import '../widgets/search_result_card.dart';
+import '../widgets/arabic_keyboard.dart';
 
 
 class HomeScreen extends StatefulWidget {
@@ -34,6 +35,7 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _isSearching = false;
   bool _showAIButton = false;
   bool _showNotFound = false;
+  bool _showArabicKeyboard = false;
   Timer? _debounceTimer;
   StreamSubscription<List<WordModel>>? _searchSubscription;
 
@@ -182,211 +184,271 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      resizeToAvoidBottomInset: true,
-      body: NotificationListener<ScrollNotification>(
-        onNotification: (notification) {
-          // Kullanıcı scroll yapmaya başladığında klavyeyi kapat
-          if (notification is UserScrollNotification) {
-            if (_searchFocusNode.hasFocus) {
-              _searchFocusNode.unfocus();
-            }
-          }
-          return false;
-        },
-        child: CustomScrollView(
-          slivers: <Widget>[
-            SliverAppBar(
-              backgroundColor: widget.isDarkMode 
-                  ? const Color(0xFF1C1C1E)
-                  : const Color(0xFF007AFF),
-              elevation: 0,
-              pinned: true,
-              floating: true,
-              snap: true,
-              toolbarHeight: 56,
-              title: Text(
-                'Kavaid',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.w700,
-                  color: Colors.white,
-                  letterSpacing: 0.5,
-                  shadows: [
-                    Shadow(
-                      color: Colors.black.withOpacity(0.1),
-                      offset: const Offset(0, 2),
-                      blurRadius: 4,
+      resizeToAvoidBottomInset: false,
+      body: Stack(
+        children: [
+          // Ana içerik
+          Positioned.fill(
+            bottom: _showArabicKeyboard 
+                ? 330 // Arapça klavye (280) + Banner (50)
+                : 0, // Normal durumda main.dart banner ve navbar'ı hallediyor
+            child: NotificationListener<ScrollNotification>(
+              onNotification: (notification) {
+                if (notification is UserScrollNotification) {
+                  if (_searchFocusNode.hasFocus && !_showArabicKeyboard) {
+                    _searchFocusNode.unfocus();
+                  }
+                }
+                return false;
+              },
+              child: CustomScrollView(
+                slivers: <Widget>[
+                  SliverAppBar(
+                    backgroundColor: widget.isDarkMode 
+                        ? const Color(0xFF1C1C1E)
+                        : const Color(0xFF007AFF),
+                    elevation: 0,
+                    pinned: true,
+                    floating: true,
+                    snap: true,
+                    toolbarHeight: 56,
+                    title: Text(
+                      'Kavaid',
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                        letterSpacing: 0.5,
+                        shadows: [
+                          Shadow(
+                            color: Colors.black.withOpacity(0.1),
+                            offset: const Offset(0, 2),
+                            blurRadius: 4,
+                          ),
+                        ],
+                      ),
                     ),
-                  ],
-                ),
-              ),
-              actions: [
-                Padding(
-                  padding: const EdgeInsets.only(right: 12),
-                  child: Material(
-                    color: Colors.transparent,
-                    child: InkWell(
-                      onTap: widget.onThemeToggle,
-                      borderRadius: BorderRadius.circular(12),
+                    actions: [
+                      Padding(
+                        padding: const EdgeInsets.only(right: 12),
+                        child: Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            onTap: widget.onThemeToggle,
+                            borderRadius: BorderRadius.circular(12),
+                            child: Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.15),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: Colors.white.withOpacity(0.2),
+                                  width: 0.5,
+                                ),
+                              ),
+                              child: Icon(
+                                widget.isDarkMode ? Icons.dark_mode_rounded : Icons.light_mode_rounded,
+                                size: 20,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                    bottom: PreferredSize(
+                      preferredSize: const Size.fromHeight(64),
                       child: Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.15),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: Colors.white.withOpacity(0.2),
-                            width: 0.5,
-                          ),
-                        ),
-                        child: Icon(
-                          widget.isDarkMode ? Icons.dark_mode_rounded : Icons.light_mode_rounded,
-                          size: 20,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-              bottom: PreferredSize(
-                preferredSize: const Size.fromHeight(64),
-                child: Container(
-                  padding: const EdgeInsets.fromLTRB(8, 0, 8, 12),
-                  child: Container(
-                    height: 52,
-                    decoration: BoxDecoration(
-                      color: widget.isDarkMode
-                          ? const Color(0xFF2C2C2E)
-                          : Colors.white,
-                      borderRadius: BorderRadius.circular(16),
-                      boxShadow: [
-                        BoxShadow(
-                          color: widget.isDarkMode
-                              ? Colors.black.withOpacity(0.3)
-                              : Colors.black.withOpacity(0.1),
-                          blurRadius: 12,
-                          offset: const Offset(0, 4),
-                          spreadRadius: 0,
-                        ),
-                      ],
-                      border: Border.all(
-                        color: widget.isDarkMode
-                            ? const Color(0xFF48484A).withOpacity(0.3)
-                            : const Color(0xFFE5E5EA).withOpacity(0.5),
-                        width: 0.5,
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
-                          child: Icon(
-                            Icons.search_rounded,
+                        padding: const EdgeInsets.fromLTRB(8, 0, 8, 12),
+                        child: Container(
+                          height: 52,
+                          decoration: BoxDecoration(
                             color: widget.isDarkMode
-                                ? const Color(0xFF8E8E93)
-                                : const Color(0xFF8E8E93),
-                            size: 22,
-                          ),
-                        ),
-                        Expanded(
-                          child: TextField(
-                            controller: _searchController,
-                            focusNode: _searchFocusNode,
-                            autofocus: true,
-                            style: TextStyle(
-                              fontSize: 16,
-                              color: widget.isDarkMode
-                                  ? Colors.white
-                                  : const Color(0xFF1C1C1E),
-                              fontWeight: FontWeight.w500,
-                            ),
-                            decoration: InputDecoration(
-                              hintText: 'Kelime ara...',
-                              hintStyle: TextStyle(
+                                ? const Color(0xFF2C2C2E)
+                                : Colors.white,
+                            borderRadius: BorderRadius.circular(16),
+                            boxShadow: [
+                              BoxShadow(
                                 color: widget.isDarkMode
-                                    ? const Color(0xFF8E8E93).withOpacity(0.8)
-                                    : const Color(0xFF8E8E93),
-                                fontSize: 15,
-                                fontWeight: FontWeight.w400,
+                                    ? Colors.black.withOpacity(0.3)
+                                    : Colors.black.withOpacity(0.1),
+                                blurRadius: 12,
+                                offset: const Offset(0, 4),
+                                spreadRadius: 0,
                               ),
-                              border: InputBorder.none,
-                              enabledBorder: InputBorder.none,
-                              focusedBorder: InputBorder.none,
-                              contentPadding: EdgeInsets.only(
-                                top: 16,
-                                bottom: 16,
-                                right: _searchController.text.isNotEmpty ? 40 : 16,
-                              ),
+                            ],
+                            border: Border.all(
+                              color: widget.isDarkMode
+                                  ? const Color(0xFF48484A).withOpacity(0.3)
+                                  : const Color(0xFFE5E5EA).withOpacity(0.5),
+                              width: 0.5,
                             ),
-                            textInputAction: TextInputAction.search,
-                            onSubmitted: (_) => _searchWithAI(),
+                          ),
+                          child: Row(
+                            children: [
+                              Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 16),
+                                child: Icon(
+                                  Icons.search_rounded,
+                                  color: widget.isDarkMode
+                                      ? const Color(0xFF8E8E93)
+                                      : const Color(0xFF8E8E93),
+                                  size: 22,
+                                ),
+                              ),
+                              Expanded(
+                                child: TextField(
+                                  controller: _searchController,
+                                  focusNode: _searchFocusNode,
+                                  autofocus: true,
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    color: widget.isDarkMode
+                                        ? Colors.white
+                                        : const Color(0xFF1C1C1E),
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                  decoration: InputDecoration(
+                                    hintText: 'Arapça veya Türkçe kelime ara',
+                                    hintStyle: TextStyle(
+                                      color: widget.isDarkMode
+                                          ? const Color(0xFF8E8E93).withOpacity(0.8)
+                                          : const Color(0xFF8E8E93),
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w400,
+                                    ),
+                                    border: InputBorder.none,
+                                    enabledBorder: InputBorder.none,
+                                    focusedBorder: InputBorder.none,
+                                    contentPadding: EdgeInsets.only(
+                                      top: 16,
+                                      bottom: 16,
+                                      right: _searchController.text.isNotEmpty ? 72 : 40,
+                                    ),
+                                  ),
+                                  textInputAction: TextInputAction.search,
+                                  onSubmitted: (_) => _searchWithAI(),
+                                  readOnly: _showArabicKeyboard,
+                                ),
+                              ),
+                              Padding(
+                                padding: const EdgeInsets.only(right: 4),
+                                child: GestureDetector(
+                                  onTap: () {
+                                    setState(() {
+                                      _showArabicKeyboard = !_showArabicKeyboard;
+                                      if (_showArabicKeyboard) {
+                                        _searchFocusNode.unfocus();
+                                      }
+                                    });
+                                  },
+                                  child: Container(
+                                    width: 32,
+                                    height: 32,
+                                    decoration: BoxDecoration(
+                                      color: _showArabicKeyboard
+                                          ? const Color(0xFF007AFF).withOpacity(0.1)
+                                          : Colors.transparent,
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: Icon(
+                                      Icons.keyboard_alt_outlined,
+                                      color: _showArabicKeyboard
+                                          ? const Color(0xFF007AFF)
+                                          : (widget.isDarkMode
+                                              ? const Color(0xFF8E8E93).withOpacity(0.8)
+                                              : const Color(0xFF8E8E93)),
+                                      size: 20,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              if (_searchController.text.isNotEmpty)
+                                Padding(
+                                  padding: const EdgeInsets.only(right: 8),
+                                  child: GestureDetector(
+                                    onTap: () {
+                                      _searchController.clear();
+                                      setState(() {
+                                        _searchResults = [];
+                                        _selectedWord = null;
+                                        _isSearching = false;
+                                        _showAIButton = false;
+                                        _showNotFound = false;
+                                      });
+                                    },
+                                    child: Container(
+                                      width: 32,
+                                      height: 32,
+                                      decoration: BoxDecoration(
+                                        color: widget.isDarkMode
+                                            ? Colors.white.withOpacity(0.08)
+                                            : const Color(0xFF8E8E93).withOpacity(0.08),
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: Icon(
+                                        Icons.clear,
+                                        color: widget.isDarkMode
+                                            ? const Color(0xFF8E8E93).withOpacity(0.8)
+                                            : const Color(0xFF8E8E93),
+                                        size: 16,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                            ],
                           ),
                         ),
-                        if (_searchController.text.isNotEmpty)
-                          Padding(
-                            padding: const EdgeInsets.only(right: 8),
-                            child: GestureDetector(
-                              onTap: () {
-                                _searchController.clear();
-                                setState(() {
-                                  _searchResults = [];
-                                  _selectedWord = null;
-                                  _isSearching = false;
-                                  _showAIButton = false;
-                                  _showNotFound = false;
-                                });
-                              },
-                              child: Container(
-                                width: 32,
-                                height: 32,
-                                decoration: BoxDecoration(
-                                  color: widget.isDarkMode
-                                      ? Colors.white.withOpacity(0.08)
-                                      : const Color(0xFF8E8E93).withOpacity(0.08),
-                                  shape: BoxShape.circle,
-                                ),
-                                child: Icon(
-                                  Icons.clear,
-                                  color: widget.isDarkMode
-                                      ? const Color(0xFF8E8E93).withOpacity(0.8)
-                                      : const Color(0xFF8E8E93),
-                                  size: 16,
-                                ),
+                      ),
+                    ),
+                    flexibleSpace: Container(
+                      decoration: BoxDecoration(
+                        gradient: widget.isDarkMode
+                            ? null
+                            : const LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: [
+                                  Color(0xFF007AFF),
+                                  Color(0xFF0051D5),
+                                ],
                               ),
-                            ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: widget.isDarkMode
+                                ? Colors.black.withOpacity(0.3)
+                                : const Color(0xFF007AFF).withOpacity(0.15),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
                           ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
-                ),
+                  ..._buildMainContentSlivers(),
+                ],
               ),
-              flexibleSpace: Container(
-                decoration: BoxDecoration(
-                  gradient: widget.isDarkMode
-                      ? null
-                      : const LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: [
-                            Color(0xFF007AFF),
-                            Color(0xFF0051D5),
-                          ],
-                        ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: widget.isDarkMode
-                          ? Colors.black.withOpacity(0.3)
-                          : const Color(0xFF007AFF).withOpacity(0.15),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
+            ),
+          ),
+          // Arapça klavye
+          if (_showArabicKeyboard)
+            Positioned(
+              bottom: 50, // Banner'ın üstünde
+              left: 0,
+              right: 0,
+              child: SizedBox(
+                height: 280,
+                child: ArabicKeyboard(
+                  controller: _searchController,
+                  onClose: () {
+                    setState(() {
+                      _showArabicKeyboard = false;
+                    });
+                  },
                 ),
               ),
             ),
-            ..._buildMainContentSlivers(),
-          ],
-        ),
+        ],
       ),
     );
   }
