@@ -196,134 +196,191 @@ class _HomeScreenState extends State<HomeScreen> {
         child: CustomScrollView(
           slivers: <Widget>[
             SliverAppBar(
-              backgroundColor: Colors.transparent,
-              foregroundColor: Colors.white,
-              flexibleSpace: Container(
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      Color(0xFF007AFF),
-                      Color(0xFF0051D5),
-                      Color(0xFF003F99),
-                    ],
-                  ),
-                ),
-              ),
+              backgroundColor: widget.isDarkMode 
+                  ? const Color(0xFF1C1C1E)
+                  : const Color(0xFF007AFF),
+              elevation: 0,
               pinned: true,
               floating: true,
-              automaticallyImplyLeading: false,
-              title: const Text(
+              snap: true,
+              toolbarHeight: 56,
+              title: Text(
                 'Kavaid',
                 style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.white),
+                  fontSize: 24,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white,
+                  letterSpacing: 0.5,
+                  shadows: [
+                    Shadow(
+                      color: Colors.black.withOpacity(0.1),
+                      offset: const Offset(0, 2),
+                      blurRadius: 4,
+                    ),
+                  ],
+                ),
               ),
-              centerTitle: false,
               actions: [
                 Padding(
                   padding: const EdgeInsets.only(right: 12),
-                  child: IconButton(
-                    icon: const Icon(Icons.light_mode_outlined, size: 22),
-                    onPressed: widget.onThemeToggle,
-                    splashRadius: 16,
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      onTap: widget.onThemeToggle,
+                      borderRadius: BorderRadius.circular(12),
+                      child: Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: Colors.white.withOpacity(0.2),
+                            width: 0.5,
+                          ),
+                        ),
+                        child: Icon(
+                          widget.isDarkMode ? Icons.dark_mode_rounded : Icons.light_mode_rounded,
+                          size: 20,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
                   ),
                 ),
               ],
               bottom: PreferredSize(
-                preferredSize: const Size.fromHeight(52.0),
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
-                  child: SizedBox(
-                    height: 44,
-                    child: Container(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(8),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.08),
-                            blurRadius: 8,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: TextField(
-                        controller: _searchController,
-                        focusNode: _searchFocusNode,
-                        autofocus: true,
-                        textAlign: TextAlign.start,
-                        textAlignVertical: TextAlignVertical.center,
-                        decoration: InputDecoration(
-                          hintText: 'Arapça veya Türkçe kelime ara',
-                          hintStyle: TextStyle(
-                            color: widget.isDarkMode
-                                ? const Color(0xFF8E8E93)
-                                : const Color(0xFF6D6D70),
-                            fontSize: 15,
-                          ),
-                          prefixIcon: Icon(
-                            Icons.search,
-                            color: widget.isDarkMode
-                                ? const Color(0xFF8E8E93)
-                                : const Color(0xFF6D6D70),
-                            size: 20,
-                          ),
-                          suffixIcon: _searchController.text.isNotEmpty
-                              ? IconButton(
-                                  icon: Icon(
-                                    Icons.clear,
-                                    color: widget.isDarkMode
-                                        ? const Color(0xFF8E8E93)
-                                        : const Color(0xFF6D6D70),
-                                    size: 18,
-                                  ),
-                                  onPressed: () {
-                                    _searchController.clear();
-                                    setState(() {
-                                      _searchResults = [];
-                                      _selectedWord = null;
-                                      _isSearching = false;
-                                      _showAIButton = false;
-                                      _showNotFound = false;
-                                    });
-                                  },
-                                )
-                              : null,
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                            borderSide: widget.isDarkMode
-                                ? const BorderSide(color: Colors.white, width: 1.0)
-                                : BorderSide.none,
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                            borderSide: widget.isDarkMode
-                                ? const BorderSide(color: Colors.white, width: 1.0)
-                                : BorderSide.none,
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                            borderSide: const BorderSide(
-                              color: Colors.white,
-                              width: 2.5,
-                            ),
-                          ),
-                          filled: true,
-                          fillColor: widget.isDarkMode
-                              ? const Color(0xFF2C2C2E)
-                              : Colors.white,
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 10,
-                          ),
+                preferredSize: const Size.fromHeight(64),
+                child: Container(
+                  padding: const EdgeInsets.fromLTRB(8, 0, 8, 12),
+                  child: Container(
+                    height: 52,
+                    decoration: BoxDecoration(
+                      color: widget.isDarkMode
+                          ? const Color(0xFF2C2C2E)
+                          : Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: widget.isDarkMode
+                              ? Colors.black.withOpacity(0.3)
+                              : Colors.black.withOpacity(0.1),
+                          blurRadius: 12,
+                          offset: const Offset(0, 4),
+                          spreadRadius: 0,
                         ),
-                        textInputAction: TextInputAction.search,
-                        onSubmitted: (_) => _searchWithAI(),
+                      ],
+                      border: Border.all(
+                        color: widget.isDarkMode
+                            ? const Color(0xFF48484A).withOpacity(0.3)
+                            : const Color(0xFFE5E5EA).withOpacity(0.5),
+                        width: 0.5,
                       ),
                     ),
+                    child: Row(
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          child: Icon(
+                            Icons.search_rounded,
+                            color: widget.isDarkMode
+                                ? const Color(0xFF8E8E93)
+                                : const Color(0xFF8E8E93),
+                            size: 22,
+                          ),
+                        ),
+                        Expanded(
+                          child: TextField(
+                            controller: _searchController,
+                            focusNode: _searchFocusNode,
+                            autofocus: true,
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: widget.isDarkMode
+                                  ? Colors.white
+                                  : const Color(0xFF1C1C1E),
+                              fontWeight: FontWeight.w500,
+                            ),
+                            decoration: InputDecoration(
+                              hintText: 'Kelime ara...',
+                              hintStyle: TextStyle(
+                                color: widget.isDarkMode
+                                    ? const Color(0xFF8E8E93).withOpacity(0.8)
+                                    : const Color(0xFF8E8E93),
+                                fontSize: 15,
+                                fontWeight: FontWeight.w400,
+                              ),
+                              border: InputBorder.none,
+                              enabledBorder: InputBorder.none,
+                              focusedBorder: InputBorder.none,
+                              contentPadding: EdgeInsets.only(
+                                top: 16,
+                                bottom: 16,
+                                right: _searchController.text.isNotEmpty ? 40 : 16,
+                              ),
+                            ),
+                            textInputAction: TextInputAction.search,
+                            onSubmitted: (_) => _searchWithAI(),
+                          ),
+                        ),
+                        if (_searchController.text.isNotEmpty)
+                          Padding(
+                            padding: const EdgeInsets.only(right: 8),
+                            child: GestureDetector(
+                              onTap: () {
+                                _searchController.clear();
+                                setState(() {
+                                  _searchResults = [];
+                                  _selectedWord = null;
+                                  _isSearching = false;
+                                  _showAIButton = false;
+                                  _showNotFound = false;
+                                });
+                              },
+                              child: Container(
+                                width: 32,
+                                height: 32,
+                                decoration: BoxDecoration(
+                                  color: widget.isDarkMode
+                                      ? Colors.white.withOpacity(0.08)
+                                      : const Color(0xFF8E8E93).withOpacity(0.08),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Icon(
+                                  Icons.clear,
+                                  color: widget.isDarkMode
+                                      ? const Color(0xFF8E8E93).withOpacity(0.8)
+                                      : const Color(0xFF8E8E93),
+                                  size: 16,
+                                ),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
                   ),
+                ),
+              ),
+              flexibleSpace: Container(
+                decoration: BoxDecoration(
+                  gradient: widget.isDarkMode
+                      ? null
+                      : const LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [
+                            Color(0xFF007AFF),
+                            Color(0xFF0051D5),
+                          ],
+                        ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: widget.isDarkMode
+                          ? Colors.black.withOpacity(0.3)
+                          : const Color(0xFF007AFF).withOpacity(0.15),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -344,46 +401,43 @@ class _HomeScreenState extends State<HomeScreen> {
             padding: const EdgeInsets.fromLTRB(8, 12, 8, 0),
             child: Container(
               decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    Color(0xFF007AFF),
-                    Color(0xFF0051D5),
-                  ],
+                color: widget.isDarkMode
+                    ? const Color(0xFF007AFF).withOpacity(0.15)
+                    : const Color(0xFF007AFF).withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: widget.isDarkMode
+                      ? const Color(0xFF007AFF).withOpacity(0.3)
+                      : const Color(0xFF007AFF).withOpacity(0.2),
+                  width: 0.5,
                 ),
-                borderRadius: BorderRadius.circular(14),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFF007AFF).withOpacity(0.4),
-                    blurRadius: 12,
-                    offset: const Offset(0, 4),
-                    spreadRadius: 0,
-                  ),
-                ],
               ),
               child: Material(
                 color: Colors.transparent,
                 child: InkWell(
                   onTap: _searchWithAI,
-                  borderRadius: BorderRadius.circular(14),
-                                     child: Container(
-                     padding: const EdgeInsets.symmetric(vertical: 14),
-                    child: const Row(
+                  borderRadius: BorderRadius.circular(12),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Icon(
                           Icons.search,
-                          color: Colors.white,
+                          color: widget.isDarkMode
+                              ? const Color(0xFF007AFF)
+                              : const Color(0xFF007AFF).withOpacity(0.9),
                           size: 20,
                         ),
-                        SizedBox(width: 8),
+                        const SizedBox(width: 8),
                         Text(
                           'Ara',
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
-                            color: Colors.white,
+                            color: widget.isDarkMode
+                                ? const Color(0xFF007AFF)
+                                : const Color(0xFF007AFF).withOpacity(0.9),
                             letterSpacing: 0.3,
                           ),
                         ),
