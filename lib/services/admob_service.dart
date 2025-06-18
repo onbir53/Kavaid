@@ -48,9 +48,9 @@ class AdMobService {
     
     // Production ID'leri
     if (Platform.isAndroid) {
-      return 'ca-app-pub-XXXXXXXXXXXXXXXX/XXXXXXXXXX'; // Gerçek Android adaptive banner ID
+      return 'ca-app-pub-3375249639458473/4451476746'; // Gerçek Android adaptive banner ID
     } else if (Platform.isIOS) {
-      return 'ca-app-pub-XXXXXXXXXXXXXXXX/XXXXXXXXXX'; // Gerçek iOS adaptive banner ID
+      return 'ca-app-pub-3375249639458473/4569259764'; // Gerçek iOS adaptive banner ID
     }
     
     // Fallback
@@ -70,9 +70,9 @@ class AdMobService {
     
     // Production ID'leri
     if (Platform.isAndroid) {
-      return 'ca-app-pub-XXXXXXXXXXXXXXXX/XXXXXXXXXX'; // Gerçek Android app open ID
+      return 'ca-app-pub-3375249639458473/6180874278'; // Gerçek Android app open ID
     } else if (Platform.isIOS) {
-      return 'ca-app-pub-XXXXXXXXXXXXXXXX/XXXXXXXXXX'; // Gerçek iOS app open ID
+      return 'ca-app-pub-3375249639458473/1633741717'; // Gerçek iOS app open ID
     }
     
     // Fallback
@@ -92,9 +92,9 @@ class AdMobService {
     
     // Production ID'leri
     if (Platform.isAndroid) {
-      return 'ca-app-pub-XXXXXXXXXXXXXXXX/XXXXXXXXXX'; // Gerçek Android native ID
+      return 'ca-app-pub-3375249639458473/5517695141'; // Gerçek Android native ID
     } else if (Platform.isIOS) {
-      return 'ca-app-pub-XXXXXXXXXXXXXXXX/XXXXXXXXXX'; // Gerçek iOS native ID
+      return 'ca-app-pub-3375249639458473/9320660047'; // Gerçek iOS native ID
     }
     
     // Fallback
