@@ -32,7 +32,7 @@ class SearchResultCard extends StatefulWidget {
 
 class _SearchResultCardState extends State<SearchResultCard> with TickerProviderStateMixin {
   final SavedWordsService _savedWordsService = SavedWordsService();
-  bool _isSaved = false;
+  late bool _isSaved;
   bool _isLoading = false;
   bool _isExpanded = false;
   
@@ -44,11 +44,11 @@ class _SearchResultCardState extends State<SearchResultCard> with TickerProvider
   void initState() {
     super.initState();
     
+    // İlk durumu sync olarak belirle
+    _isSaved = _savedWordsService.isWordSavedSync(widget.word);
+    
     // SavedWordsService'i dinle
     _savedWordsService.addListener(_updateSavedStatus);
-    
-    // İlk durum kontrolü
-    _updateSavedStatus();
     
     // Animasyon controller'ı başlat - daha hızlı ve smooth
     _animationController = AnimationController(
@@ -68,6 +68,19 @@ class _SearchResultCardState extends State<SearchResultCard> with TickerProvider
       parent: _animationController,
       curve: const Interval(0.3, 1.0, curve: Curves.easeIn),
     ));
+    
+    // Async kontrolü de yap
+    _checkSavedStatus();
+  }
+
+  @override
+  void didUpdateWidget(SearchResultCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Widget güncellendiğinde kelime değiştiyse durumu güncelle
+    if (oldWidget.word.kelime != widget.word.kelime) {
+      _isSaved = _savedWordsService.isWordSavedSync(widget.word);
+      _checkSavedStatus();
+    }
   }
 
   @override
@@ -79,27 +92,21 @@ class _SearchResultCardState extends State<SearchResultCard> with TickerProvider
   }
 
   void _updateSavedStatus() {
-    if (!mounted) return;
-    
-    // Eğer initialize edilmemişse, async olarak yükle
-    if (!_savedWordsService.isInitialized) {
-      _initializeAndUpdate();
-      return;
-    }
-    
-    setState(() {
-      _isSaved = _savedWordsService.isWordSavedSync(widget.word);
-    });
-  }
-  
-  Future<void> _initializeAndUpdate() async {
-    if (!mounted) return;
-    
-    await _savedWordsService.initialize();
-    
     if (mounted) {
+      final newSavedStatus = _savedWordsService.isWordSavedSync(widget.word);
+      if (newSavedStatus != _isSaved) {
+        setState(() {
+          _isSaved = newSavedStatus;
+        });
+      }
+    }
+  }
+
+  Future<void> _checkSavedStatus() async {
+    final isSaved = await _savedWordsService.isWordSaved(widget.word);
+    if (mounted && isSaved != _isSaved) {
       setState(() {
-        _isSaved = _savedWordsService.isWordSavedSync(widget.word);
+        _isSaved = isSaved;
       });
     }
   }
@@ -140,8 +147,7 @@ class _SearchResultCardState extends State<SearchResultCard> with TickerProvider
     });
 
     try {
-      bool success = false;
-      
+      bool success;
       if (_isSaved) {
         success = await _savedWordsService.removeWord(widget.word);
       } else {
@@ -170,6 +176,7 @@ class _SearchResultCardState extends State<SearchResultCard> with TickerProvider
     return Padding(
       padding: const EdgeInsets.only(bottom: 6),
       child: Container(
+        key: ValueKey('search_card_${widget.word.kelime}'),
         decoration: BoxDecoration(
           gradient: isDarkMode 
               ? null
@@ -285,40 +292,46 @@ class _SearchResultCardState extends State<SearchResultCard> with TickerProvider
                     ),
                     const SizedBox(width: 12),
                     // Kaydetme tuşu
-                    GestureDetector(
-                      onTap: _toggleSaved,
-                      child: _isLoading
-                          ? SizedBox(
-                              width: 18,
-                              height: 18,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 1.5,
-                                color: isDarkMode 
-                                    ? const Color(0xFF007AFF)
-                                    : const Color(0xFF007AFF).withOpacity(0.8),
-                              ),
-                            )
-                          : Icon(
-                              _isSaved ? Icons.bookmark : Icons.bookmark_border,
-                              color: _isSaved 
-                                  ? const Color(0xFF007AFF)
-                                  : (isDarkMode ? const Color(0xFF8E8E93) : const Color(0xFF6D6D70)),
-                              size: 18,
-                            ),
+                    Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        onTap: _isLoading ? null : _toggleSaved,
+                        borderRadius: BorderRadius.circular(16),
+                        child: Container(
+                          width: 32,
+                          height: 32,
+                          padding: const EdgeInsets.all(6),
+                          child: Icon(
+                            _isSaved ? Icons.bookmark : Icons.bookmark_border,
+                            color: _isSaved 
+                                ? const Color(0xFF007AFF)
+                                : (isDarkMode ? const Color(0xFF8E8E93) : const Color(0xFF6D6D70)),
+                            size: 20,
+                          ),
+                        ),
+                      ),
                     ),
-                    const SizedBox(width: 8),
                     // Açılır menü ikonu
-                    GestureDetector(
-                      onTap: _toggleExpanded,
-                      child: AnimatedRotation(
-                        turns: _isExpanded ? 0.5 : 0,
-                        duration: const Duration(milliseconds: 250),
-                        child: Icon(
-                          Icons.expand_more,
-                          color: isDarkMode 
-                              ? const Color(0xFF8E8E93) 
-                              : const Color(0xFF6D6D70),
-                          size: 18,
+                    Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        onTap: _toggleExpanded,
+                        borderRadius: BorderRadius.circular(20),
+                        child: Container(
+                          width: 32,
+                          height: 32,
+                          padding: const EdgeInsets.all(4),
+                          child: AnimatedRotation(
+                            turns: _isExpanded ? 0.5 : 0,
+                            duration: const Duration(milliseconds: 250),
+                            child: Icon(
+                              Icons.expand_more,
+                              color: isDarkMode 
+                                  ? const Color(0xFF8E8E93) 
+                                  : const Color(0xFF6D6D70),
+                              size: 20,
+                            ),
+                          ),
                         ),
                       ),
                     ),

@@ -460,7 +460,7 @@ class _HomeScreenState extends State<HomeScreen> {
       slivers.add(
         SliverToBoxAdapter(
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+            padding: const EdgeInsets.fromLTRB(8, 12, 8, 0),
             child: Container(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
@@ -551,7 +551,7 @@ class _HomeScreenState extends State<HomeScreen> {
       
       slivers.add(
         SliverPadding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 80),
+          padding: const EdgeInsets.fromLTRB(8, 12, 8, 80),
           sliver: SliverList(
             delegate: SliverChildBuilderDelegate(
               (context, index) {
@@ -587,7 +587,7 @@ class _HomeScreenState extends State<HomeScreen> {
     if (_selectedWord != null) {
       slivers.add(
         SliverPadding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 80),
+          padding: const EdgeInsets.fromLTRB(8, 12, 8, 80),
           sliver: SliverToBoxAdapter(
             child: WordCard(word: _selectedWord!),
           ),

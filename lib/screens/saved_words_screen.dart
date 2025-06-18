@@ -38,7 +38,7 @@ class _SavedWordsScreenState extends State<SavedWordsScreen> with AutomaticKeepA
     _loadSavedWords();
     
     // SavedWordsService'i dinle
-    _savedWordsService.addListener(_loadSavedWords);
+    _savedWordsService.addListener(_onSavedWordsChanged);
     
     // Callback'i parent'a gönder
     if (widget.onRefreshCallback != null) {
@@ -52,11 +52,23 @@ class _SavedWordsScreenState extends State<SavedWordsScreen> with AutomaticKeepA
   @override
   void dispose() {
     // Listener'ı kaldır
-    _savedWordsService.removeListener(_loadSavedWords);
+    _savedWordsService.removeListener(_onSavedWordsChanged);
     _searchController.removeListener(_filterWords);
     _searchController.dispose();
     _searchFocusNode.dispose();
     super.dispose();
+  }
+
+  // SavedWordsService değişikliklerini dinle
+  void _onSavedWordsChanged() {
+    if (mounted) {
+      setState(() {
+        _savedWords = _savedWordsService.savedWords;
+        _filteredWords = _savedWords;
+      });
+      // Arama filtresini yeniden uygula
+      _filterWords();
+    }
   }
 
   // Screen'e her gelindiğinde listeyi yenile
@@ -81,16 +93,24 @@ class _SavedWordsScreenState extends State<SavedWordsScreen> with AutomaticKeepA
   }
 
   Future<void> _loadSavedWords() async {
-    setState(() {
-      _isLoading = true;
-    });
+    // İlk yüklemede loading göster
+    if (!_savedWordsService.isInitialized && mounted) {
+      setState(() {
+        _isLoading = true;
+      });
+    }
 
     try {
-      final savedWords = await _savedWordsService.getSavedWords();
+      // İlk yüklemede veya initialize edilmemişse getSavedWords'ü çağır
+      if (!_savedWordsService.isInitialized) {
+        await _savedWordsService.getSavedWords();
+      }
+      
+      // Cache'den oku
       if (mounted) {
         setState(() {
-          _savedWords = savedWords;
-          _filteredWords = savedWords;
+          _savedWords = _savedWordsService.savedWords;
+          _filteredWords = _savedWords;
           _isLoading = false;
         });
         // Arama filtresini yeniden uygula
@@ -186,7 +206,10 @@ class _SavedWordsScreenState extends State<SavedWordsScreen> with AutomaticKeepA
         ),
         body: SingleChildScrollView(
           padding: const EdgeInsets.fromLTRB(8, 0, 8, 80), // Banner alanında padding
-          child: WordCard(word: _selectedWord!),
+          child: WordCard(
+            word: _selectedWord!,
+            key: ValueKey('saved_word_detail_${_selectedWord!.kelime}'),
+          ),
         ),
       );
     }

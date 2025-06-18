@@ -19,16 +19,30 @@ class WordCard extends StatefulWidget {
 
 class _WordCardState extends State<WordCard> {
   final SavedWordsService _savedWordsService = SavedWordsService();
-  bool _isSaved = false;
+  late bool _isSaved;
   bool _isLoading = false;
 
   @override
   void initState() {
     super.initState();
-    _updateSavedStatus();
+    // Başlangıçta sync kontrolü yap
+    _isSaved = _savedWordsService.isWordSavedSync(widget.word);
     
     // SavedWordsService'i dinle
     _savedWordsService.addListener(_updateSavedStatus);
+    
+    // Async kontrolü de yap güvenlik için
+    _checkSavedStatus();
+  }
+
+  @override
+  void didUpdateWidget(WordCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Widget güncellendiğinde kelime değiştiyse durumu güncelle
+    if (oldWidget.word.kelime != widget.word.kelime) {
+      _isSaved = _savedWordsService.isWordSavedSync(widget.word);
+      _checkSavedStatus();
+    }
   }
 
   @override
@@ -40,8 +54,20 @@ class _WordCardState extends State<WordCard> {
 
   void _updateSavedStatus() {
     if (mounted) {
+      final newSavedStatus = _savedWordsService.isWordSavedSync(widget.word);
+      if (newSavedStatus != _isSaved) {
+        setState(() {
+          _isSaved = newSavedStatus;
+        });
+      }
+    }
+  }
+
+  Future<void> _checkSavedStatus() async {
+    final isSaved = await _savedWordsService.isWordSaved(widget.word);
+    if (mounted && isSaved != _isSaved) {
       setState(() {
-        _isSaved = _savedWordsService.isWordSavedSync(widget.word);
+        _isSaved = isSaved;
       });
     }
   }
@@ -54,16 +80,26 @@ class _WordCardState extends State<WordCard> {
     });
 
     try {
+      bool success;
       if (_isSaved) {
-        await _savedWordsService.removeWord(widget.word);
+        success = await _savedWordsService.removeWord(widget.word);
       } else {
-        await _savedWordsService.saveWord(widget.word);
+        success = await _savedWordsService.saveWord(widget.word);
       }
       
       if (mounted) {
         setState(() {
           _isLoading = false;
         });
+        
+        if (!success) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('İşlem başarısız oldu'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
       }
     } catch (e) {
       print('Toggle saved error: $e');
@@ -71,6 +107,13 @@ class _WordCardState extends State<WordCard> {
         setState(() {
           _isLoading = false;
         });
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('İşlem başarısız: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
       }
     }
   }
@@ -80,6 +123,7 @@ class _WordCardState extends State<WordCard> {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     
     return Container(
+      key: ValueKey('word_card_${widget.word.kelime}'),
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
         gradient: isDarkMode 
@@ -139,25 +183,33 @@ class _WordCardState extends State<WordCard> {
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
-                InkWell(
-                  onTap: _toggleSaved,
-                  borderRadius: BorderRadius.circular(24),
-                  child: Container(
-                    padding: const EdgeInsets.all(8),
-                    child: _isLoading
-                        ? const SizedBox(
-                            width: 24,
-                            height: 24,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Color(0xFF007AFF),
-                            ),
-                          )
-                        : Icon(
-                            _isSaved ? Icons.bookmark : Icons.bookmark_border,
-                            color: const Color(0xFF007AFF),
-                            size: 28,
-                          ),
+                Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: _isLoading ? null : _toggleSaved,
+                    borderRadius: BorderRadius.circular(20),
+                    splashColor: const Color(0xFF007AFF).withOpacity(0.2),
+                    highlightColor: const Color(0xFF007AFF).withOpacity(0.1),
+                    child: Container(
+                      width: 40,
+                      height: 40,
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: _isSaved 
+                            ? const Color(0xFF007AFF).withOpacity(0.1)
+                            : Colors.transparent,
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: const Color(0xFF007AFF).withOpacity(0.3),
+                          width: 1,
+                        ),
+                      ),
+                      child: Icon(
+                        _isSaved ? Icons.bookmark : Icons.bookmark_border,
+                        color: const Color(0xFF007AFF),
+                        size: 24,
+                      ),
+                    ),
                   ),
                 ),
               ],
@@ -169,8 +221,8 @@ class _WordCardState extends State<WordCard> {
               Text(
                 widget.word.harekeliKelime!,
                 style: GoogleFonts.scheherazadeNew(
-                  fontSize: 28, // Biraz büyüttüm
-                  fontWeight: FontWeight.w700, // Daha kalın
+                  fontSize: 28,
+                  fontWeight: FontWeight.w700,
                   color: const Color(0xFF007AFF),
                   fontFeatures: const [
                     ui.FontFeature.enable('liga'),
@@ -188,10 +240,10 @@ class _WordCardState extends State<WordCard> {
               Text(
                 'Anlam',
                 style: TextStyle(
-                  fontSize: 16, // Biraz küçülttüm
-                  fontWeight: FontWeight.w500, // Daha hafif
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
                   color: isDarkMode ? Colors.white : const Color(0xFF1C1C1E),
-                  letterSpacing: 0.5, // Estetik harf aralığı
+                  letterSpacing: 0.5,
                 ),
               ),
               const SizedBox(height: 8),
@@ -213,10 +265,10 @@ class _WordCardState extends State<WordCard> {
               Text(
                 'Dilbilgisel Özellikler',
                 style: TextStyle(
-                  fontSize: 16, // Biraz küçülttüm
-                  fontWeight: FontWeight.w500, // Daha hafif
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
                   color: isDarkMode ? Colors.white : const Color(0xFF1C1C1E),
-                  letterSpacing: 0.5, // Estetik harf aralığı
+                  letterSpacing: 0.5,
                 ),
               ),
               const SizedBox(height: 8),
@@ -243,12 +295,12 @@ class _WordCardState extends State<WordCard> {
                     child: Text(
                       '${entry.key}: ${entry.value}',
                       style: TextStyle(
-                        fontSize: 13, // Biraz küçülttüm
+                        fontSize: 13,
                         color: isDarkMode 
                             ? const Color(0xFFE5E5EA)
                             : const Color(0xFF1C1C1E),
-                        fontWeight: FontWeight.w500, // Orta kalınlık
-                        letterSpacing: 0.2, // Estetik harf aralığı
+                        fontWeight: FontWeight.w500,
+                        letterSpacing: 0.2,
                       ),
                     ),
                   );
@@ -484,10 +536,10 @@ class _WordCardState extends State<WordCard> {
               Text(
                 'Örnek Cümleler',
                 style: TextStyle(
-                  fontSize: 16, // Biraz küçülttüm
-                  fontWeight: FontWeight.w500, // Daha hafif
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
                   color: isDarkMode ? Colors.white : const Color(0xFF1C1C1E),
-                  letterSpacing: 0.5, // Estetik harf aralığı
+                  letterSpacing: 0.5,
                 ),
               ),
               const SizedBox(height: 8),
