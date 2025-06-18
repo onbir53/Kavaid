@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'dart:ui' as ui;
 import '../models/word_model.dart';
 import '../services/saved_words_service.dart';
+import '../services/credits_service.dart';
 
 // Global expanded card controller
 class ExpandedCardController {
@@ -32,6 +33,7 @@ class SearchResultCard extends StatefulWidget {
 
 class _SearchResultCardState extends State<SearchResultCard> with TickerProviderStateMixin {
   final SavedWordsService _savedWordsService = SavedWordsService();
+  final CreditsService _creditsService = CreditsService();
   late bool _isSaved;
   bool _isLoading = false;
   bool _isExpanded = false;
@@ -111,10 +113,42 @@ class _SearchResultCardState extends State<SearchResultCard> with TickerProvider
     }
   }
 
-  void _toggleExpanded() {
+  void _toggleExpanded() async {
     if (!mounted) return;
     
     if (!_isExpanded) {
+      // Hak kontrolü yap
+      final canOpen = await _creditsService.canOpenWord(widget.word.kelime);
+      if (!canOpen) {
+        if (mounted) {
+          // Hak bitti uyarısı göster
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text(
+                'Kelime görüntüleme hakkınız bitti. Premium üyelik alarak sınırsız erişim sağlayabilirsiniz.',
+                style: TextStyle(fontSize: 12),
+              ),
+              backgroundColor: Colors.red.shade600,
+              duration: const Duration(seconds: 4),
+              action: SnackBarAction(
+                label: 'Premium Al',
+                textColor: Colors.white,
+                onPressed: () {
+                  // TODO: Premium satın alma sayfasına yönlendir
+                },
+              ),
+            ),
+          );
+        }
+        return;
+      }
+      
+      // Hak tüket
+      final consumed = await _creditsService.consumeCredit(widget.word.kelime);
+      if (!consumed) {
+        return;
+      }
+      
       // Diğer açık kartları kapat
       ExpandedCardController.setExpanded(this);
       if (mounted) {

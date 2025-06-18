@@ -1,11 +1,14 @@
 import 'dart:io';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:flutter/foundation.dart';
+import 'credits_service.dart';
 
 class AdMobService {
   static final AdMobService _instance = AdMobService._internal();
   factory AdMobService() => _instance;
   AdMobService._internal();
+  
+  final CreditsService _creditsService = CreditsService();
 
   // App Open reklamı için değişkenler
   AppOpenAd? _appOpenAd;
@@ -130,6 +133,12 @@ class AdMobService {
     if (kIsWeb || (!Platform.isAndroid && !Platform.isIOS)) {
       return;
     }
+    
+    // Premium kullanıcılar için reklam yükleme
+    if (_creditsService.isPremium) {
+      debugPrint('👑 Premium kullanıcı - Reklam yüklenmeyecek');
+      return;
+    }
 
     if (_isLoadingAppOpenAd || isAppOpenAdAvailable) {
       return;
@@ -168,6 +177,12 @@ class AdMobService {
 
   // App Open reklamını göster
   void showAppOpenAd() {
+    // Premium kullanıcılar için reklam gösterme
+    if (_creditsService.isPremium) {
+      debugPrint('👑 Premium kullanıcı - Reklam gösterilmeyecek');
+      return;
+    }
+    
     if (!isAppOpenAdAvailable || _isShowingAppOpenAd) {
       debugPrint('⚠️ App Open reklamı gösterilemiyor - Mevcut değil veya zaten gösteriliyor');
       loadAppOpenAd(); // Yeni reklam yükle

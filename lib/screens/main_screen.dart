@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../models/word_model.dart';
 import '../widgets/search_result_card.dart';
 import '../services/saved_words_service.dart';
+import '../services/credits_service.dart';
 
 class MainScreen extends StatefulWidget {
   final VoidCallback? onSavedWordsTabRequested;
@@ -24,6 +25,7 @@ class _MainScreenState extends State<MainScreen> {
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
   final SavedWordsService _savedWordsService = SavedWordsService();
+  final CreditsService _creditsService = CreditsService();
   List<WordModel> _searchResults = [];
   bool _isLoading = false;
 
@@ -31,6 +33,10 @@ class _MainScreenState extends State<MainScreen> {
   void initState() {
     super.initState();
     _savedWordsService.initialize();
+    _creditsService.initialize();
+    
+    // CreditsService'i dinle
+    _creditsService.addListener(_updateCredits);
     
     // Widget build edildikten sonra otomatik olarak klavyeyi aç
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -42,9 +48,16 @@ class _MainScreenState extends State<MainScreen> {
       });
     });
   }
+  
+  void _updateCredits() {
+    if (mounted) {
+      setState(() {});
+    }
+  }
 
   @override
   void dispose() {
+    _creditsService.removeListener(_updateCredits);
     _searchController.dispose();
     _searchFocusNode.dispose();
     super.dispose();
@@ -189,14 +202,93 @@ class _MainScreenState extends State<MainScreen> {
               padding: const EdgeInsets.fromLTRB(10, 5, 10, 10),
               child: Column(
                 children: [
-                  // Başlık
-                  Text(
-                    'Kavaid',
-                    style: GoogleFonts.inter(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                      color: isDarkMode ? Colors.white : const Color(0xFF1C1C1E),
-                    ),
+                  // Başlık ve hak göstergesi
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Kavaid',
+                        style: GoogleFonts.inter(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          color: isDarkMode ? Colors.white : const Color(0xFF1C1C1E),
+                        ),
+                      ),
+                      // Hak göstergesi
+                      if (!_creditsService.isPremium) ...[
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: _creditsService.credits <= 10 
+                                ? Colors.red.withOpacity(0.1)
+                                : (isDarkMode 
+                                    ? const Color(0xFF007AFF).withOpacity(0.1)
+                                    : const Color(0xFF007AFF).withOpacity(0.08)),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: _creditsService.credits <= 10
+                                  ? Colors.red.withOpacity(0.3)
+                                  : (isDarkMode 
+                                      ? const Color(0xFF007AFF).withOpacity(0.3)
+                                      : const Color(0xFF007AFF).withOpacity(0.2)),
+                              width: 0.5,
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.star,
+                                size: 12,
+                                color: _creditsService.credits <= 10
+                                    ? Colors.red
+                                    : const Color(0xFF007AFF),
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                '${_creditsService.credits} Hak',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                  color: _creditsService.credits <= 10
+                                      ? Colors.red
+                                      : const Color(0xFF007AFF),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ] else ...[
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              colors: [Color(0xFFFFD700), Color(0xFFFFA500)],
+                            ),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(
+                                Icons.workspace_premium,
+                                size: 12,
+                                color: Colors.white,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                'Premium',
+                                style: GoogleFonts.inter(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
                   const SizedBox(height: 8),
                   

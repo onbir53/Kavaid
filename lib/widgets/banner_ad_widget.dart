@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'dart:io';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import '../services/admob_service.dart';
+import '../services/credits_service.dart';
 
 class BannerAdWidget extends StatefulWidget {
   final Function(double)? onHeightChanged;
@@ -20,6 +21,7 @@ class BannerAdWidgetState extends State<BannerAdWidget> with AutomaticKeepAliveC
   int _retryCount = 0;
   static const int _maxRetries = 3;
   static const Duration _retryDelay = Duration(seconds: 3);
+  final CreditsService _creditsService = CreditsService();
 
   @override
   bool get wantKeepAlive => true; // Banner'ı canlı tut - performans için
@@ -38,6 +40,15 @@ class BannerAdWidgetState extends State<BannerAdWidget> with AutomaticKeepAliveC
   }
 
   Future<void> _loadBannerAd() async {
+    // Premium kullanıcılar için reklam yükleme
+    if (_creditsService.isPremium) {
+      debugPrint('👑 Premium kullanıcı - Banner reklam yüklenmeyecek');
+      if (widget.onHeightChanged != null) {
+        widget.onHeightChanged!(0.0);
+      }
+      return;
+    }
+    
     // Web'de veya desteklenmeyen platformlarda reklam yükleme
     if (kIsWeb || (!Platform.isAndroid && !Platform.isIOS)) {
       if (widget.onHeightChanged != null) {
@@ -164,6 +175,11 @@ class BannerAdWidgetState extends State<BannerAdWidget> with AutomaticKeepAliveC
   @override
   Widget build(BuildContext context) {
     super.build(context); // AutomaticKeepAliveClientMixin için
+    
+    // Premium kullanıcılar için boş alan döndür
+    if (_creditsService.isPremium) {
+      return const SizedBox.shrink();
+    }
     
     // Web'de veya desteklenmeyen platformlarda boş alan döndür
     if (kIsWeb || (!Platform.isAndroid && !Platform.isIOS)) {

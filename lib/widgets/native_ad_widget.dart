@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:flutter/foundation.dart';
 import '../services/admob_service.dart';
+import '../services/credits_service.dart';
 
 class NativeAdWidget extends StatefulWidget {
   final String? adUnitId; // Özel ad unit ID kullanmak için
@@ -22,6 +23,7 @@ class _NativeAdWidgetState extends State<NativeAdWidget> with AutomaticKeepAlive
   int _retryCount = 0;
   static const int _maxRetries = 2;
   static const Duration _retryDelay = Duration(seconds: 2);
+  final CreditsService _creditsService = CreditsService();
 
   @override
   bool get wantKeepAlive => _nativeAdIsLoaded; // Yüklü reklamı canlı tut
@@ -30,7 +32,7 @@ class _NativeAdWidgetState extends State<NativeAdWidget> with AutomaticKeepAlive
   void initState() {
     super.initState();
     if (!kIsWeb && (defaultTargetPlatform == TargetPlatform.android || 
-        defaultTargetPlatform == TargetPlatform.iOS)) {
+        defaultTargetPlatform == TargetPlatform.iOS) && !_creditsService.isPremium) {
       // Widget görünür olduğunda reklamı yükle (lazy loading)
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
@@ -41,6 +43,12 @@ class _NativeAdWidgetState extends State<NativeAdWidget> with AutomaticKeepAlive
   }
 
   void _loadNativeAd() {
+    // Premium kullanıcılar için reklam yükleme
+    if (_creditsService.isPremium) {
+      debugPrint('👑 Premium kullanıcı - Native reklam yüklenmeyecek');
+      return;
+    }
+    
     if (_isLoading || _nativeAdIsLoaded) return;
     
     setState(() {
@@ -135,6 +143,11 @@ class _NativeAdWidgetState extends State<NativeAdWidget> with AutomaticKeepAlive
     super.build(context); // AutomaticKeepAliveClientMixin için
     
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    
+    // Premium kullanıcılar için boş alan döndür
+    if (_creditsService.isPremium) {
+      return const SizedBox.shrink();
+    }
     
     // Web'de veya desteklenmeyen platformlarda hiçbir şey gösterme
     if (kIsWeb || (!kReleaseMode && defaultTargetPlatform != TargetPlatform.android && 

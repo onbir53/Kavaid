@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'services/connectivity_service.dart';
 import 'screens/home_screen.dart';
@@ -7,6 +8,7 @@ import 'services/firebase_options.dart';
 import 'services/saved_words_service.dart';
 import 'services/admob_service.dart';
 import 'widgets/banner_ad_widget.dart';
+import 'services/credits_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -27,6 +29,11 @@ void main() async {
   final savedWordsService = SavedWordsService();
   await savedWordsService.initialize();
   debugPrint('✅ SavedWordsService başlatıldı: ${savedWordsService.savedWordsCount} kelime yüklendi');
+  
+  // CreditsService'i initialize et
+  final creditsService = CreditsService();
+  await creditsService.initialize();
+  debugPrint('✅ CreditsService başlatıldı: ${creditsService.credits} hak, Premium: ${creditsService.isPremium}');
   
   runApp(const KavaidApp());
 }
@@ -429,8 +436,8 @@ class _MainScreenState extends State<MainScreen> {
   }
 }
 
-// Basit Profil Ekranı
-class ProfileScreen extends StatelessWidget {
+// Profil Ekranı
+class ProfileScreen extends StatefulWidget {
   final bool isDarkMode;
   final VoidCallback onThemeToggle;
 
@@ -439,6 +446,31 @@ class ProfileScreen extends StatelessWidget {
     required this.isDarkMode,
     required this.onThemeToggle,
   });
+
+  @override
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
+  final CreditsService _creditsService = CreditsService();
+
+  @override
+  void initState() {
+    super.initState();
+    _creditsService.addListener(_updateState);
+  }
+
+  @override
+  void dispose() {
+    _creditsService.removeListener(_updateState);
+    super.dispose();
+  }
+
+  void _updateState() {
+    if (mounted) {
+      setState(() {});
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -456,24 +488,204 @@ class ProfileScreen extends StatelessWidget {
             padding: const EdgeInsets.only(right: 16),
             child: IconButton(
               icon: Icon(
-                isDarkMode 
+                widget.isDarkMode 
                     ? Icons.light_mode_outlined 
                     : Icons.dark_mode_outlined,
                 size: 28,
               ),
-              onPressed: onThemeToggle,
+              onPressed: widget.onThemeToggle,
             ),
           ),
         ],
       ),
-      body: const Center(
-        child: Text(
-          'Profil ayarları burada olacak',
-          style: TextStyle(
-            fontSize: 14,
-            color: Color(0xFF8E8E93),
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          // Hak bilgileri kartı
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Kullanım Hakları',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      if (_creditsService.isPremium) ...[
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              colors: [Color(0xFFFFD700), Color(0xFFFFA500)],
+                            ),
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.workspace_premium,
+                                size: 16,
+                                color: Colors.white,
+                              ),
+                              SizedBox(width: 4),
+                              Text(
+                                'Premium',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  if (!_creditsService.isPremium) ...[
+                    Text(
+                      'Kalan Hak: ${_creditsService.credits}',
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.w700,
+                        color: _creditsService.credits <= 10 
+                            ? Colors.red 
+                            : const Color(0xFF007AFF),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    LinearProgressIndicator(
+                      value: _creditsService.credits / 50,
+                      backgroundColor: Colors.grey[300],
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        _creditsService.credits <= 10 
+                            ? Colors.red 
+                            : const Color(0xFF007AFF),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    const Text(
+                      'Her kelime detayı görüntülediğinizde 1 hak harcanır.',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Color(0xFF8E8E93),
+                      ),
+                    ),
+                  ] else ...[
+                    const Text(
+                      'Sınırsız Erişim',
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF007AFF),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    if (_creditsService.premiumExpiry != null) ...[
+                      Text(
+                        'Bitiş Tarihi: ${_creditsService.premiumExpiry!.day}/${_creditsService.premiumExpiry!.month}/${_creditsService.premiumExpiry!.year}',
+                        style: const TextStyle(
+                          fontSize: 14,
+                          color: Color(0xFF8E8E93),
+                        ),
+                      ),
+                    ],
+                  ],
+                ],
+              ),
+            ),
           ),
-        ),
+          const SizedBox(height: 24),
+          
+          // Premium satın al butonu (premium değilse)
+          if (!_creditsService.isPremium) ...[
+            ElevatedButton.icon(
+              onPressed: () async {
+                // TODO: Gerçek satın alma işlemi
+                // Test için premium aktifleştir
+                await _creditsService.activatePremium();
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Premium üyelik aktifleştirildi!'),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+                }
+              },
+              icon: const Icon(Icons.workspace_premium),
+              label: const Text('Premium Al (60 Ay)'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF007AFF),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+            ),
+            const SizedBox(height: 24),
+          ],
+          
+          // Test butonları (Debug modda)
+          if (kDebugMode) ...[
+            const Divider(),
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 8),
+              child: Text(
+                'Test İşlemleri',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF8E8E93),
+                ),
+              ),
+            ),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                OutlinedButton(
+                  onPressed: () async {
+                    await _creditsService.resetCredits();
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Haklar sıfırlandı (50 hak)'),
+                        ),
+                      );
+                    }
+                  },
+                  child: const Text('Hakları Sıfırla'),
+                ),
+                if (_creditsService.isPremium) ...[
+                  OutlinedButton(
+                    onPressed: () async {
+                      await _creditsService.cancelPremium();
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Premium iptal edildi'),
+                          ),
+                        );
+                      }
+                    },
+                    child: const Text('Premium İptal'),
+                  ),
+                ],
+              ],
+            ),
+          ],
+        ],
       ),
     );
   }
