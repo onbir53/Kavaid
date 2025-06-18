@@ -6,10 +6,14 @@ import '../services/saved_words_service.dart';
 
 class MainScreen extends StatefulWidget {
   final VoidCallback? onSavedWordsTabRequested;
+  final bool isDarkMode;
+  final VoidCallback? onThemeToggle;
 
   const MainScreen({
     super.key,
     this.onSavedWordsTabRequested,
+    this.isDarkMode = false,
+    this.onThemeToggle,
   });
 
   @override
@@ -182,87 +186,125 @@ class _MainScreenState extends State<MainScreen> {
           children: [
             // Başlık ve arama çubuğu
             Container(
-              padding: const EdgeInsets.all(10),
+              padding: const EdgeInsets.fromLTRB(10, 5, 10, 10),
               child: Column(
                 children: [
                   // Başlık
                   Text(
                     'Kavaid',
                     style: GoogleFonts.inter(
-                      fontSize: 16,
+                      fontSize: 14,
                       fontWeight: FontWeight.w500,
                       color: isDarkMode ? Colors.white : const Color(0xFF1C1C1E),
                     ),
                   ),
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 8),
                   
                   // Arama çubuğu
-                  Container(
-                    height: 24,
-                    decoration: BoxDecoration(
-                      color: isDarkMode 
-                          ? const Color(0xFF1C1C1E) 
-                          : Colors.white,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(
-                        color: isDarkMode 
-                            ? const Color(0xFF2C2C2E)
-                            : const Color(0xFFE5E5EA),
-                        width: 1,
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Container(
+                          height: 20,
+                          decoration: BoxDecoration(
+                            color: isDarkMode 
+                                ? const Color(0xFF1C1C1E) 
+                                : Colors.white,
+                            borderRadius: BorderRadius.circular(4),
+                            border: Border.all(
+                              color: isDarkMode 
+                                  ? const Color(0xFF2C2C2E)
+                                  : const Color(0xFFE5E5EA),
+                              width: 1,
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: isDarkMode 
+                                    ? Colors.black.withOpacity(0.15)
+                                    : Colors.black.withOpacity(0.02),
+                                blurRadius: 3,
+                                offset: const Offset(0, 1),
+                              ),
+                            ],
+                          ),
+                          child: TextField(
+                            controller: _searchController,
+                            focusNode: _searchFocusNode,
+                            autofocus: true,
+                            onChanged: _performSearch,
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: isDarkMode ? Colors.white : const Color(0xFF1C1C1E),
+                            ),
+                            decoration: InputDecoration(
+                              hintText: 'Kelime ara',
+                              hintStyle: TextStyle(
+                                fontSize: 11,
+                                color: isDarkMode 
+                                    ? const Color(0xFF8E8E93)
+                                    : const Color(0xFF6D6D70),
+                              ),
+                              prefixIcon: Icon(
+                                Icons.search,
+                                size: 14,
+                                color: isDarkMode 
+                                    ? const Color(0xFF8E8E93)
+                                    : const Color(0xFF6D6D70),
+                              ),
+                              suffixIcon: _searchController.text.isNotEmpty
+                                  ? IconButton(
+                                      onPressed: _clearSearch,
+                                      icon: Icon(
+                                        Icons.clear,
+                                        size: 12,
+                                        color: isDarkMode 
+                                            ? const Color(0xFF8E8E93)
+                                            : const Color(0xFF6D6D70),
+                                      ),
+                                    )
+                                  : null,
+                              border: InputBorder.none,
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 4,
+                                vertical: 1,
+                              ),
+                            ),
+                          ),
+                        ),
                       ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: isDarkMode 
-                              ? Colors.black.withOpacity(0.15)
-                              : Colors.black.withOpacity(0.02),
-                          blurRadius: 3,
-                          offset: const Offset(0, 1),
+                      if (widget.onThemeToggle != null) ...[
+                        const SizedBox(width: 6),
+                        InkWell(
+                          onTap: widget.onThemeToggle,
+                          borderRadius: BorderRadius.circular(4),
+                          child: Container(
+                            width: 28,
+                            height: 20,
+                            decoration: BoxDecoration(
+                              color: isDarkMode 
+                                  ? Colors.white.withOpacity(0.1)
+                                  : Colors.black.withOpacity(0.05),
+                              borderRadius: BorderRadius.circular(4),
+                              border: Border.all(
+                                color: isDarkMode 
+                                    ? const Color(0xFF2C2C2E)
+                                    : const Color(0xFFE5E5EA),
+                                width: 1,
+                              ),
+                            ),
+                            child: Icon(
+                              widget.isDarkMode 
+                                  ? Icons.dark_mode 
+                                  : Icons.light_mode,
+                              size: 12,
+                              color: isDarkMode 
+                                  ? const Color(0xFF8E8E93)
+                                  : const Color(0xFF6D6D70),
+                            ),
+                          ),
                         ),
                       ],
-                    ),
-                    child: TextField(
-                      controller: _searchController,
-                      focusNode: _searchFocusNode,
-                      autofocus: true,
-                      onChanged: _performSearch,
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: isDarkMode ? Colors.white : const Color(0xFF1C1C1E),
-                      ),
-                      decoration: InputDecoration(
-                        hintText: 'Arapça kelime veya Türkçe anlam ara...',
-                        hintStyle: TextStyle(
-                          fontSize: 11,
-                          color: isDarkMode 
-                              ? const Color(0xFF8E8E93)
-                              : const Color(0xFF6D6D70),
-                        ),
-                        prefixIcon: Icon(
-                          Icons.search,
-                          size: 14,
-                          color: isDarkMode 
-                              ? const Color(0xFF8E8E93)
-                              : const Color(0xFF6D6D70),
-                        ),
-                        suffixIcon: _searchController.text.isNotEmpty
-                            ? IconButton(
-                                onPressed: _clearSearch,
-                                icon: Icon(
-                                  Icons.clear,
-                                  size: 12,
-                                  color: isDarkMode 
-                                      ? const Color(0xFF8E8E93)
-                                      : const Color(0xFF6D6D70),
-                                ),
-                              )
-                            : null,
-                        border: InputBorder.none,
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 4,
-                          vertical: 2,
-                        ),
-                      ),
-                    ),
+                    ],
                   ),
                 ],
               ),
