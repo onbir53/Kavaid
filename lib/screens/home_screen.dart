@@ -563,7 +563,10 @@ class _HomeScreenState extends State<HomeScreen> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   // Banner klavyenin üstünde
-                  const BannerAdWidget(),
+                  const BannerAdWidget(
+                    key: ValueKey('keyboard_banner_ad'),
+                    stableKey: 'keyboard_banner',
+                  ),
                   // Klavye
                   SizedBox(
                     height: 280,

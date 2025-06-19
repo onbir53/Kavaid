@@ -7,14 +7,15 @@ import '../services/credits_service.dart';
 
 class BannerAdWidget extends StatefulWidget {
   final Function(double)? onHeightChanged;
+  final String? stableKey; // Widget'i stabil tutmak için key
   
-  const BannerAdWidget({Key? key, this.onHeightChanged}) : super(key: key);
+  const BannerAdWidget({Key? key, this.onHeightChanged, this.stableKey}) : super(key: key);
 
   @override
   State<BannerAdWidget> createState() => BannerAdWidgetState();
 }
 
-class BannerAdWidgetState extends State<BannerAdWidget> with AutomaticKeepAliveClientMixin {
+class BannerAdWidgetState extends State<BannerAdWidget> with AutomaticKeepAliveClientMixin, WidgetsBindingObserver {
   BannerAd? _bannerAd;
   bool _isAdLoaded = false;
   AdSize? _adSize;
@@ -22,6 +23,7 @@ class BannerAdWidgetState extends State<BannerAdWidget> with AutomaticKeepAliveC
   static const int _maxRetries = 3;
   static const Duration _retryDelay = Duration(seconds: 3);
   final CreditsService _creditsService = CreditsService();
+  bool _isVisible = true;
 
   @override
   bool get wantKeepAlive => true; // Banner'ı canlı tut - performans için
@@ -29,6 +31,7 @@ class BannerAdWidgetState extends State<BannerAdWidget> with AutomaticKeepAliveC
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _loadBannerAd();
     
     // İlk placeholder yüksekliğini bildir
@@ -37,6 +40,35 @@ class BannerAdWidgetState extends State<BannerAdWidget> with AutomaticKeepAliveC
         widget.onHeightChanged!(50.0); // Placeholder yüksekliği
       }
     });
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    // Uygulama lifecycle değişimlerinde banner'ı yeniden yükleme
+    // Sadece uzun süre arka plandaysa yenile
+    if (state == AppLifecycleState.resumed && !_isAdLoaded) {
+      debugPrint('📱 Uygulama foreground\'a döndü, banner kontrol ediliyor');
+      // Sadece reklam yüklü değilse yeniden yükle
+      if (_bannerAd == null && _retryCount < _maxRetries) {
+        _loadBannerAd();
+      }
+    }
+  }
+
+  @override
+  void deactivate() {
+    // Widget deactivate olduğunda banner'ı dispose etme
+    // Sadece visibility'yi false yap
+    _isVisible = false;
+    super.deactivate();
+  }
+
+  @override
+  void activate() {
+    // Widget yeniden activate olduğunda visibility'yi true yap
+    _isVisible = true;
+    super.activate();
   }
 
   Future<void> _loadBannerAd() async {
@@ -168,6 +200,7 @@ class BannerAdWidgetState extends State<BannerAdWidget> with AutomaticKeepAliveC
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _bannerAd?.dispose();
     super.dispose();
   }

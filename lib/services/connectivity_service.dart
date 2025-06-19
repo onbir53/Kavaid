@@ -95,47 +95,6 @@ class ConnectivityService {
                   ),
                   textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: 16),
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: isDarkMode 
-                        ? const Color(0xFF007AFF).withOpacity(0.1)
-                        : const Color(0xFF007AFF).withOpacity(0.08),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                      color: isDarkMode 
-                          ? const Color(0xFF007AFF).withOpacity(0.2)
-                          : const Color(0xFF007AFF).withOpacity(0.15),
-                      width: 0.5,
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.info_outline,
-                        size: 16,
-                        color: isDarkMode 
-                            ? const Color(0xFF007AFF)
-                            : const Color(0xFF007AFF).withOpacity(0.9),
-                      ),
-                      const SizedBox(width: 8),
-                      Flexible(
-                        child: Text(
-                          'İnternetsiz sürüm yakında gelecek!',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
-                            color: isDarkMode 
-                                ? const Color(0xFF007AFF)
-                                : const Color(0xFF007AFF).withOpacity(0.9),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
               ],
             ),
             actionsAlignment: MainAxisAlignment.center,

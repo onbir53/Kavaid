@@ -55,20 +55,14 @@ class KavaidApp extends StatefulWidget {
 class _KavaidAppState extends State<KavaidApp> with WidgetsBindingObserver {
   bool _isDarkMode = false;
   bool _isAppInForeground = true;
+  bool _isFirstLaunch = true;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     
-    // İlk başlatmada App Open reklamını göster (daha uzun gecikme ile - kullanıcı deneyimi için)
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      Future.delayed(const Duration(seconds: 2), () {
-        if (_isAppInForeground) {
-          AdMobService().showAppOpenAd();
-        }
-      });
-    });
+    // İlk açılışta app open ad gösterme - sadece resume'da göster
   }
 
   @override
@@ -86,6 +80,15 @@ class _KavaidAppState extends State<KavaidApp> with WidgetsBindingObserver {
         if (!_isAppInForeground) {
           _isAppInForeground = true;
           AdMobService().onAppStateChanged(true);
+          
+          // Sadece ilk açılış değilse app open ad göster
+          if (!_isFirstLaunch) {
+            debugPrint('📱 Uygulama geri döndü - App Open Ad gösteriliyor');
+            AdMobService().showAppOpenAd();
+          } else {
+            _isFirstLaunch = false;
+            debugPrint('📱 İlk açılış - App Open Ad gösterilmiyor');
+          }
         }
         break;
       case AppLifecycleState.paused:
@@ -367,7 +370,10 @@ class _MainScreenState extends State<MainScreen> {
           ), // Profil
         ],
       ),
-      bottomSheet: _showArabicKeyboard ? null : const BannerAdWidget(),
+      bottomSheet: _showArabicKeyboard ? null : const BannerAdWidget(
+        key: ValueKey('main_banner_ad'),
+        stableKey: 'main_banner',
+      ),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           boxShadow: [
