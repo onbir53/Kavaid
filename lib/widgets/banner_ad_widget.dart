@@ -48,7 +48,7 @@ class BannerAdWidgetState extends State<BannerAdWidget> with AutomaticKeepAliveC
     // Uygulama lifecycle değişimlerinde banner'ı yeniden yükleme
     // Sadece uzun süre arka plandaysa yenile
     if (state == AppLifecycleState.resumed && !_isAdLoaded) {
-      debugPrint('📱 Uygulama foreground\'a döndü, banner kontrol ediliyor');
+      debugPrint('📱 Uygulama foreground dondugu zaman banner kontrol ediliyor');
       // Sadece reklam yüklü değilse yeniden yükle
       if (_bannerAd == null && _retryCount < _maxRetries) {
         _loadBannerAd();

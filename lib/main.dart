@@ -277,6 +277,7 @@ class _MainScreenState extends State<MainScreen> {
   int _currentIndex = 0;
   VoidCallback? _refreshSavedWords;
   bool _showArabicKeyboard = false;
+  bool _isFirstOpen = true; // İlk açılış kontrolü için
   final ConnectivityService _connectivityService = ConnectivityService();
 
   @override
@@ -342,6 +343,11 @@ class _MainScreenState extends State<MainScreen> {
     if (index == 1 && _refreshSavedWords != null) {
       _refreshSavedWords!();
     }
+
+    // İlk açılış durumunu sıfırla (sekme değişiminde)
+    if (_isFirstOpen && index != 0) {
+      _isFirstOpen = false;
+    }
   }
 
   void _setArabicKeyboardState(bool show) {
@@ -360,6 +366,14 @@ class _MainScreenState extends State<MainScreen> {
             isDarkMode: widget.isDarkMode,
             onThemeToggle: widget.onThemeToggle,
             onArabicKeyboardStateChanged: _setArabicKeyboardState,
+            isFirstOpen: _isFirstOpen && _currentIndex == 0,
+            onKeyboardOpened: () {
+              if (_isFirstOpen) {
+                setState(() {
+                  _isFirstOpen = false;
+                });
+              }
+            },
           ), // Sözlük
           SavedWordsScreen(
             onRefreshCallback: (callback) => _refreshSavedWords = callback,

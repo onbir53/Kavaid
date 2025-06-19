@@ -16,12 +16,16 @@ class HomeScreen extends StatefulWidget {
   final bool isDarkMode;
   final VoidCallback onThemeToggle;
   final Function(bool)? onArabicKeyboardStateChanged;
+  final bool isFirstOpen;
+  final VoidCallback? onKeyboardOpened;
 
   const HomeScreen({
     super.key,
     required this.isDarkMode,
     required this.onThemeToggle,
     this.onArabicKeyboardStateChanged,
+    this.isFirstOpen = false,
+    this.onKeyboardOpened,
   });
 
   @override
@@ -53,15 +57,17 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
     super.initState();
     _searchController.addListener(_onSearchChanged);
     
-    // Widget build edildikten sonra otomatik olarak klavyeyi aç
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      // Kısa bir gecikme ekleyerek klavyenin açılmasını garanti altına al
-      Future.delayed(const Duration(milliseconds: 100), () {
-        if (mounted) {
-          _searchFocusNode.requestFocus();
-        }
+    // İlk açılışta klavyeyi aç
+    if (widget.isFirstOpen) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        Future.delayed(const Duration(milliseconds: 300), () {
+          if (mounted && widget.isFirstOpen) {
+            _searchFocusNode.requestFocus();
+            widget.onKeyboardOpened?.call();
+          }
+        });
       });
-    });
+    }
   }
 
   @override

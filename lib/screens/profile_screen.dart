@@ -45,7 +45,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     
     return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      backgroundColor: isDarkMode 
+          ? const Color(0xFF1C1C1E) 
+          : const Color(0xFFF2F2F7),
       appBar: AppBar(
         backgroundColor: const Color(0xFF007AFF),
         elevation: 0,
@@ -70,8 +72,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
               decoration: BoxDecoration(
                 color: isDarkMode 
                     ? const Color(0xFF1C1C1E) 
-                    : const Color(0xFFF2F2F7),
+                    : Colors.white,
                 borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: isDarkMode 
+                      ? const Color(0xFF3A3A3C)
+                      : const Color(0xFFE5E5EA),
+                  width: 1,
+                ),
               ),
               child: Row(
                 children: [
@@ -150,8 +158,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 decoration: BoxDecoration(
                   color: isDarkMode 
                       ? const Color(0xFF1C1C1E) 
-                      : const Color(0xFFF2F2F7),
+                      : Colors.white,
                   borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: isDarkMode 
+                        ? const Color(0xFF3A3A3C)
+                        : const Color(0xFFE5E5EA),
+                    width: 1,
+                  ),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -478,8 +492,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
               decoration: BoxDecoration(
                 color: isDarkMode 
                     ? const Color(0xFF1C1C1E) 
-                    : const Color(0xFFF2F2F7),
+                    : Colors.white,
                 borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: isDarkMode 
+                      ? const Color(0xFF3A3A3C)
+                      : const Color(0xFFE5E5EA),
+                  width: 1,
+                ),
               ),
               child: ListTile(
                 contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 4),
