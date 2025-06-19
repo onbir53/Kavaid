@@ -1,3 +1,6 @@
+import java.util.Properties
+import java.io.FileInputStream
+
 plugins {
     id("com.android.application")
     id("kotlin-android")
@@ -7,7 +10,7 @@ plugins {
 
 android {
     namespace = "com.onbir.kavaid"
-    compileSdk = flutter.compileSdkVersion
+    compileSdk = 35
     ndkVersion = "27.0.12077973"
 
     compileOptions {
@@ -24,17 +27,46 @@ android {
         applicationId = "com.onbir.kavaid"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = flutter.minSdkVersion
-        targetSdk = flutter.targetSdkVersion
-        versionCode = flutter.versionCode
-        versionName = flutter.versionName
+        minSdk = 21
+        targetSdk = 34
+        versionCode = 1
+        versionName = "1.0.0"
+        
+        // Multidex desteği
+        multiDexEnabled = true
+        
+        // Native kod optimizasyonu
+        ndk {
+            abiFilters.addAll(listOf("armeabi-v7a", "arm64-v8a", "x86_64"))
+        }
+    }
+
+    signingConfigs {
+        create("release") {
+            // Play Console'a yüklemek için signing bilgileri gerekli
+            // Bu bilgileri key.properties dosyasından okumalı
+            val keystorePropertiesFile = rootProject.file("key.properties")
+            if (keystorePropertiesFile.exists()) {
+                val keystoreProperties = Properties()
+                keystoreProperties.load(FileInputStream(keystorePropertiesFile))
+                
+                keyAlias = keystoreProperties.getProperty("keyAlias")
+                keyPassword = keystoreProperties.getProperty("keyPassword")
+                storeFile = file(keystoreProperties.getProperty("storeFile"))
+                storePassword = keystoreProperties.getProperty("storePassword")
+            }
+        }
     }
 
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            // Release build için signing config
+            val releaseSigningConfig = signingConfigs.findByName("release")
+            signingConfig = if (releaseSigningConfig != null && releaseSigningConfig.storeFile?.exists() == true) {
+                releaseSigningConfig
+            } else {
+                signingConfigs.getByName("debug")
+            }
             
             // Performans optimizasyonları
             isMinifyEnabled = true
@@ -44,6 +76,37 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            
+            // Daha iyi performans için optimizasyonlar
+            isDebuggable = false
+            isJniDebuggable = false
+            isRenderscriptDebuggable = false
+            
+            // APK boyutunu küçültmek için
+            resValue("string", "app_name", "Kavaid")
+        }
+        
+        debug {
+            // Debug için suffix kaldırıldı - google-services.json uyumu için
+            // applicationIdSuffix = ".debug"
+            isDebuggable = true
+            resValue("string", "app_name", "Kavaid Debug")
+        }
+    }
+    
+    // Bundle optimizasyonları
+    bundle {
+        language {
+            // Sadece kullanılan dilleri dahil et
+            enableSplit = true
+        }
+        density {
+            // Ekran yoğunluklarını optimize et
+            enableSplit = true
+        }
+        abi {
+            // ABI'leri optimize et
+            enableSplit = true
         }
     }
 }
@@ -51,3 +114,10 @@ android {
 flutter {
     source = "../.."
 }
+
+dependencies {
+    implementation("androidx.multidex:multidex:2.0.1")
+}
+
+// Google Services plugin'i apply et
+apply(plugin = "com.google.gms.google-services")

@@ -9,17 +9,27 @@
     <uses-permission android:name="com.android.vending.BILLING" />
     
     <application
-        android:label="kavaid"
+        android:label="Kavaid"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
         android:largeHeap="true"
         android:hardwareAccelerated="true"
-        android:usesCleartextTraffic="false">
+        android:usesCleartextTraffic="false"
+        android:requestLegacyExternalStorage="false"
+        android:allowBackup="false"
+        android:fullBackupContent="false"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:enableOnBackInvokedCallback="true">
         
         <!-- AdMob App ID -->
         <meta-data
             android:name="com.google.android.gms.ads.APPLICATION_ID"
             android:value="ca-app-pub-3375249639458473~9873455703"/>
+            
+        <!-- Delay app measurement -->
+        <meta-data
+            android:name="com.google.android.gms.ads.DELAY_APP_MEASUREMENT_INIT"
+            android:value="true"/>
             
         <activity
             android:name=".MainActivity"
