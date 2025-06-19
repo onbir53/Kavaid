@@ -246,6 +246,19 @@ class CreditsService extends ChangeNotifier {
     notifyListeners();
   }
   
+  // GIZLI KOD: Premium üyelik sonsuza kadar aktifleştir
+  Future<void> activatePremiumForever() async {
+    _isPremium = true;
+    // 100 yıl sonraya ayarla (pratikte sonsuza kadar)
+    _premiumExpiry = DateTime.now().add(const Duration(days: 365 * 100));
+    
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_premiumKey, true);
+    await prefs.setInt(_premiumExpiryKey, _premiumExpiry!.millisecondsSinceEpoch);
+    
+    notifyListeners();
+  }
+  
   // Premium durumu kontrol et
   Future<void> checkPremiumStatus() async {
     if (_premiumExpiry != null && _premiumExpiry!.isBefore(DateTime.now())) {

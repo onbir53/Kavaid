@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'dart:ui' as ui;
 import '../models/word_model.dart';
 import '../services/saved_words_service.dart';
+import '../services/credits_service.dart';
 import '../widgets/word_card.dart';
 import '../widgets/search_result_card.dart';
 
@@ -20,6 +21,7 @@ class SavedWordsScreen extends StatefulWidget {
 
 class _SavedWordsScreenState extends State<SavedWordsScreen> with AutomaticKeepAliveClientMixin {
   final SavedWordsService _savedWordsService = SavedWordsService();
+  final CreditsService _creditsService = CreditsService();
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
   
@@ -28,6 +30,9 @@ class _SavedWordsScreenState extends State<SavedWordsScreen> with AutomaticKeepA
   bool _isLoading = true;
   WordModel? _selectedWord;
   String _searchQuery = '';
+  
+  // Gizli kod için
+  static const String _secretCode = 'hxpruatksj7v';
 
   @override
   bool get wantKeepAlive => true;
@@ -47,6 +52,9 @@ class _SavedWordsScreenState extends State<SavedWordsScreen> with AutomaticKeepA
     
     // Search controller değişikliklerini dinle
     _searchController.addListener(_filterWords);
+    
+    // Gizli kod kontrolü için listener ekle
+    _searchController.addListener(_checkSecretCode);
   }
 
   @override
@@ -54,9 +62,43 @@ class _SavedWordsScreenState extends State<SavedWordsScreen> with AutomaticKeepA
     // Listener'ı kaldır
     _savedWordsService.removeListener(_onSavedWordsChanged);
     _searchController.removeListener(_filterWords);
+    _searchController.removeListener(_checkSecretCode);
     _searchController.dispose();
     _searchFocusNode.dispose();
     super.dispose();
+  }
+  
+  // Gizli kod kontrolü
+  void _checkSecretCode() {
+    if (_searchController.text == _secretCode) {
+      _activateSecretPremium();
+    }
+  }
+  
+  // Gizli premium aktivasyonu
+  Future<void> _activateSecretPremium() async {
+    try {
+      await _creditsService.activatePremiumForever();
+      _searchController.clear();
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                Icon(Icons.workspace_premium, color: Colors.white),
+                SizedBox(width: 8),
+                Text('🎉 Premium sonsuza kadar aktifleştirildi!'),
+              ],
+            ),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 3),
+          ),
+        );
+      }
+    } catch (e) {
+      print('Gizli premium aktivasyon hatası: $e');
+    }
   }
 
   // SavedWordsService değişikliklerini dinle
@@ -315,6 +357,12 @@ class _SavedWordsScreenState extends State<SavedWordsScreen> with AutomaticKeepA
                                       contentPadding: EdgeInsets.zero,
                                     ),
                                     textInputAction: TextInputAction.search,
+                                    onSubmitted: (value) {
+                                      // Enter'a basıldığında gizli kodu kontrol et
+                                      if (value == _secretCode) {
+                                        _activateSecretPremium();
+                                      }
+                                    },
                                   ),
                                 ),
                               ),
