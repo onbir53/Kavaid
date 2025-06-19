@@ -121,36 +121,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             ),
                           ),
                         ),
-                        // Tema değiştirme butonu
-                        Padding(
-                          padding: const EdgeInsets.only(right: 6),
-                          child: Material(
-                            color: Colors.transparent,
-                            child: InkWell(
-                              onTap: widget.onThemeToggle,
-                              borderRadius: BorderRadius.circular(14),
-                              child: Container(
-                                width: 28,
-                                height: 28,
-                                decoration: BoxDecoration(
-                                  color: isDarkMode
-                                      ? Colors.white.withOpacity(0.08)
-                                      : const Color(0xFF8E8E93).withOpacity(0.08),
-                                  shape: BoxShape.circle,
-                                ),
-                                child: Icon(
-                                  widget.isDarkMode 
-                                      ? Icons.dark_mode 
-                                      : Icons.light_mode,
-                                  color: isDarkMode
-                                      ? const Color(0xFF8E8E93).withOpacity(0.8)
-                                      : const Color(0xFF8E8E93),
-                                  size: 16,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
                       ],
                     ),
                   ),
@@ -187,11 +157,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
             padding: const EdgeInsets.fromLTRB(8, 12, 8, 90),
             sliver: SliverList(
               delegate: SliverChildListDelegate([
-                _buildHakBilgileriCard(),
+                // Profil kartı
+                _buildProfileCard(),
+                const SizedBox(height: 16),
+                
+                // Kullanım hakları
+                _buildUsageCard(),
+                
                 if (!_creditsService.isPremium) ...[
                   const SizedBox(height: 16),
                   _buildPremiumCard(),
                 ],
+                
+                const SizedBox(height: 16),
+                // Ayarlar bölümü
+                _buildSettingsSection(),
+                
                 if (kDebugMode) ...[
                   const SizedBox(height: 16),
                   _buildTestButtons(),
@@ -204,7 +185,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildHakBilgileriCard() {
+  Widget _buildProfileCard() {
     final isDarkMode = widget.isDarkMode;
     
     return Container(
@@ -236,216 +217,472 @@ class _ProfileScreenState extends State<ProfileScreen> {
             offset: const Offset(0, 4),
             spreadRadius: 0,
           ),
-          if (!isDarkMode) ...[
-            BoxShadow(
-              color: Colors.white.withOpacity(0.8),
-              blurRadius: 1,
-              offset: const Offset(0, -1),
-              spreadRadius: 0,
-            ),
-          ],
         ],
       ),
       child: Padding(
         padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: Row(
           children: [
-            // Başlık
-            Text(
-              'Kullanım Hakları',
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-                color: isDarkMode ? Colors.white : const Color(0xFF1C1C1E),
+            // Profil avatarı
+            Container(
+              width: 64,
+              height: 64,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: _creditsService.isPremium
+                      ? [const Color(0xFFFFD700), const Color(0xFFFFA500)]
+                      : [const Color(0xFF007AFF), const Color(0xFF0051D5)],
+                ),
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: (_creditsService.isPremium
+                        ? const Color(0xFFFFD700)
+                        : const Color(0xFF007AFF)).withOpacity(0.3),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Icon(
+                _creditsService.isPremium
+                    ? Icons.workspace_premium
+                    : Icons.person,
+                color: Colors.white,
+                size: 32,
               ),
             ),
-            const SizedBox(height: 8),
-            
-            if (!_creditsService.isPremium) ...[
-              // Kredi göstergesi
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.baseline,
-                textBaseline: TextBaseline.alphabetic,
+            const SizedBox(width: 16),
+            // Kullanıcı bilgileri
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    '${_creditsService.credits}',
-                    style: TextStyle(
-                      fontSize: 40,
-                      fontWeight: FontWeight.w700,
-                      color: _creditsService.credits <= 10 
-                          ? Colors.red 
-                          : const Color(0xFF007AFF),
-                      height: 1,
-                    ),
+                  Row(
+                    children: [
+                      Text(
+                        'Hoş Geldiniz',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: isDarkMode
+                              ? Colors.white
+                              : const Color(0xFF1C1C1E),
+                        ),
+                      ),
+                      if (_creditsService.isPremium) ...[
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 2),
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              colors: [
+                                Color(0xFFFFD700),
+                                Color(0xFFFFA500)
+                              ],
+                            ),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Text(
+                            'Premium',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
+                  const SizedBox(height: 4),
                   Text(
-                    ' / 50',
+                    _creditsService.isPremium
+                        ? 'Premium üyelik aktif'
+                        : 'Ücretsiz plan kullanıyorsunuz',
                     style: TextStyle(
-                      fontSize: 20,
+                      fontSize: 14,
                       color: isDarkMode
                           ? const Color(0xFF8E8E93)
                           : const Color(0xFF636366),
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    'hak',
-                    style: TextStyle(
-                      fontSize: 17,
-                      color: isDarkMode
-                          ? const Color(0xFFE5E5EA)
-                          : const Color(0xFF1C1C1E),
-                      fontWeight: FontWeight.w400,
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 16),
-              
-              // Progress bar
-              Container(
-                height: 8,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(4),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildUsageCard() {
+    final isDarkMode = widget.isDarkMode;
+    
+    return Container(
+      decoration: BoxDecoration(
+        gradient: isDarkMode 
+            ? null
+            : const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Colors.white,
+                  Color(0xFFFAFAFA),
+                ],
+              ),
+        color: isDarkMode ? const Color(0xFF1C1C1E) : null,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isDarkMode 
+              ? const Color(0xFF48484A)
+              : const Color(0xFFE5E5EA),
+          width: 0.5,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: isDarkMode 
+                ? Colors.black.withOpacity(0.3)
+                : const Color(0xFF007AFF).withOpacity(0.1),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+            spreadRadius: 0,
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          // Başlık
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              border: Border(
+                bottom: BorderSide(
                   color: isDarkMode
                       ? const Color(0xFF48484A).withOpacity(0.3)
-                      : const Color(0xFFE5E5EA),
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(4),
-                  child: LinearProgressIndicator(
-                    value: _creditsService.credits / 50,
-                    backgroundColor: Colors.transparent,
-                    valueColor: AlwaysStoppedAnimation<Color>(
-                      _creditsService.credits <= 10 
-                          ? Colors.red 
-                          : const Color(0xFF007AFF),
-                    ),
-                    minHeight: 8,
-                  ),
+                      : const Color(0xFFE5E5EA).withOpacity(0.5),
+                  width: 0.5,
                 ),
               ),
-              const SizedBox(height: 12),
-              
-              // Bilgi metni
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: isDarkMode 
-                      ? const Color(0xFF3A3A3C).withOpacity(0.3)
-                      : const Color(0xFFE5E5EA).withOpacity(0.3),
-                  borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.analytics,
+                  color: const Color(0xFF007AFF),
+                  size: 20,
                 ),
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.info_outline,
-                      size: 16,
-                      color: isDarkMode
-                          ? const Color(0xFF8E8E93)
-                          : const Color(0xFF636366),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        'Her kelime detayı görüntülediğinizde 1 hak harcanır. Günlük yenilenir.',
+                const SizedBox(width: 8),
+                Text(
+                  'Kullanım Özeti',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: isDarkMode
+                        ? Colors.white
+                        : const Color(0xFF1C1C1E),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          
+          // İçerik
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              children: [
+                if (!_creditsService.isPremium) ...[
+                  // Kredi göstergesi
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Günlük Hak',
                         style: TextStyle(
-                          fontSize: 13,
+                          fontSize: 14,
                           color: isDarkMode
                               ? const Color(0xFF8E8E93)
                               : const Color(0xFF636366),
-                          height: 1.4,
                         ),
                       ),
-                    ),
-                  ],
-                ),
-              ),
-            ] else ...[
-              // Premium durumu
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      const Color(0xFF007AFF).withOpacity(0.1),
-                      const Color(0xFF0051D5).withOpacity(0.1),
+                      Row(
+                        children: [
+                          Text(
+                            '${_creditsService.credits}',
+                            style: TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                              color: _creditsService.credits <= 10
+                                  ? Colors.red
+                                  : const Color(0xFF007AFF),
+                            ),
+                          ),
+                          Text(
+                            ' / 50',
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: isDarkMode
+                                  ? const Color(0xFF8E8E93)
+                                  : const Color(0xFF636366),
+                            ),
+                          ),
+                        ],
+                      ),
                     ],
                   ),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: const Color(0xFF007AFF).withOpacity(0.3),
-                    width: 1,
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 48,
-                      height: 48,
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [Color(0xFF007AFF), Color(0xFF0051D5)],
-                        ),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.workspace_premium,
-                        color: Colors.white,
-                        size: 24,
+                  const SizedBox(height: 12),
+                  // Progress bar
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(4),
+                    child: LinearProgressIndicator(
+                      value: _creditsService.credits / 50,
+                      minHeight: 8,
+                      backgroundColor: isDarkMode
+                          ? const Color(0xFF48484A).withOpacity(0.3)
+                          : const Color(0xFFE5E5EA),
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        _creditsService.credits <= 10
+                            ? Colors.red
+                            : const Color(0xFF007AFF),
                       ),
                     ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
+                  ),
+                ] else ...[
+                  // Premium durumu
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          const Color(0xFF007AFF).withOpacity(0.1),
+                          const Color(0xFF0051D5).withOpacity(0.1),
+                        ],
+                      ),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: const Color(0xFF007AFF).withOpacity(0.3),
+                        width: 1,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.all_inclusive,
+                          color: const Color(0xFF007AFF),
+                          size: 24,
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Icon(
-                                Icons.all_inclusive,
-                                color: const Color(0xFF007AFF),
-                                size: 20,
-                              ),
-                              const SizedBox(width: 6),
                               Text(
                                 'Sınırsız Erişim',
                                 style: TextStyle(
-                                  fontSize: 17,
+                                  fontSize: 16,
                                   fontWeight: FontWeight.w600,
                                   color: isDarkMode
                                       ? Colors.white
                                       : const Color(0xFF1C1C1E),
                                 ),
                               ),
+                              if (_creditsService.premiumExpiry != null) ...[
+                                const SizedBox(height: 2),
+                                Text(
+                                  'Bitiş: ${_creditsService.premiumExpiry!.day}/${_creditsService.premiumExpiry!.month}/${_creditsService.premiumExpiry!.year}',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: isDarkMode
+                                        ? const Color(0xFF8E8E93)
+                                        : const Color(0xFF636366),
+                                  ),
+                                ),
+                              ],
                             ],
                           ),
-                          if (_creditsService.premiumExpiry != null) ...[
-                            const SizedBox(height: 4),
-                            Text(
-                              'Bitiş: ${_creditsService.premiumExpiry!.day}/${_creditsService.premiumExpiry!.month}/${_creditsService.premiumExpiry!.year}',
-                              style: TextStyle(
-                                fontSize: 13,
-                                color: isDarkMode
-                                    ? const Color(0xFF8E8E93)
-                                    : const Color(0xFF636366),
-                              ),
-                            ),
-                          ],
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
-              ),
-            ],
-          ],
-        ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
       ),
+    );
+  }
+
+  Widget _buildSettingsSection() {
+    final isDarkMode = widget.isDarkMode;
+    
+    return Container(
+      decoration: BoxDecoration(
+        gradient: isDarkMode 
+            ? null
+            : const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Colors.white,
+                  Color(0xFFFAFAFA),
+                ],
+              ),
+        color: isDarkMode ? const Color(0xFF1C1C1E) : null,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isDarkMode 
+              ? const Color(0xFF48484A)
+              : const Color(0xFFE5E5EA),
+          width: 0.5,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: isDarkMode 
+                ? Colors.black.withOpacity(0.3)
+                : const Color(0xFF007AFF).withOpacity(0.1),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+            spreadRadius: 0,
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          // Tema ayarı
+          _buildSettingItem(
+            icon: widget.isDarkMode ? Icons.dark_mode : Icons.light_mode,
+            title: 'Tema',
+            subtitle: widget.isDarkMode ? 'Koyu' : 'Açık',
+            onTap: widget.onThemeToggle,
+            showDivider: true,
+          ),
+          
+          // Bildirimler
+          _buildSettingItem(
+            icon: Icons.notifications_outlined,
+            title: 'Bildirimler',
+            subtitle: 'Açık',
+            onTap: () {
+              // Bildirim ayarları
+            },
+            showDivider: true,
+          ),
+          
+          // Dil ayarı
+          _buildSettingItem(
+            icon: Icons.language,
+            title: 'Uygulama Dili',
+            subtitle: 'Türkçe',
+            onTap: () {
+              // Dil ayarları
+            },
+            showDivider: true,
+          ),
+          
+          // Hakkında
+          _buildSettingItem(
+            icon: Icons.info_outline,
+            title: 'Hakkında',
+            subtitle: 'Versiyon 1.0.0',
+            onTap: () {
+              // Hakkında sayfası
+            },
+            showDivider: false,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSettingItem({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+    required bool showDivider,
+  }) {
+    final isDarkMode = widget.isDarkMode;
+    
+    return Column(
+      children: [
+        Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: onTap,
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF007AFF).withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(
+                      icon,
+                      color: const Color(0xFF007AFF),
+                      size: 20,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          title,
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                            color: isDarkMode
+                                ? Colors.white
+                                : const Color(0xFF1C1C1E),
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          subtitle,
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: isDarkMode
+                                ? const Color(0xFF8E8E93)
+                                : const Color(0xFF636366),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Icon(
+                    Icons.chevron_right,
+                    color: isDarkMode
+                        ? const Color(0xFF48484A)
+                        : const Color(0xFFE5E5EA),
+                    size: 20,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+        if (showDivider)
+          Divider(
+            height: 0.5,
+            thickness: 0.5,
+            indent: 64,
+            color: isDarkMode
+                ? const Color(0xFF48484A).withOpacity(0.3)
+                : const Color(0xFFE5E5EA).withOpacity(0.5),
+          ),
+      ],
     );
   }
 
@@ -963,5 +1200,4 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
     );
   }
-} 
 } 

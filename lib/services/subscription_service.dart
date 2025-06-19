@@ -10,7 +10,6 @@ import 'credits_service.dart';
 
 class SubscriptionService extends ChangeNotifier {
   static const String _monthlySubscriptionId = 'kavaid_monthly_subscription';
-  static const String _testSubscriptionId = 'android.test.purchased'; // Test için
   
   final InAppPurchase _inAppPurchase = InAppPurchase.instance;
   final CreditsService _creditsService = CreditsService();
@@ -73,17 +72,9 @@ class SubscriptionService extends ChangeNotifier {
   Future<void> loadProducts() async {
     debugPrint('📦 Ürünler yükleniyor...');
     
-    final ProductDetailsResponse productDetailResponse;
-    
-    if (kDebugMode) {
-      // Debug modda test ürünü kullan
-      Set<String> kIds = <String>{_testSubscriptionId};
-      productDetailResponse = await _inAppPurchase.queryProductDetails(kIds);
-    } else {
-      // Production'da gerçek ürün ID'si
-      Set<String> kIds = <String>{_monthlySubscriptionId};
-      productDetailResponse = await _inAppPurchase.queryProductDetails(kIds);
-    }
+    // Gerçek ürün ID'sini kullan
+    Set<String> kIds = <String>{_monthlySubscriptionId};
+    final ProductDetailsResponse productDetailResponse = await _inAppPurchase.queryProductDetails(kIds);
     
     if (productDetailResponse.error != null) {
       _queryProductError = productDetailResponse.error!.message;
@@ -131,13 +122,8 @@ class SubscriptionService extends ChangeNotifier {
     notifyListeners();
     
     try {
-      if (productDetails.id == _testSubscriptionId) {
-        // Test satın alması
-        await _inAppPurchase.buyConsumable(purchaseParam: purchaseParam);
-      } else {
-        // Gerçek abonelik satın alması
-        await _inAppPurchase.buyNonConsumable(purchaseParam: purchaseParam);
-      }
+      // Gerçek abonelik satın alması
+      await _inAppPurchase.buyNonConsumable(purchaseParam: purchaseParam);
     } catch (e) {
       debugPrint('❌ Satın alma hatası: $e');
       _purchasePending = false;
@@ -226,12 +212,7 @@ class SubscriptionService extends ChangeNotifier {
   
   // Aylık fiyat bilgisi
   String _getMonthlyPrice() {
-    if (_products.isEmpty) return '₺60.00';
-    
-    // Test modunda sabit fiyat göster
-    if (kDebugMode || _products[0].id == _testSubscriptionId) {
-      return '₺60.00/ay';
-    }
+    if (_products.isEmpty) return '₺60.00/ay';
     
     return '${_products[0].price}/ay';
   }

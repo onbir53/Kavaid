@@ -116,6 +116,18 @@ class CreditsService extends ChangeNotifier {
     notifyListeners();
   }
   
+  // Premium üyelik aktifleştir (1 ay) - Aylık abonelik için
+  Future<void> activatePremiumMonthly() async {
+    _isPremium = true;
+    _premiumExpiry = DateTime.now().add(const Duration(days: 30)); // 1 ay
+    
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_premiumKey, true);
+    await prefs.setInt(_premiumExpiryKey, _premiumExpiry!.millisecondsSinceEpoch);
+    
+    notifyListeners();
+  }
+  
   // Premium durumu kontrol et
   Future<void> checkPremiumStatus() async {
     if (_premiumExpiry != null && _premiumExpiry!.isBefore(DateTime.now())) {

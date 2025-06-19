@@ -5,6 +5,9 @@
     <!-- Ağ durumu kontrolü için -->
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
     
+    <!-- In-App Purchase için gerekli permission -->
+    <uses-permission android:name="com.android.vending.BILLING" />
+    
     <application
         android:label="kavaid"
         android:name="${applicationName}"
