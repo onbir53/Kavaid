@@ -51,12 +51,12 @@ class DefaultFirebaseOptions {
   );
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'your-android-api-key',
-    appId: '1:123456789:android:abcdef123456',
-    messagingSenderId: '123456789',
+    apiKey: 'AIzaSyDkGrJMttVYGiCDdHMzCUQBw6O9ROAIwKE',
+    appId: '1:732976641832:android:eb3cf0eeef274ac6ad821d',
+    messagingSenderId: '732976641832',
     projectId: 'kavaid-2f778',
     databaseURL: 'https://kavaid-2f778-default-rtdb.europe-west1.firebasedatabase.app',
-    storageBucket: 'kavaid-2f778.appspot.com',
+    storageBucket: 'kavaid-2f778.firebasestorage.app',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(

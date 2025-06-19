@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -16,10 +17,22 @@ import 'services/subscription_service.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
-  // Firebase'i başlat (zorunlu)
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  try {
+    // Firebase'i başlat (zorunlu) - 10 saniye timeout ile
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    ).timeout(
+      const Duration(seconds: 10),
+      onTimeout: () {
+        debugPrint('⏱️ Firebase başlatma zaman aşımı!');
+        throw TimeoutException('Firebase başlatma zaman aşımı');
+      },
+    );
+    debugPrint('✅ Firebase başarıyla başlatıldı');
+  } catch (e) {
+    debugPrint('❌ Firebase başlatma hatası: $e');
+    // Firebase olmadan devam et - offline modda çalışabilir
+  }
   
   // Diğer servisleri arka planda başlat
   _initializeServicesInBackground();
@@ -92,11 +105,20 @@ class _KavaidAppState extends State<KavaidApp> with WidgetsBindingObserver {
 
   // Tema tercihi yükle
   Future<void> _loadThemePreference() async {
-    final prefs = await SharedPreferences.getInstance();
-    setState(() {
-      _isDarkMode = prefs.getBool(_themeKey) ?? false;
-      _themeLoaded = true;
-    });
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      setState(() {
+        _isDarkMode = prefs.getBool(_themeKey) ?? false;
+        _themeLoaded = true;
+      });
+    } catch (e) {
+      debugPrint('❌ Tema yükleme hatası: $e');
+      // Hata durumunda varsayılan değerle devam et
+      setState(() {
+        _isDarkMode = false;
+        _themeLoaded = true;
+      });
+    }
   }
 
   // Tema tercihi kaydet

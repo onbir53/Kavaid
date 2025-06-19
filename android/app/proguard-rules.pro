@@ -7,6 +7,19 @@
 -keep class io.flutter.view.**  { *; }
 -keep class io.flutter.**  { *; }
 -keep class io.flutter.plugins.**  { *; }
+-keep class io.flutter.embedding.** { *; }
+
+# Flutter WebView
+-keep class io.flutter.plugins.webviewflutter.** { *; }
+
+# In App Purchase
+-keep class io.flutter.plugins.inapppurchase.** { *; }
+
+# Path Provider
+-keep class io.flutter.plugins.pathprovider.** { *; }
+
+# Shared Preferences
+-keep class io.flutter.plugins.sharedpreferences.** { *; }
 
 # Firebase
 -keep class com.google.firebase.** { *; }
@@ -48,6 +61,11 @@
 # SQLite
 -keep class org.sqlite.** { *; }
 -keep class org.sqlite.database.** { *; }
+-keep class io.flutter.plugin.common.** { *; }
+
+# Sqflite
+-keep class com.tekartik.** { *; }
+-keep class io.flutter.plugins.sqflite.** { *; }
 
 # Connectivity Plus
 -keep class com.baseflow.geolocator.** { *; }
