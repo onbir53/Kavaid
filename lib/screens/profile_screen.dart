@@ -262,7 +262,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           Text(
                             _creditsService.hasInitialCredits
                                 ? '• İlk açılışta 50 ücretsiz hak kazanırsınız\n• Her kelime detayı 1 hak harcar\n• 50 ücretsiz hak bitince günlük yenilenen 5 hakkınız olur\n• Her gün saat 00:00\'da yenilenir'
-                                : '• Her gün saat 00:00\'da 5 yeni hak kazanırsınız\n• Günlük haklar birikemez\n• Premium ile sınırsız erişim\n• Telefon açıp kapama, silip yükleme sistemi bozmaz',
+                                : '• Her gün saat 00:00\'da 5 hakkınız yenilenir',
                             style: TextStyle(
                               fontSize: 11,
                               height: 1.4,

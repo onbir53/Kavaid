@@ -4,7 +4,6 @@ import '../models/word_model.dart';
 import '../services/firebase_service.dart';
 import '../services/credits_service.dart';
 import 'suggestion_card.dart';
-import 'word_card.dart';
 
 class RecentWordsSection extends StatefulWidget {
   const RecentWordsSection({super.key});
@@ -338,7 +337,7 @@ class _RecentWordsSectionState extends State<RecentWordsSection> {
     final canOpen = await _creditsService.canOpenWord(word.kelime);
     
     if (!canOpen) {
-      // Hak yetersiz - Profil sayfasına yönlendir
+      // Hak yetersiz - Dialog göster
       _showNoCreditsDialog();
       return;
     }
@@ -351,47 +350,62 @@ class _RecentWordsSectionState extends State<RecentWordsSection> {
       return;
     }
     
-    // Kelime detaylarını göster
-    showModalBottomSheet(
+    // Kelime detaylarını normal dialog ile göster
+    showDialog(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        decoration: BoxDecoration(
-          color: Theme.of(context).scaffoldBackgroundColor,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-        ),
-        child: DraggableScrollableSheet(
-          initialChildSize: 0.7,
-          minChildSize: 0.5,
-          maxChildSize: 0.95,
-          expand: false,
-          builder: (context, scrollController) => SingleChildScrollView(
-            controller: scrollController,
-            child: Column(
-              children: [
-                // Handle bar
-                Container(
-                  margin: const EdgeInsets.only(top: 12),
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: Colors.grey[300],
-                    borderRadius: BorderRadius.circular(2),
-                  ),
+      builder: (context) => AlertDialog(
+        title: Text(word.kelime),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (word.harekeliKelime != null && word.harekeliKelime!.isNotEmpty) ...[
+                Text(
+                  'Harekeli Yazılış:',
+                  style: TextStyle(fontWeight: FontWeight.bold),
                 ),
-                // WordCard widget'ını kullan
-                Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: WordCard(
-                    word: word,
-                    showSaveButton: true,
+                const SizedBox(height: 4),
+                Text(
+                  word.harekeliKelime!,
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontFamily: 'NotoSansArabic',
                   ),
+                  textDirection: TextDirection.rtl,
+                ),
+                const SizedBox(height: 12),
+              ],
+              if (word.anlam != null && word.anlam!.isNotEmpty) ...[
+                Text(
+                  'Anlam:',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 4),
+                Text(word.anlam!),
+                const SizedBox(height: 12),
+              ],
+              if (word.koku != null && word.koku!.isNotEmpty) ...[
+                Text(
+                  'Kök:',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  word.koku!,
+                  style: TextStyle(fontSize: 16),
+                  textDirection: TextDirection.rtl,
                 ),
               ],
-            ),
+            ],
           ),
         ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Kapat'),
+          ),
+        ],
       ),
     );
   }
