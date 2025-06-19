@@ -133,7 +133,7 @@ class _WordCardState extends State<WordCard> {
                 end: Alignment.bottomRight,
                 colors: [
                   Color(0xFFFFFFFF),
-                  Color(0xFFF8F9FA),
+                  Color(0xFFFBFCFF), // Hafif mavimsi gradient
                 ],
               ),
         color: isDarkMode ? const Color(0xFF1C1C1E) : null,
@@ -141,29 +141,29 @@ class _WordCardState extends State<WordCard> {
         border: Border.all(
           color: isDarkMode 
               ? const Color(0xFF48484A).withOpacity(0.5)
-              : const Color(0xFFD0D0D0),
+              : const Color(0xFFD8E4F5), // Daha açık mavi kenar
           width: 0.8,
         ),
         boxShadow: [
           BoxShadow(
             color: isDarkMode 
                 ? Colors.black.withOpacity(0.3)
-                : const Color(0xFF007AFF).withOpacity(0.08),
-            blurRadius: isDarkMode ? 8 : 12,
-            offset: Offset(0, isDarkMode ? 2 : 4),
-            spreadRadius: isDarkMode ? 0 : 0.5,
+                : const Color(0xFF007AFF).withOpacity(0.1), // Daha belirgin mavi gölge
+            blurRadius: isDarkMode ? 8 : 16,
+            offset: Offset(0, isDarkMode ? 2 : 6),
+            spreadRadius: isDarkMode ? 0 : 1,
           ),
           if (!isDarkMode) ...[
             BoxShadow(
-              color: Colors.white.withOpacity(0.9),
+              color: Colors.white.withOpacity(0.95),
               blurRadius: 1,
               offset: const Offset(0, -1),
               spreadRadius: 0,
             ),
             BoxShadow(
-              color: Colors.black.withOpacity(0.02),
-              blurRadius: 6,
-              offset: const Offset(0, 2),
+              color: const Color(0xFF007AFF).withOpacity(0.03), // Ekstra mavi gölge
+              blurRadius: 8,
+              offset: const Offset(0, 3),
               spreadRadius: 0,
             ),
           ],
@@ -482,8 +482,8 @@ class _WordCardState extends State<WordCard> {
             ? null
             : const LinearGradient(
                 colors: [
-                  Color(0xFFF8F9FA),
-                  Color(0xFFF2F2F7),
+                  Color(0xFFE8F0FF), // Daha mavi tonlu arka plan
+                  Color(0xFFE3EDFC), // Daha mavi tonlu arka plan
                 ],
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
@@ -493,21 +493,21 @@ class _WordCardState extends State<WordCard> {
         border: Border.all(
           color: isDarkMode 
               ? const Color(0xFF48484A).withOpacity(0.5)
-              : const Color(0xFFD0D0D0),
+              : const Color(0xFFB8D4F5), // Daha mavi tonlu kenar
           width: 0.8,
         ),
         boxShadow: [
           BoxShadow(
             color: isDarkMode 
                 ? Colors.black.withOpacity(0.2)
-                : Colors.black.withOpacity(0.04),
-            blurRadius: isDarkMode ? 4 : 6,
-            offset: Offset(0, isDarkMode ? 2 : 2),
-            spreadRadius: isDarkMode ? 0 : 0.3,
+                : const Color(0xFF007AFF).withOpacity(0.06), // Mavi gölge
+            blurRadius: isDarkMode ? 4 : 8,
+            offset: Offset(0, isDarkMode ? 2 : 3),
+            spreadRadius: isDarkMode ? 0 : 0.5,
           ),
           if (!isDarkMode) ...[
             BoxShadow(
-              color: Colors.white.withOpacity(0.8),
+              color: Colors.white.withOpacity(0.9),
               blurRadius: 1,
               offset: const Offset(0, -1),
               spreadRadius: 0,
@@ -521,11 +521,11 @@ class _WordCardState extends State<WordCard> {
           Text(
             title,
             style: TextStyle(
-              fontSize: 12,
+              fontSize: 13, // 12'den 13'e büyüttüm
               fontWeight: FontWeight.w600,
               color: isDarkMode 
                   ? const Color(0xFF007AFF)
-                  : const Color(0xFF6D6D70),
+                  : const Color(0xFF4A7CC7), // Daha belirgin mavi
               letterSpacing: 0.5,
             ),
           ),
@@ -533,7 +533,7 @@ class _WordCardState extends State<WordCard> {
           Text(
             content,
             style: GoogleFonts.scheherazadeNew(
-              fontSize: 20,
+              fontSize: 22, // 20'den 22'ye büyüttüm
               fontWeight: FontWeight.w700,
               color: isDarkMode 
                   ? const Color(0xFFE5E5EA)
@@ -571,27 +571,27 @@ class _FeatureChips extends StatelessWidget {
           .where((entry) => entry.key != 'cogulForm')
           .map((entry) {
         return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
           decoration: BoxDecoration(
             color: isDarkMode 
                 ? const Color(0xFF3A3A3C).withOpacity(0.8)
-                : const Color(0xFFE5E5EA),
+                : const Color(0xFFE8F0FF), // Daha mavi tonlu chip arka planı
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
               color: isDarkMode 
                   ? const Color(0xFF48484A)
-                  : const Color(0xFFD0D0D0),
+                  : const Color(0xFFB8D4F5), // Daha mavi tonlu kenar
               width: 0.7,
             ),
             boxShadow: [
               if (!isDarkMode) ...[
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.03),
-                  blurRadius: 3,
-                  offset: const Offset(0, 1),
+                  color: const Color(0xFF007AFF).withOpacity(0.05), // Mavi gölge
+                  blurRadius: 4,
+                  offset: const Offset(0, 2),
                 ),
                 BoxShadow(
-                  color: Colors.white.withOpacity(0.8),
+                  color: Colors.white.withOpacity(0.9),
                   blurRadius: 1,
                   offset: const Offset(0, -0.5),
                 ),
@@ -601,12 +601,12 @@ class _FeatureChips extends StatelessWidget {
           child: Text(
             '${entry.key}: ${entry.value}',
             style: TextStyle(
-              fontSize: 13,
+              fontSize: 14, // 13'ten 14'e büyüttüm
               color: isDarkMode 
                   ? const Color(0xFFE5E5EA)
-                  : const Color(0xFF1C1C1E),
-              fontWeight: FontWeight.w500,
-              letterSpacing: 0.2,
+                  : const Color(0xFF2C5AA0), // Daha belirgin mavi metin
+              fontWeight: FontWeight.w600, // w500'den w600'e
+              letterSpacing: 0.3,
             ),
           ),
         );

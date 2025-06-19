@@ -149,7 +149,7 @@ class _KavaidAppState extends State<KavaidApp> with WidgetsBindingObserver {
       return const MaterialApp(
         debugShowCheckedModeBanner: false,
         home: Scaffold(
-          backgroundColor: Color(0xFFF2F2F7),
+          backgroundColor: Color(0xFFF5F7FB), // Yeni mavimsi arka plan
           body: SizedBox.shrink(), // Boş widget, daha hızlı render
         ),
       );
@@ -173,15 +173,15 @@ class _KavaidAppState extends State<KavaidApp> with WidgetsBindingObserver {
       colorScheme: ColorScheme.fromSeed(
         seedColor: const Color(0xFF007AFF),
         brightness: Brightness.light,
-        surface: const Color(0xFFF2F2F7),
+        surface: const Color(0xFFF5F7FB), // Daha mavimsi arka plan
         onSurface: const Color(0xFF2C2C2E),
       ),
       useMaterial3: true,
-      scaffoldBackgroundColor: const Color(0xFFF2F2F7),
+      scaffoldBackgroundColor: const Color(0xFFF5F7FB), // Daha mavimsi arka plan
       appBarTheme: const AppBarTheme(
         centerTitle: false,
         elevation: 0,
-        backgroundColor: Color(0xFFF2F2F7),
+        backgroundColor: Color(0xFFF5F7FB), // Daha mavimsi arka plan
         foregroundColor: Color(0xFF2C2C2E),
         titleTextStyle: TextStyle(
           color: Color(0xFF2C2C2E),
@@ -192,7 +192,7 @@ class _KavaidAppState extends State<KavaidApp> with WidgetsBindingObserver {
       ),
       cardTheme: CardThemeData(
         elevation: 0,
-        color: const Color(0xFFFFFFFF).withOpacity(0.9),
+        color: const Color(0xFFFFFFFF), // Tam beyaz kartlar daha belirgin olması için
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
         ),
