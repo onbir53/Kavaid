@@ -54,13 +54,14 @@ class _SearchResultCardState extends State<SearchResultCard> with TickerProvider
     
     // Animasyon controller'ı başlat - daha hızlı ve smooth
     _animationController = AnimationController(
-      duration: const Duration(milliseconds: 250),
+      duration: const Duration(milliseconds: 200),
       vsync: this,
     );
     
     _expandAnimation = CurvedAnimation(
       parent: _animationController,
-      curve: Curves.fastOutSlowIn,
+      curve: Curves.easeInOut,
+      reverseCurve: Curves.easeInOut,
     );
     
     _fadeAnimation = Tween<double>(
@@ -68,7 +69,8 @@ class _SearchResultCardState extends State<SearchResultCard> with TickerProvider
       end: 1.0,
     ).animate(CurvedAnimation(
       parent: _animationController,
-      curve: const Interval(0.3, 1.0, curve: Curves.easeIn),
+      curve: const Interval(0.0, 0.8, curve: Curves.easeOut),
+      reverseCurve: Curves.easeIn,
     ));
     
     // Async kontrolü de yap
@@ -115,6 +117,9 @@ class _SearchResultCardState extends State<SearchResultCard> with TickerProvider
 
   void _toggleExpanded() async {
     if (!mounted) return;
+    
+    // Klavyeyi kapat
+    FocusScope.of(context).unfocus();
     
     if (!_isExpanded) {
       // Hak kontrolü yap
@@ -166,10 +171,13 @@ class _SearchResultCardState extends State<SearchResultCard> with TickerProvider
     if (!mounted) return;
     
     if (_isExpanded) {
-      setState(() {
-        _isExpanded = false;
+      _animationController.reverse().then((_) {
+        if (mounted) {
+          setState(() {
+            _isExpanded = false;
+          });
+        }
       });
-      _animationController.reverse();
     }
   }
 
@@ -208,7 +216,7 @@ class _SearchResultCardState extends State<SearchResultCard> with TickerProvider
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     
     return Padding(
-      padding: const EdgeInsets.only(bottom: 6),
+      padding: const EdgeInsets.only(bottom: 3),
       child: Container(
         key: ValueKey('search_card_${widget.word.kelime}'),
         decoration: BoxDecoration(
@@ -363,7 +371,8 @@ class _SearchResultCardState extends State<SearchResultCard> with TickerProvider
                           padding: const EdgeInsets.all(4),
                           child: AnimatedRotation(
                             turns: _isExpanded ? 0.5 : 0,
-                            duration: const Duration(milliseconds: 250),
+                            duration: const Duration(milliseconds: 200),
+                            curve: Curves.easeInOut,
                             child: Icon(
                               Icons.expand_more,
                               color: isDarkMode 
@@ -442,7 +451,7 @@ class _SearchResultCardState extends State<SearchResultCard> with TickerProvider
         child: Text(
           widget.word.dilbilgiselOzellikler!['tur'].toString(),
           style: TextStyle(
-            fontSize: 8,
+            fontSize: 9,
             fontWeight: FontWeight.w600,
             color: isDarkMode 
                 ? const Color(0xFF007AFF)
