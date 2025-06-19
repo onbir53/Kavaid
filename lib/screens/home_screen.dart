@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import '../models/word_model.dart';
 import '../services/gemini_service.dart';
 import '../services/firebase_service.dart';
+import '../services/credits_service.dart';
 import '../widgets/word_card.dart';
 import '../widgets/search_result_card.dart';
 import '../widgets/arabic_keyboard.dart';
@@ -32,6 +33,7 @@ class _HomeScreenState extends State<HomeScreen> {
   final FocusNode _searchFocusNode = FocusNode();
   final GeminiService _geminiService = GeminiService();
   final FirebaseService _firebaseService = FirebaseService();
+  final CreditsService _creditsService = CreditsService();
   
   List<WordModel> _searchResults = [];
   WordModel? _selectedWord;
@@ -116,6 +118,23 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _selectWord(WordModel word) async {
+    // Önce hak kontrolü yap
+    final canOpen = await _creditsService.canOpenWord(word.kelime);
+    
+    if (!canOpen) {
+      // Hak yetersiz - Dialog göster
+      _showNoCreditsDialog();
+      return;
+    }
+    
+    // Hak düşür
+    final success = await _creditsService.consumeCredit(word.kelime);
+    
+    if (!success) {
+      _showNoCreditsDialog();
+      return;
+    }
+    
     setState(() {
       _selectedWord = word;
       _searchResults = [];
@@ -125,6 +144,121 @@ class _HomeScreenState extends State<HomeScreen> {
       _searchController.text = word.kelime;
     });
     _searchFocusNode.unfocus();
+  }
+
+  void _showNoCreditsDialog() {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        backgroundColor: isDarkMode ? const Color(0xFF1C1C1E) : Colors.white,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.red.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(
+                Icons.credit_card_off,
+                color: Colors.red,
+                size: 24,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Text(
+              'Hakkınız Bitti',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: isDarkMode ? Colors.white : Colors.black,
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              _creditsService.hasInitialCredits
+                  ? 'Hoşgeldin haklarınız bitmiştir. Günlük 5 hak ile devam edebilir veya Premium\'a yükselterek sınırsız erişim kazanabilirsiniz.'
+                  : 'Günlük kelime detayı görüntüleme hakkınız bitmiştir. Yarın saat 00:00\'da yeni haklarınız yüklenecektir.',
+              style: TextStyle(
+                fontSize: 14,
+                color: isDarkMode 
+                    ? Colors.white.withOpacity(0.8)
+                    : Colors.black.withOpacity(0.8),
+                height: 1.4,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFF007AFF).withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.info_outline,
+                    color: Color(0xFF007AFF),
+                    size: 20,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Premium üyelik ile sınırsız kelime detaylarına ve reklamsız deneyime erişebilirsiniz.',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: const Color(0xFF007AFF),
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(
+              'Kapat',
+              style: TextStyle(
+                color: isDarkMode 
+                    ? Colors.white.withOpacity(0.6)
+                    : Colors.black.withOpacity(0.6),
+              ),
+            ),
+          ),
+          FilledButton(
+            onPressed: () {
+              Navigator.pop(context);
+              // Main screen'deki tab controller'a erişim gerekiyor
+              // Parent widget'tan callback veya state management ile çözülmeli
+              // Şimdilik basit bir çözüm
+              final tabController = DefaultTabController.of(context);
+              if (tabController != null) {
+                tabController.animateTo(2); // Profil sekmesi
+              }
+            },
+            style: FilledButton.styleFrom(
+              backgroundColor: const Color(0xFF007AFF),
+            ),
+            child: const Text('Premium\'a Bak'),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _searchWithAI() async {

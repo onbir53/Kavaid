@@ -124,4 +124,103 @@ Sorunlar için: support@kavaid.com
 ## 🔗 Faydalı Linkler
 - [Google Play Billing Documentation](https://developer.android.com/google/play/billing)
 - [StoreKit Documentation](https://developer.apple.com/documentation/storekit)
-- [Flutter In-App Purchase](https://pub.dev/packages/in_app_purchase) 
+- [Flutter In-App Purchase](https://pub.dev/packages/in_app_purchase)
+
+# Abonelik Sistemi Kurulum Kılavuzu
+
+## 1. Google Play Console Ayarları
+
+### A. Google Play Console'da Ürün Oluşturma
+1. [Google Play Console](https://play.google.com/console) hesabınıza giriş yapın
+2. Uygulamanızı seçin
+3. Sol menüden **Monetization** > **Products** > **Subscriptions** seçin
+4. **Create subscription** butonuna tıklayın
+5. Aşağıdaki bilgileri girin:
+   - **Product ID**: `kavaid_monthly_subscription`
+   - **Name**: Kavaid Premium Aylık
+   - **Description**: Sınırsız kelime erişimi ve reklamsız deneyim
+   - **Base plans and offers**:
+     - **Price**: 60 TRY (Türkiye)
+     - **Billing period**: 1 ay
+     - **Grace period**: 3 gün
+   
+### B. Test Kullanıcıları Ekleme
+1. **Setup** > **License testing** bölümüne gidin
+2. Test e-posta adreslerini ekleyin
+3. **License response** olarak **RESPOND_NORMALLY** seçin
+
+## 2. iOS App Store Connect Ayarları
+
+### A. App Store Connect'te Ürün Oluşturma
+1. [App Store Connect](https://appstoreconnect.apple.com) hesabınıza giriş yapın
+2. Uygulamanızı seçin
+3. **Features** > **In-App Purchases** seçin
+4. **+** butonuna tıklayın ve **Auto-Renewable Subscription** seçin
+5. Aşağıdaki bilgileri girin:
+   - **Reference Name**: Kavaid Premium Monthly
+   - **Product ID**: `kavaid_monthly_subscription`
+   - **Subscription Group**: Kavaid Premium
+   - **Duration**: 1 Month
+   - **Price**: Tier 8 (60 TRY)
+
+### B. Subscription Group Oluşturma
+1. **Subscription Group Reference Name**: Kavaid Premium
+2. **Subscription Group Display Name**: Premium Üyelik
+
+## 3. Android Uygulama Ayarları
+
+### A. AndroidManifest.xml Güncellemesi
+`android/app/src/main/AndroidManifest.xml` dosyasına billing permission ekleyin:
+```xml
+<uses-permission android:name="com.android.vending.BILLING" />
+```
+
+### B. build.gradle Güncellemesi
+Zaten yapılandırılmış durumda.
+
+## 4. iOS Uygulama Ayarları
+
+### A. Info.plist Güncellemesi
+Zaten yapılandırılmış durumda.
+
+### B. Capabilities
+Xcode'da projenizi açın ve **Signing & Capabilities** bölümünde **In-App Purchase** capability'sini ekleyin.
+
+## 5. Test Etme
+
+### Android'de Test
+1. Uygulamayı Google Play Console'a yükleyin (Internal testing track)
+2. Test kullanıcılarını davet edin
+3. Test cihazında Google Play Store'dan uygulamayı indirin
+4. Abonelik satın alma işlemini test edin
+
+### iOS'te Test
+1. TestFlight'a build yükleyin
+2. Test kullanıcılarını davet edin
+3. Sandbox hesabı ile test edin
+
+## 6. Revenue Cat Entegrasyonu (Opsiyonel)
+
+Daha kolay abonelik yönetimi için Revenue Cat kullanabilirsiniz:
+1. [Revenue Cat](https://www.revenuecat.com) hesabı oluşturun
+2. `purchases_flutter` paketini ekleyin
+3. API anahtarlarınızı yapılandırın
+
+## 7. Önemli Notlar
+
+- **Test ortamında**: Test satın almaları gerçek para kullanmaz
+- **Production'a geçmeden önce**: Tüm ürün bilgilerini ve fiyatları kontrol edin
+- **Vergi**: Fiyatlar KDV dahil olmalıdır
+- **Faturalandırma**: Google/Apple otomatik olarak faturalandırma işlemlerini yönetir
+
+## 8. Sorun Giderme
+
+### "Ürün bulunamadı" hatası
+- Product ID'nin doğru yazıldığından emin olun
+- Google Play Console'da ürünün aktif olduğundan emin olun
+- Uygulamanın Play Store'a yüklenmiş olduğundan emin olun
+
+### Satın alma başarısız
+- Test kullanıcısı olarak eklendiğinizden emin olun
+- İnternet bağlantınızı kontrol edin
+- Google Play Store/App Store'un güncel olduğundan emin olun 

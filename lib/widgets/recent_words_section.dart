@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import '../models/word_model.dart';
 import '../services/firebase_service.dart';
+import '../services/credits_service.dart';
 import 'suggestion_card.dart';
+import 'word_card.dart';
 
 class RecentWordsSection extends StatefulWidget {
   const RecentWordsSection({super.key});
@@ -13,6 +15,7 @@ class RecentWordsSection extends StatefulWidget {
 
 class _RecentWordsSectionState extends State<RecentWordsSection> {
   final FirebaseService _firebaseService = FirebaseService();
+  final CreditsService _creditsService = CreditsService();
   List<WordModel> _recentWords = [];
   int _totalWordCount = 0;
   bool _isLoading = true;
@@ -330,28 +333,46 @@ class _RecentWordsSectionState extends State<RecentWordsSection> {
     );
   }
 
-  void _showWordDetails(WordModel word) {
+  void _showWordDetails(WordModel word) async {
+    // Önce hak kontrolü yap
+    final canOpen = await _creditsService.canOpenWord(word.kelime);
+    
+    if (!canOpen) {
+      // Hak yetersiz - Profil sayfasına yönlendir
+      _showNoCreditsDialog();
+      return;
+    }
+    
+    // Hak düşür
+    final success = await _creditsService.consumeCredit(word.kelime);
+    
+    if (!success) {
+      _showNoCreditsDialog();
+      return;
+    }
+    
     // Kelime detaylarını göster
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) => DraggableScrollableSheet(
-        initialChildSize: 0.7,
-        minChildSize: 0.5,
-        maxChildSize: 0.95,
-        expand: false,
-        builder: (context, scrollController) => SingleChildScrollView(
-          controller: scrollController,
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Handle bar
-              Center(
-                child: Container(
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        decoration: BoxDecoration(
+          color: Theme.of(context).scaffoldBackgroundColor,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: DraggableScrollableSheet(
+          initialChildSize: 0.7,
+          minChildSize: 0.5,
+          maxChildSize: 0.95,
+          expand: false,
+          builder: (context, scrollController) => SingleChildScrollView(
+            controller: scrollController,
+            child: Column(
+              children: [
+                // Handle bar
+                Container(
+                  margin: const EdgeInsets.only(top: 12),
                   width: 40,
                   height: 4,
                   decoration: BoxDecoration(
@@ -359,63 +380,130 @@ class _RecentWordsSectionState extends State<RecentWordsSection> {
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
-              ),
-              const SizedBox(height: 20),
-              
-              // Kelime başlığı
-              Text(
-                word.kelime,
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              
-              if (word.harekeliKelime != null) ...[
-                const SizedBox(height: 8),
-                Text(
-                  word.harekeliKelime!,
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontFamily: 'NotoSansArabic',
-                    color: Theme.of(context).colorScheme.secondary,
-                  ),
-                  textDirection: TextDirection.rtl,
-                ),
-              ],
-              
-              const SizedBox(height: 16),
-              
-              // Anlam
-              if (word.anlam != null) ...[
-                Text(
-                  'Anlam:',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
+                // WordCard widget'ını kullan
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: WordCard(
+                    word: word,
+                    showSaveButton: true,
                   ),
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  word.anlam!,
-                  style: Theme.of(context).textTheme.bodyLarge,
-                ),
-                const SizedBox(height: 16),
               ],
-              
-              // Arama butonu
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton.icon(
-                  onPressed: () {
-                    Navigator.pop(context);
-                    // Ana ekranda arama yap
-                    // Bu kısım callback pattern ile çözülebilir
-                  },
-                  icon: const Icon(Icons.search),
-                  label: const Text('Detaylı Ara'),
-                ),
-              ),
-            ],
+            ),
           ),
         ),
+      ),
+    );
+  }
+  
+  void _showNoCreditsDialog() {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        backgroundColor: isDarkMode ? const Color(0xFF1C1C1E) : Colors.white,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.red.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(
+                Icons.credit_card_off,
+                color: Colors.red,
+                size: 24,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Text(
+              'Hakkınız Bitti',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: isDarkMode ? Colors.white : Colors.black,
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              _creditsService.hasInitialCredits
+                  ? 'Hoşgeldin haklarınız bitmiştir. Günlük 5 hak ile devam edebilir veya Premium\'a yükselterek sınırsız erişim kazanabilirsiniz.'
+                  : 'Günlük kelime detayı görüntüleme hakkınız bitmiştir. Yarın saat 00:00\'da yeni haklarınız yüklenecektir.',
+              style: TextStyle(
+                fontSize: 14,
+                color: isDarkMode 
+                    ? Colors.white.withOpacity(0.8)
+                    : Colors.black.withOpacity(0.8),
+                height: 1.4,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFF007AFF).withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.info_outline,
+                    color: Color(0xFF007AFF),
+                    size: 20,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Premium üyelik ile sınırsız kelime detaylarına ve reklamsız deneyime erişebilirsiniz.',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: const Color(0xFF007AFF),
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(
+              'Kapat',
+              style: TextStyle(
+                color: isDarkMode 
+                    ? Colors.white.withOpacity(0.6)
+                    : Colors.black.withOpacity(0.6),
+              ),
+            ),
+          ),
+          FilledButton(
+            onPressed: () {
+              Navigator.pop(context);
+              // Ana widget'a profil sekmesine geçmesi için sinyal gönder
+              // Bu kısım parent widget'tan callback ile çözülmeli
+              // Şimdilik basit bir çözüm kullanıyoruz
+              DefaultTabController.of(context).animateTo(2); // Profil sekmesi
+            },
+            style: FilledButton.styleFrom(
+              backgroundColor: const Color(0xFF007AFF),
+            ),
+            child: const Text('Premium\'a Bak'),
+          ),
+        ],
       ),
     );
   }
