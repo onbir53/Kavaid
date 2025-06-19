@@ -188,8 +188,8 @@ class _HomeScreenState extends State<HomeScreen> {
           children: [
             Text(
               _creditsService.hasInitialCredits
-                  ? 'Hoşgeldin haklarınız bitmiştir. Günlük 5 hak ile devam edebilir veya Premium\'a yükselterek sınırsız erişim kazanabilirsiniz.'
-                  : 'Günlük kelime detayı görüntüleme hakkınız bitmiştir. Yarın saat 00:00\'da yeni haklarınız yüklenecektir.',
+                  ? '50 ücretsiz hakkınız bitmiştir. Günlük yenilenen 5 hak ile devam edebilir veya Premium\'a yükselterek sınırsız erişim kazanabilirsiniz.'
+                  : 'Günlük 5 hakkınız bitmiştir. Yarın saat 00:00\'da yeni haklarınız yüklenecektir.',
               style: TextStyle(
                 fontSize: 14,
                 color: isDarkMode 

@@ -261,8 +261,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           const SizedBox(height: 6),
                           Text(
                             _creditsService.hasInitialCredits
-                                ? '• İlk kurulumda 50 kelime hakkınız var\n• Bu haklar bittiğinde günlük 5 hak alırsınız\n• Günlük haklar her gün saat 00:00\'da yenilenir'
-                                : '• Her gün saat 00:00\'da 5 yeni hak kazanırsınız\n• Günlük haklar birikemez\n• Premium ile sınırsız erişim',
+                                ? '• İlk açılışta 50 ücretsiz hak kazanırsınız\n• Her kelime detayı 1 hak harcar\n• 50 ücretsiz hak bitince günlük yenilenen 5 hakkınız olur\n• Her gün saat 00:00\'da yenilenir'
+                                : '• Her gün saat 00:00\'da 5 yeni hak kazanırsınız\n• Günlük haklar birikemez\n• Premium ile sınırsız erişim\n• Telefon açıp kapama, silip yükleme sistemi bozmaz',
                             style: TextStyle(
                               fontSize: 11,
                               height: 1.4,
@@ -552,7 +552,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
             const SizedBox(height: 12),
             _buildFeatureRow(Icons.all_inclusive, 'Sınırsız kelime detayları'),
             _buildFeatureRow(Icons.block, 'Reklamsız deneyim'),
-            _buildFeatureRow(Icons.update, 'Sürekli güncellenen içerik'),
             const SizedBox(height: 16),
             Container(
               padding: EdgeInsets.all(12),
@@ -564,11 +563,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
-                    'Aylık sadece ',
+                    'Aylık ',
                     style: TextStyle(fontSize: 16),
                   ),
                   Text(
-                    '₺60',
+                    '60 TL',
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
@@ -594,7 +593,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               backgroundColor: const Color(0xFF007AFF),
               foregroundColor: Colors.white,
             ),
-            child: const Text('Satın Al'),
+            child: const Text('Abone Ol'),
           ),
         ],
       ),

@@ -44,6 +44,20 @@ class CreditsService extends ChangeNotifier {
     // Cihaz ID'sini al veya oluştur
     await _initializeDeviceId(prefs);
     
+    // Premium durumunu yükle
+    _isPremium = prefs.getBool(_premiumKey) ?? false;
+    
+    final expiryMillis = prefs.getInt(_premiumExpiryKey);
+    if (expiryMillis != null) {
+      _premiumExpiry = DateTime.fromMillisecondsSinceEpoch(expiryMillis);
+    }
+    
+    // Son sıfırlama tarihini yükle - ÖNEMLİ: _checkDailyReset'ten önce!
+    final lastResetStr = prefs.getString(_lastResetDateKey);
+    if (lastResetStr != null) {
+      _lastResetDate = DateTime.parse(lastResetStr);
+    }
+    
     // Bu cihaz için ilk açılış kontrolü
     final deviceFirstLaunchKey = '$_deviceFirstLaunchKey$_deviceId';
     final isDeviceFirstLaunch = prefs.getBool(deviceFirstLaunchKey) ?? true;
@@ -54,7 +68,13 @@ class CreditsService extends ChangeNotifier {
       await prefs.setBool(deviceFirstLaunchKey, false);
       await prefs.setBool(_firstLaunchKey, false);
       await prefs.setBool(_initialCreditsUsedKey, false);
-      await prefs.setString(_lastResetDateKey, DateTime.now().toIso8601String());
+      
+      // İlk açılışta bugünün tarihini kaydet
+      final now = DateTime.now();
+      final turkeyTime = now.toUtc().add(const Duration(hours: 3));
+      _lastResetDate = DateTime(turkeyTime.year, turkeyTime.month, turkeyTime.day);
+      await prefs.setString(_lastResetDateKey, _lastResetDate!.toIso8601String());
+      
       _credits = _initialCredits;
       _initialCreditsUsed = false;
     } else {
@@ -66,20 +86,6 @@ class CreditsService extends ChangeNotifier {
       if (_initialCreditsUsed) {
         await _checkDailyReset(prefs);
       }
-    }
-    
-    // Premium durumunu yükle
-    _isPremium = prefs.getBool(_premiumKey) ?? false;
-    
-    final expiryMillis = prefs.getInt(_premiumExpiryKey);
-    if (expiryMillis != null) {
-      _premiumExpiry = DateTime.fromMillisecondsSinceEpoch(expiryMillis);
-    }
-    
-    // Son sıfırlama tarihini yükle
-    final lastResetStr = prefs.getString(_lastResetDateKey);
-    if (lastResetStr != null) {
-      _lastResetDate = DateTime.parse(lastResetStr);
     }
     
     // Session yönetimi
@@ -124,17 +130,16 @@ class CreditsService extends ChangeNotifier {
     final turkeyTime = now.toUtc().add(const Duration(hours: 3));
     final todayMidnight = DateTime(turkeyTime.year, turkeyTime.month, turkeyTime.day);
     
+    // Eğer _lastResetDate null ise (beklenmedik durum), bugünün tarihini kaydet ama kredi verme
     if (_lastResetDate == null) {
-      // İlk kez günlük sisteme geçiş
-      _credits = _dailyCredits;
       _lastResetDate = todayMidnight;
-      await prefs.setInt(_creditsKey, _credits);
       await prefs.setString(_lastResetDateKey, todayMidnight.toIso8601String());
-      
-      // Günlük kelime setini temizle
-      _sessionOpenedWords.clear();
-      await prefs.setStringList(_sessionWordsKey, []);
-    } else if (_lastResetDate!.isBefore(todayMidnight)) {
+      // Kredi vermiyoruz, sadece tarihi kaydediyoruz
+      return;
+    }
+    
+    // Yeni gün kontrolü - sadece gerçekten yeni gün başlamışsa kredi ver
+    if (_lastResetDate!.isBefore(todayMidnight)) {
       // Yeni gün başlamış, kredileri yenile
       _credits = _dailyCredits;
       _lastResetDate = todayMidnight;
