@@ -218,8 +218,8 @@ class _SearchResultCardState extends State<SearchResultCard> with TickerProvider
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                   colors: [
-                    Colors.white,
-                    Color(0xFFFAFAFA),
+                    Color(0xFFFFFFFF),
+                    Color(0xFFF8F9FA),
                   ],
                 ),
           color: isDarkMode ? const Color(0xFF1C1C1E) : null,
@@ -227,23 +227,29 @@ class _SearchResultCardState extends State<SearchResultCard> with TickerProvider
           border: Border.all(
             color: isDarkMode 
                 ? const Color(0xFF48484A)
-                : const Color(0xFFE5E5EA),
-            width: 0.5,
+                : const Color(0xFFD0D0D0),
+            width: 0.8,
           ),
           boxShadow: [
             BoxShadow(
               color: isDarkMode 
                   ? Colors.black.withOpacity(0.4)
-                  : const Color(0xFF007AFF).withOpacity(0.12),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-              spreadRadius: 1,
+                  : const Color(0xFF007AFF).withOpacity(0.06),
+              blurRadius: isDarkMode ? 10 : 10,
+              offset: Offset(0, isDarkMode ? 4 : 3),
+              spreadRadius: isDarkMode ? 1 : 0.3,
             ),
             if (!isDarkMode) ...[
               BoxShadow(
-                color: Colors.white.withOpacity(0.8),
+                color: Colors.white.withOpacity(0.9),
                 blurRadius: 1,
                 offset: const Offset(0, -1),
+                spreadRadius: 0,
+              ),
+              BoxShadow(
+                color: Colors.black.withOpacity(0.02),
+                blurRadius: 4,
+                offset: const Offset(0, 1),
                 spreadRadius: 0,
               ),
             ],
@@ -414,7 +420,7 @@ class _SearchResultCardState extends State<SearchResultCard> with TickerProvider
   List<Widget> _buildWordInfoChips(bool isDarkMode) {
     final chips = <Widget>[];
     
-    // Kelime türü (her zaman göster)
+    // Kelime türü (basit tasarım)
     if (widget.word.dilbilgiselOzellikler?.containsKey('tur') == true) {
       chips.add(Container(
         padding: const EdgeInsets.symmetric(
@@ -481,9 +487,9 @@ class _SearchResultCardState extends State<SearchResultCard> with TickerProvider
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(
                     color: isDarkMode 
-                        ? const Color(0xFF48484A).withOpacity(0.3)
-                        : const Color(0xFFE5E5EA).withOpacity(0.8),
-                    width: 0.5,
+                        ? const Color(0xFF48484A).withOpacity(0.5)
+                        : const Color(0xFFD0D0D0),
+                    width: 0.8,
                   ),
                 ),
                 child: Stack(
@@ -565,9 +571,9 @@ class _SearchResultCardState extends State<SearchResultCard> with TickerProvider
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(
                     color: isDarkMode 
-                        ? const Color(0xFF48484A).withOpacity(0.3)
-                        : const Color(0xFFE5E5EA).withOpacity(0.8),
-                    width: 0.5,
+                        ? const Color(0xFF48484A).withOpacity(0.5)
+                        : const Color(0xFFD0D0D0),
+                    width: 0.8,
                   ),
                 ),
                 child: Stack(
@@ -640,36 +646,45 @@ class _SearchResultCardState extends State<SearchResultCard> with TickerProvider
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const SizedBox(height: 4),
-        Container(
-          decoration: BoxDecoration(
-            gradient: isDarkMode 
-                ? null
-                : const LinearGradient(
-                    colors: [
-                      Color(0xFFF8F9FA),
-                      Color(0xFFF2F2F7),
-                    ],
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                  ),
-            color: isDarkMode ? const Color(0xFF2C2C2E) : null,
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(
-              color: isDarkMode 
-                  ? const Color(0xFF48484A).withOpacity(0.5)
-                  : const Color(0xFFE5E5EA),
-              width: 1.0,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: isDarkMode 
-                    ? Colors.black.withOpacity(0.2)
-                    : Colors.black.withOpacity(0.04),
-                blurRadius: 4,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
+                 Container(
+           decoration: BoxDecoration(
+             gradient: isDarkMode 
+                 ? null
+                 : const LinearGradient(
+                     colors: [
+                       Color(0xFFF8F9FA),
+                       Color(0xFFF2F2F7),
+                     ],
+                     begin: Alignment.topCenter,
+                     end: Alignment.bottomCenter,
+                   ),
+                            color: isDarkMode ? const Color(0xFF2C2C2E) : null,
+               borderRadius: BorderRadius.circular(8),
+               border: Border.all(
+                 color: isDarkMode 
+                     ? const Color(0xFF48484A).withOpacity(0.5)
+                     : const Color(0xFFD0D0D0),
+                 width: 0.8,
+               ),
+             boxShadow: [
+               BoxShadow(
+                 color: isDarkMode 
+                     ? Colors.black.withOpacity(0.2)
+                     : Colors.black.withOpacity(0.04),
+                 blurRadius: isDarkMode ? 4 : 6,
+                 offset: Offset(0, isDarkMode ? 2 : 2),
+                 spreadRadius: isDarkMode ? 0 : 0.3,
+               ),
+               if (!isDarkMode) ...[
+                 BoxShadow(
+                   color: Colors.white.withOpacity(0.8),
+                   blurRadius: 1,
+                   offset: const Offset(0, -1),
+                   spreadRadius: 0,
+                 ),
+               ],
+             ],
+           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -860,7 +875,7 @@ class _SearchResultCardState extends State<SearchResultCard> with TickerProvider
             border: Border.all(
               color: isDarkMode 
                   ? const Color(0xFF48484A).withOpacity(0.5)
-                  : const Color(0xFFE5E5EA),
+                  : const Color(0xFFD0D0D0),
               width: 1.0,
             ),
             boxShadow: [
@@ -895,6 +910,85 @@ class _SearchResultCardState extends State<SearchResultCard> with TickerProvider
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildInfoBox(String title, String content, bool isDarkMode) {
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        gradient: isDarkMode 
+            ? null
+            : const LinearGradient(
+                colors: [
+                  Color(0xFFF8F9FA),
+                  Color(0xFFF2F2F7),
+                ],
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+              ),
+        color: isDarkMode 
+            ? const Color(0xFF2C2C2E)
+            : null,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: isDarkMode 
+              ? const Color(0xFF48484A).withOpacity(0.3)
+              : const Color(0xFFD0D0D0),
+          width: 0.7,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: isDarkMode 
+                ? Colors.black.withOpacity(0.2)
+                : Colors.black.withOpacity(0.03),
+            blurRadius: isDarkMode ? 4 : 5,
+            offset: Offset(0, isDarkMode ? 2 : 1),
+            spreadRadius: isDarkMode ? 0 : 0.2,
+          ),
+          if (!isDarkMode) ...[
+            BoxShadow(
+              color: Colors.white.withOpacity(0.8),
+              blurRadius: 1,
+              offset: const Offset(0, -0.5),
+              spreadRadius: 0,
+            ),
+          ],
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Text(
+            title,
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w600,
+              color: isDarkMode 
+                  ? const Color(0xFF007AFF)
+                  : const Color(0xFF6D6D70),
+              letterSpacing: 0.5,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            content,
+            style: GoogleFonts.scheherazadeNew(
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+              color: isDarkMode 
+                  ? const Color(0xFFE5E5EA)
+                  : const Color(0xFF1C1C1E),
+              fontFeatures: const [
+                ui.FontFeature.enable('liga'),
+                ui.FontFeature.enable('calt'),
+              ],
+            ),
+            textDirection: TextDirection.rtl,
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
     );
   }
 } 

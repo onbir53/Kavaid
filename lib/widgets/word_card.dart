@@ -132,32 +132,38 @@ class _WordCardState extends State<WordCard> {
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
                 colors: [
-                  Colors.white,
-                  Color(0xFFFAFAFA),
+                  Color(0xFFFFFFFF),
+                  Color(0xFFF8F9FA),
                 ],
               ),
         color: isDarkMode ? const Color(0xFF1C1C1E) : null,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: isDarkMode 
-              ? const Color(0xFF48484A)
-              : const Color(0xFFE5E5EA),
-          width: 0.5,
+              ? const Color(0xFF48484A).withOpacity(0.5)
+              : const Color(0xFFD0D0D0),
+          width: 0.8,
         ),
         boxShadow: [
           BoxShadow(
             color: isDarkMode 
                 ? Colors.black.withOpacity(0.3)
-                : const Color(0xFF007AFF).withOpacity(0.1),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-            spreadRadius: 0,
+                : const Color(0xFF007AFF).withOpacity(0.08),
+            blurRadius: isDarkMode ? 8 : 12,
+            offset: Offset(0, isDarkMode ? 2 : 4),
+            spreadRadius: isDarkMode ? 0 : 0.5,
           ),
           if (!isDarkMode) ...[
             BoxShadow(
-              color: Colors.white.withOpacity(0.8),
+              color: Colors.white.withOpacity(0.9),
               blurRadius: 1,
               offset: const Offset(0, -1),
+              spreadRadius: 0,
+            ),
+            BoxShadow(
+              color: Colors.black.withOpacity(0.02),
+              blurRadius: 6,
+              offset: const Offset(0, 2),
               spreadRadius: 0,
             ),
           ],
@@ -272,40 +278,7 @@ class _WordCardState extends State<WordCard> {
                 ),
               ),
               const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: widget.word.dilbilgiselOzellikler!.entries
-                    .where((entry) => entry.key != 'cogulForm') // Çoğul bilgisini filtrele
-                    .map((entry) {
-                  return Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: isDarkMode 
-                          ? const Color(0xFF3A3A3C).withOpacity(0.8)
-                          : const Color(0xFFE5E5EA).withOpacity(0.8),
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                        color: isDarkMode 
-                            ? const Color(0xFF48484A)
-                            : const Color(0xFFD1D1D6),
-                        width: 0.5,
-                      ),
-                    ),
-                    child: Text(
-                      '${entry.key}: ${entry.value}',
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: isDarkMode 
-                            ? const Color(0xFFE5E5EA)
-                            : const Color(0xFF1C1C1E),
-                        fontWeight: FontWeight.w500,
-                        letterSpacing: 0.2,
-                      ),
-                    ),
-                  );
-                }).toList(),
-              ),
+              _FeatureChips(features: widget.word.dilbilgiselOzellikler!, isDarkMode: isDarkMode),
               const SizedBox(height: 16),
             ],
             
@@ -318,68 +291,10 @@ class _WordCardState extends State<WordCard> {
                   // Kök
                   if (widget.word.koku?.isNotEmpty == true) ...[
                     Expanded(
-                      child: Container(
-                        padding: const EdgeInsets.all(14),
-                        decoration: BoxDecoration(
-                          gradient: isDarkMode 
-                              ? null
-                              : const LinearGradient(
-                                  colors: [
-                                    Color(0xFFF8F9FA),
-                                    Color(0xFFF2F2F7),
-                                  ],
-                                  begin: Alignment.topCenter,
-                                  end: Alignment.bottomCenter,
-                                ),
-                          color: isDarkMode ? const Color(0xFF2C2C2E) : null,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: isDarkMode 
-                                ? const Color(0xFF48484A).withOpacity(0.5)
-                                : const Color(0xFFE5E5EA),
-                            width: 1,
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: isDarkMode 
-                                  ? Colors.black.withOpacity(0.2)
-                                  : Colors.black.withOpacity(0.04),
-                              blurRadius: 4,
-                              offset: const Offset(0, 2),
-                            ),
-                          ],
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            Text(
-                              'Kök',
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                                color: const Color(0xFF007AFF),
-                                letterSpacing: 0.5,
-                              ),
-                            ),
-                            const SizedBox(height: 6),
-                            Text(
-                              widget.word.koku!,
-                              style: GoogleFonts.scheherazadeNew(
-                                fontSize: 20,
-                                fontWeight: FontWeight.w700,
-                                color: isDarkMode 
-                                    ? const Color(0xFFE5E5EA)
-                                    : const Color(0xFF1C1C1E),
-                                fontFeatures: const [
-                                  ui.FontFeature.enable('liga'),
-                                  ui.FontFeature.enable('calt'),
-                                ],
-                              ),
-                              textDirection: TextDirection.rtl,
-                              textAlign: TextAlign.center,
-                            ),
-                          ],
-                        ),
+                      child: _InfoBox(
+                        title: 'Kök',
+                        content: widget.word.koku!,
+                        isDarkMode: isDarkMode,
                       ),
                     ),
                   ],
@@ -391,68 +306,10 @@ class _WordCardState extends State<WordCard> {
                   if (widget.word.dilbilgiselOzellikler?.containsKey('cogulForm') == true && 
                       widget.word.dilbilgiselOzellikler!['cogulForm']?.toString().trim().isNotEmpty == true) ...[
                     Expanded(
-                      child: Container(
-                        padding: const EdgeInsets.all(14),
-                        decoration: BoxDecoration(
-                          gradient: isDarkMode 
-                              ? null
-                              : const LinearGradient(
-                                  colors: [
-                                    Color(0xFFF8F9FA),
-                                    Color(0xFFF2F2F7),
-                                  ],
-                                  begin: Alignment.topCenter,
-                                  end: Alignment.bottomCenter,
-                                ),
-                          color: isDarkMode ? const Color(0xFF2C2C2E) : null,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: isDarkMode 
-                                ? const Color(0xFF48484A).withOpacity(0.5)
-                                : const Color(0xFFE5E5EA),
-                            width: 1,
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: isDarkMode 
-                                  ? Colors.black.withOpacity(0.2)
-                                  : Colors.black.withOpacity(0.04),
-                              blurRadius: 4,
-                              offset: const Offset(0, 2),
-                            ),
-                          ],
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            Text(
-                              'Çoğul',
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                                color: const Color(0xFF007AFF),
-                                letterSpacing: 0.5,
-                              ),
-                            ),
-                            const SizedBox(height: 6),
-                            Text(
-                              widget.word.dilbilgiselOzellikler!['cogulForm'].toString(),
-                              style: GoogleFonts.scheherazadeNew(
-                                fontSize: 20,
-                                fontWeight: FontWeight.w700,
-                                color: isDarkMode 
-                                    ? const Color(0xFFE5E5EA)
-                                    : const Color(0xFF1C1C1E),
-                                fontFeatures: const [
-                                  ui.FontFeature.enable('liga'),
-                                  ui.FontFeature.enable('calt'),
-                                ],
-                              ),
-                              textDirection: TextDirection.rtl,
-                              textAlign: TextAlign.center,
-                            ),
-                          ],
-                        ),
+                      child: _InfoBox(
+                        title: 'Çoğul',
+                        content: widget.word.dilbilgiselOzellikler!['cogulForm'].toString(),
+                        isDarkMode: isDarkMode,
                       ),
                     ),
                   ],
@@ -469,10 +326,10 @@ class _WordCardState extends State<WordCard> {
                   if (widget.word.fiilCekimler!.containsKey('maziForm') && 
                       widget.word.fiilCekimler!['maziForm']?.toString().trim().isNotEmpty == true) ...[
                     Expanded(
-                      child: _buildConjugationBox(
-                        'Mazi',
-                        widget.word.fiilCekimler!['maziForm'].toString(),
-                        isDarkMode,
+                      child: _InfoBox(
+                        title: 'Mazi',
+                        content: widget.word.fiilCekimler!['maziForm'].toString(),
+                        isDarkMode: isDarkMode,
                       ),
                     ),
                   ],
@@ -485,10 +342,10 @@ class _WordCardState extends State<WordCard> {
                   if (widget.word.fiilCekimler!.containsKey('muzariForm') && 
                       widget.word.fiilCekimler!['muzariForm']?.toString().trim().isNotEmpty == true) ...[
                     Expanded(
-                      child: _buildConjugationBox(
-                        'Müzari',
-                        widget.word.fiilCekimler!['muzariForm'].toString(),
-                        isDarkMode,
+                      child: _InfoBox(
+                        title: 'Müzari',
+                        content: widget.word.fiilCekimler!['muzariForm'].toString(),
+                        isDarkMode: isDarkMode,
                       ),
                     ),
                   ],
@@ -502,10 +359,10 @@ class _WordCardState extends State<WordCard> {
                   if (widget.word.fiilCekimler!.containsKey('mastarForm') && 
                       widget.word.fiilCekimler!['mastarForm']?.toString().trim().isNotEmpty == true) ...[
                     Expanded(
-                      child: _buildConjugationBox(
-                        'Mastar',
-                        widget.word.fiilCekimler!['mastarForm'].toString(),
-                        isDarkMode,
+                      child: _InfoBox(
+                        title: 'Mastar',
+                        content: widget.word.fiilCekimler!['mastarForm'].toString(),
+                        isDarkMode: isDarkMode,
                       ),
                     ),
                   ],
@@ -519,10 +376,10 @@ class _WordCardState extends State<WordCard> {
                   if (widget.word.fiilCekimler!.containsKey('emirForm') && 
                       widget.word.fiilCekimler!['emirForm']?.toString().trim().isNotEmpty == true) ...[
                     Expanded(
-                      child: _buildConjugationBox(
-                        'Emir',
-                        widget.word.fiilCekimler!['emirForm'].toString(),
-                        isDarkMode,
+                      child: _InfoBox(
+                        title: 'Emir',
+                        content: widget.word.fiilCekimler!['emirForm'].toString(),
+                        isDarkMode: isDarkMode,
                       ),
                     ),
                   ],
@@ -613,95 +470,147 @@ class _WordCardState extends State<WordCard> {
     Clipboard.setData(ClipboardData(text: text));
   }
   
-  Widget _buildConjugationBox(String title, String text, bool isDarkMode) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        // Başlık
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-          decoration: BoxDecoration(
+  Widget _InfoBox({
+    required String title,
+    required String content,
+    required bool isDarkMode,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        gradient: isDarkMode 
+            ? null
+            : const LinearGradient(
+                colors: [
+                  Color(0xFFF8F9FA),
+                  Color(0xFFF2F2F7),
+                ],
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+              ),
+        color: isDarkMode ? const Color(0xFF2C2C2E) : null,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isDarkMode 
+              ? const Color(0xFF48484A).withOpacity(0.5)
+              : const Color(0xFFD0D0D0),
+          width: 0.8,
+        ),
+        boxShadow: [
+          BoxShadow(
             color: isDarkMode 
-                ? const Color(0xFF007AFF).withOpacity(0.15)
-                : const Color(0xFF007AFF).withOpacity(0.08),
-            borderRadius: const BorderRadius.only(
-              topLeft: Radius.circular(8),
-              topRight: Radius.circular(8),
-            ),
+                ? Colors.black.withOpacity(0.2)
+                : Colors.black.withOpacity(0.04),
+            blurRadius: isDarkMode ? 4 : 6,
+            offset: Offset(0, isDarkMode ? 2 : 2),
+            spreadRadius: isDarkMode ? 0 : 0.3,
           ),
-          child: Text(
+          if (!isDarkMode) ...[
+            BoxShadow(
+              color: Colors.white.withOpacity(0.8),
+              blurRadius: 1,
+              offset: const Offset(0, -1),
+              spreadRadius: 0,
+            ),
+          ],
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Text(
             title,
-            style: const TextStyle(
-              fontSize: 10,
-              fontWeight: FontWeight.w700,
-              color: Color(0xFF007AFF),
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: isDarkMode 
+                  ? const Color(0xFF007AFF)
+                  : const Color(0xFF6D6D70),
               letterSpacing: 0.5,
             ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            content,
+            style: GoogleFonts.scheherazadeNew(
+              fontSize: 20,
+              fontWeight: FontWeight.w700,
+              color: isDarkMode 
+                  ? const Color(0xFFE5E5EA)
+                  : const Color(0xFF1C1C1E),
+              fontFeatures: const [
+                ui.FontFeature.enable('liga'),
+                ui.FontFeature.enable('calt'),
+              ],
+            ),
+            textDirection: TextDirection.rtl,
             textAlign: TextAlign.center,
           ),
-        ),
-        // Arapça metin için kutu
-        Container(
-          width: double.infinity,
-          height: 56,
+        ],
+      ),
+    );
+  }
+}
+
+// Özellik chip'leri
+class _FeatureChips extends StatelessWidget {
+  final Map<String, dynamic> features;
+  final bool isDarkMode;
+
+  const _FeatureChips({
+    required this.features,
+    required this.isDarkMode,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: features.entries
+          .where((entry) => entry.key != 'cogulForm')
+          .map((entry) {
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           decoration: BoxDecoration(
-            gradient: isDarkMode 
-                ? null
-                : const LinearGradient(
-                    colors: [
-                      Color(0xFFF8F9FA),
-                      Color(0xFFF2F2F7),
-                    ],
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                  ),
-            color: isDarkMode ? const Color(0xFF2C2C2E) : null,
-            borderRadius: const BorderRadius.only(
-              bottomLeft: Radius.circular(8),
-              bottomRight: Radius.circular(8),
-              topLeft: Radius.circular(8),
-              topRight: Radius.circular(8),
-            ),
+            color: isDarkMode 
+                ? const Color(0xFF3A3A3C).withOpacity(0.8)
+                : const Color(0xFFE5E5EA),
+            borderRadius: BorderRadius.circular(16),
             border: Border.all(
               color: isDarkMode 
-                  ? const Color(0xFF48484A).withOpacity(0.5)
-                  : const Color(0xFFE5E5EA),
-              width: 1.0,
+                  ? const Color(0xFF48484A)
+                  : const Color(0xFFD0D0D0),
+              width: 0.7,
             ),
             boxShadow: [
-              BoxShadow(
-                color: isDarkMode 
-                    ? Colors.black.withOpacity(0.2)
-                    : Colors.black.withOpacity(0.04),
-                blurRadius: 4,
-                offset: const Offset(0, 2),
-              ),
+              if (!isDarkMode) ...[
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.03),
+                  blurRadius: 3,
+                  offset: const Offset(0, 1),
+                ),
+                BoxShadow(
+                  color: Colors.white.withOpacity(0.8),
+                  blurRadius: 1,
+                  offset: const Offset(0, -0.5),
+                ),
+              ],
             ],
           ),
-          child: Center(
-            child: Text(
-              text,
-              style: GoogleFonts.scheherazadeNew(
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-                color: isDarkMode ? const Color(0xFFE5E5EA) : const Color(0xFF1C1C1E),
-                height: 1.4,
-                fontFeatures: const [
-                  ui.FontFeature.enable('liga'),
-                  ui.FontFeature.enable('calt'),
-                ],
-              ),
-              textDirection: TextDirection.rtl,
-              textAlign: TextAlign.center,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              softWrap: false,
+          child: Text(
+            '${entry.key}: ${entry.value}',
+            style: TextStyle(
+              fontSize: 13,
+              color: isDarkMode 
+                  ? const Color(0xFFE5E5EA)
+                  : const Color(0xFF1C1C1E),
+              fontWeight: FontWeight.w500,
+              letterSpacing: 0.2,
             ),
           ),
-        ),
-      ],
+        );
+      }).toList(),
     );
   }
 } 
