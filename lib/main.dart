@@ -16,34 +16,49 @@ import 'services/subscription_service.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
-  // Firebase'i başlat
+  // Firebase'i başlat (zorunlu)
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
   
-  // AdMob'u güvenli şekilde başlat
-  try {
-    await AdMobService.initialize();
-  } catch (e) {
-    debugPrint('❌ AdMob başlatılamadı: $e');
-  }
-  
-  // SavedWordsService'i initialize et
-  final savedWordsService = SavedWordsService();
-  await savedWordsService.initialize();
-  debugPrint('✅ SavedWordsService başlatıldı: ${savedWordsService.savedWordsCount} kelime yüklendi');
-  
-  // CreditsService'i initialize et
-  final creditsService = CreditsService();
-  await creditsService.initialize();
-  debugPrint('✅ CreditsService başlatıldı: ${creditsService.credits} hak, Premium: ${creditsService.isPremium}');
-  
-  // SubscriptionService'i initialize et
-  final subscriptionService = SubscriptionService();
-  await subscriptionService.initialize();
-  debugPrint('✅ SubscriptionService başlatıldı');
+  // Diğer servisleri arka planda başlat
+  _initializeServicesInBackground();
   
   runApp(const KavaidApp());
+}
+
+// Servisleri arka planda başlat
+void _initializeServicesInBackground() {
+  // AdMob'u arka planda başlat
+  Future.delayed(const Duration(milliseconds: 500), () async {
+    try {
+      await AdMobService.initialize();
+      debugPrint('✅ AdMob başlatıldı');
+    } catch (e) {
+      debugPrint('❌ AdMob başlatılamadı: $e');
+    }
+  });
+
+  // SavedWordsService'i arka planda başlat
+  Future.delayed(const Duration(milliseconds: 100), () async {
+    final savedWordsService = SavedWordsService();
+    await savedWordsService.initialize();
+    debugPrint('✅ SavedWordsService başlatıldı: ${savedWordsService.savedWordsCount} kelime yüklendi');
+  });
+
+  // CreditsService'i arka planda başlat
+  Future.delayed(const Duration(milliseconds: 200), () async {
+    final creditsService = CreditsService();
+    await creditsService.initialize();
+    debugPrint('✅ CreditsService başlatıldı: ${creditsService.credits} hak, Premium: ${creditsService.isPremium}');
+  });
+
+  // SubscriptionService'i arka planda başlat
+  Future.delayed(const Duration(milliseconds: 300), () async {
+    final subscriptionService = SubscriptionService();
+    await subscriptionService.initialize();
+    debugPrint('✅ SubscriptionService başlatıldı');
+  });
 }
 
 class KavaidApp extends StatefulWidget {
@@ -129,17 +144,13 @@ class _KavaidAppState extends State<KavaidApp> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
-    // Tema yüklenene kadar loading göster
+    // Tema yüklenene kadar minimal loading göster
     if (!_themeLoaded) {
-      return MaterialApp(
+      return const MaterialApp(
         debugShowCheckedModeBanner: false,
         home: Scaffold(
-          backgroundColor: Colors.white,
-          body: Center(
-            child: CircularProgressIndicator(
-              color: Color(0xFF007AFF),
-            ),
-          ),
+          backgroundColor: Color(0xFFF2F2F7),
+          body: SizedBox.shrink(), // Boş widget, daha hızlı render
         ),
       );
     }
@@ -319,25 +330,27 @@ class _MainScreenState extends State<MainScreen> {
   void initState() {
     super.initState();
     
-    // İnternet bağlantısını kontrol et
-    _checkInitialConnectivity();
-    
-    // Bağlantı değişikliklerini dinle
-    _connectivityService.startListening((hasConnection) {
-      debugPrint('📶 Bağlantı durumu değişti: $hasConnection');
-      if (mounted) {
-        if (!hasConnection) {
-          debugPrint('❌ Bağlantı kesildi! Dialog gösterilecek...');
-          ConnectivityService.showNoInternetDialog(
-            context,
-            onRetry: () {
-              _checkInitialConnectivity();
-            },
-          );
-        } else {
-          debugPrint('✅ Bağlantı geri geldi!');
+    // İnternet kontrolünü arka planda yap (başlangıcı yavaşlatmasın)
+    Future.delayed(const Duration(milliseconds: 1000), () {
+      _checkInitialConnectivity();
+      
+      // Bağlantı değişikliklerini dinle
+      _connectivityService.startListening((hasConnection) {
+        debugPrint('📶 Bağlantı durumu değişti: $hasConnection');
+        if (mounted) {
+          if (!hasConnection) {
+            debugPrint('❌ Bağlantı kesildi! Dialog gösterilecek...');
+            ConnectivityService.showNoInternetDialog(
+              context,
+              onRetry: () {
+                _checkInitialConnectivity();
+              },
+            );
+          } else {
+            debugPrint('✅ Bağlantı geri geldi!');
+          }
         }
-      }
+      });
     });
   }
   
