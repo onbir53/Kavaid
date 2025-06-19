@@ -57,11 +57,14 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
     super.initState();
     _searchController.addListener(_onSearchChanged);
     
-    // İlk açılışta klavyeyi aç
+    // İlk açılışta klavyeyi aç - daha güçlü yöntem
     if (widget.isFirstOpen) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        Future.delayed(const Duration(milliseconds: 300), () {
+        Future.delayed(const Duration(milliseconds: 500), () {
           if (mounted && widget.isFirstOpen) {
+            // Daha güçlü focus yöntemi
+            FocusScope.of(context).requestFocus(_searchFocusNode);
+            // Klavyeyi açmak için ekstra try
             _searchFocusNode.requestFocus();
             widget.onKeyboardOpened?.call();
           }
@@ -332,7 +335,18 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
   Widget build(BuildContext context) {
     super.build(context); // AutomaticKeepAliveClientMixin için gerekli
     
-    return Scaffold(
+    return PopScope(
+      canPop: !_showArabicKeyboard, // Arapça klavye açıkken çıkışı engelle
+      onPopInvoked: (didPop) {
+        if (_showArabicKeyboard && !didPop) {
+          // Arapça klavye açıkken geri tuşuna basıldığında klavyeyi kapat
+          setState(() {
+            _showArabicKeyboard = false;
+          });
+          widget.onArabicKeyboardStateChanged?.call(false);
+        }
+      },
+      child: Scaffold(
       resizeToAvoidBottomInset: false,
       body: Stack(
         children: [
@@ -417,7 +431,7 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
                                       autofocus: true,
                                       textAlignVertical: TextAlignVertical.center, // Dikey ortalama
                                       style: TextStyle(
-                                        fontSize: 14,
+                                        fontSize: 16, // 14'ten 16'ya büyüttüm
                                         color: widget.isDarkMode
                                             ? Colors.white
                                             : const Color(0xFF1C1C1E),
@@ -598,7 +612,8 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
             ),
         ],
       ),
-    );
+    ), // Scaffold kapanışı
+  ); // PopScope kapanışı
   }
 
   List<Widget> _buildMainContentSlivers() {
