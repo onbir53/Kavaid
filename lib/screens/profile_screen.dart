@@ -618,148 +618,310 @@ class _ProfileScreenState extends State<ProfileScreen> {
     
     return Column(
       children: [
-        // Hak sıfırlama
+        // Durum Bilgisi
         Container(
+          padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
             color: isDarkMode 
                 ? const Color(0xFF1C1C1E) 
                 : const Color(0xFFF2F2F7),
             borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: const Color(0xFF007AFF).withOpacity(0.3),
+            ),
           ),
-          child: ListTile(
-            leading: Icon(
-              Icons.refresh,
-              color: Colors.orange,
-            ),
-            title: Text(
-              'Hakları Sıfırla',
-              style: TextStyle(
-                color: isDarkMode ? Colors.white : Colors.black,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'SİSTEM DURUMU',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  color: const Color(0xFF007AFF),
+                  letterSpacing: 1,
+                ),
               ),
-            ),
-            subtitle: Text(
-              _creditsService.hasInitialCredits ? 'İlk hakları sıfırla' : 'Günlük hakları sıfırla',
-              style: TextStyle(
-                fontSize: 12,
-                color: isDarkMode 
-                    ? Colors.white.withOpacity(0.6)
-                    : Colors.black.withOpacity(0.6),
-              ),
-            ),
-            onTap: () async {
-              await _creditsService.resetCreditsForTesting();
-              if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Haklar sıfırlandı'),
-                    duration: Duration(seconds: 2),
-                  ),
-                );
-              }
-            },
+              const SizedBox(height: 8),
+              _buildStatusRow('Krediler', '${_creditsService.credits}', isDarkMode),
+              _buildStatusRow('İlk Haklar', _creditsService.hasInitialCredits ? 'Aktif' : 'Bitti', isDarkMode),
+              _buildStatusRow('Premium', _creditsService.isPremium ? 'Aktif' : 'Pasif', isDarkMode),
+              if (_creditsService.premiumExpiry != null)
+                _buildStatusRow('Premium Bitiş', 
+                    '${_creditsService.premiumExpiry!.day}/${_creditsService.premiumExpiry!.month}/${_creditsService.premiumExpiry!.year}', 
+                    isDarkMode),
+            ],
+          ),
+        ),
+        
+        const SizedBox(height: 16),
+        
+        // Temel Test İşlemleri
+        Text(
+          'TEMEL TEST İŞLEMLERİ',
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.bold,
+            color: const Color(0xFF007AFF),
+            letterSpacing: 1,
           ),
         ),
         const SizedBox(height: 8),
         
+        // Hak sıfırlama
+        _buildTestButton(
+          icon: Icons.refresh,
+          title: 'Hakları Sıfırla',
+          subtitle: _creditsService.hasInitialCredits ? 'İlk hakları 50\'ye sıfırla' : 'Günlük hakları 5\'e sıfırla',
+          color: Colors.orange,
+          onTap: () async {
+            await _creditsService.resetCreditsForTesting();
+            _showTestResult('Haklar sıfırlandı! Krediler: ${_creditsService.credits}');
+          },
+          isDarkMode: isDarkMode,
+        ),
+        
+        const SizedBox(height: 8),
+        
         // İlk kredileri bitir
         if (_creditsService.hasInitialCredits) ...[
-          Container(
-            decoration: BoxDecoration(
-              color: isDarkMode 
-                  ? const Color(0xFF1C1C1E) 
-                  : const Color(0xFFF2F2F7),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: ListTile(
-              leading: Icon(
-                Icons.fast_forward,
-                color: Colors.purple,
-              ),
-              title: Text(
-                'İlk Kredileri Bitir',
-                style: TextStyle(
-                  color: isDarkMode ? Colors.white : Colors.black,
-                ),
-              ),
-              subtitle: Text(
-                'Günlük sisteme geç',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: isDarkMode 
-                      ? Colors.white.withOpacity(0.6)
-                      : Colors.black.withOpacity(0.6),
-                ),
-              ),
-              onTap: () async {
-                await _creditsService.useAllInitialCreditsForTesting();
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('İlk krediler bitirildi, günlük sisteme geçildi'),
-                      duration: Duration(seconds: 2),
-                    ),
-                  );
-                }
-              },
-            ),
+          _buildTestButton(
+            icon: Icons.fast_forward,
+            title: 'İlk Kredileri Bitir',
+            subtitle: 'Günlük 5 hak sistemine geç',
+            color: Colors.purple,
+            onTap: () async {
+              await _creditsService.useAllInitialCreditsForTesting();
+              _showTestResult('İlk krediler bitirildi! Günlük sisteme geçildi.');
+            },
+            isDarkMode: isDarkMode,
           ),
           const SizedBox(height: 8),
         ],
         
         // Premium toggle
-        Container(
-          decoration: BoxDecoration(
-            color: isDarkMode 
-                ? const Color(0xFF1C1C1E) 
-                : const Color(0xFFF2F2F7),
-            borderRadius: BorderRadius.circular(12),
+        _buildTestButton(
+          icon: _creditsService.isPremium ? Icons.remove_circle : Icons.add_circle,
+          title: _creditsService.isPremium ? 'Premium\'u İptal Et' : 'Premium Aktifleştir',
+          subtitle: _creditsService.isPremium ? 'Sınırlı sisteme geri dön' : '30 günlük premium ver',
+          color: _creditsService.isPremium ? Colors.red : Colors.green,
+          onTap: () async {
+            if (_creditsService.isPremium) {
+              await _creditsService.cancelPremium();
+              _showTestResult('Premium iptal edildi! Artık sınırlı sistem aktif.');
+            } else {
+              await _creditsService.activatePremiumMonthly();
+              _showTestResult('Premium aktifleştirildi! Sınırsız erişim kazandınız.');
+            }
+          },
+          isDarkMode: isDarkMode,
+        ),
+        
+        const SizedBox(height: 16),
+        
+        // Gelişmiş Test İşlemleri
+        Text(
+          'GELİŞMİŞ TEST İŞLEMLERİ',
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.bold,
+            color: Colors.red,
+            letterSpacing: 1,
           ),
-          child: ListTile(
-            leading: Icon(
-              _creditsService.isPremium
-                  ? Icons.remove_circle
-                  : Icons.add_circle,
-              color: _creditsService.isPremium ? Colors.red : Colors.green,
-            ),
-            title: Text(
-              _creditsService.isPremium
-                  ? 'Premium\'u İptal Et'
-                  : 'Premium Aktifleştir (Test)',
-              style: TextStyle(
-                color: isDarkMode ? Colors.white : Colors.black,
-              ),
-            ),
-            subtitle: Text(
-              _creditsService.isPremium ? 'Test için iptal et' : 'Test için 30 gün',
-              style: TextStyle(
-                fontSize: 12,
-                color: isDarkMode 
-                    ? Colors.white.withOpacity(0.6)
-                    : Colors.black.withOpacity(0.6),
-              ),
-            ),
+        ),
+        const SizedBox(height: 8),
+        
+        // Yeni gün simülasyonu
+        if (!_creditsService.hasInitialCredits) ...[
+          _buildTestButton(
+            icon: Icons.schedule,
+            title: 'Yeni Gün Simülasyonu',
+            subtitle: 'Günlük hakları yenile (sadece günlük sistemde)',
+            color: Colors.blue,
             onTap: () async {
-              if (_creditsService.isPremium) {
-                await _creditsService.cancelPremium();
-              } else {
-                await _creditsService.activatePremiumMonthly();
-              }
-              if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      _creditsService.isPremium
-                          ? 'Premium iptal edildi'
-                          : 'Premium aktifleştirildi',
-                    ),
-                    duration: const Duration(seconds: 2),
-                  ),
-                );
-              }
+              // Manuel olarak günlük sistemi tetikle
+              final prefs = await SharedPreferences.getInstance();
+              final now = DateTime.now();
+              final turkeyTime = now.toUtc().add(const Duration(hours: 3));
+              final yesterday = turkeyTime.subtract(const Duration(days: 1));
+              await prefs.setString('last_reset_date', yesterday.toIso8601String());
+              
+              // Servisi yeniden başlat
+              await _creditsService.initialize();
+              _showTestResult('Yeni gün simülasyonu tamamlandı! Günlük haklar yenilendi.');
             },
+            isDarkMode: isDarkMode,
           ),
+          const SizedBox(height: 8),
+        ],
+        
+        // Sistemi tamamen sıfırla
+        _buildTestButton(
+          icon: Icons.delete_forever,
+          title: 'SİSTEMİ TAMAMEN SIFIRLA',
+          subtitle: 'TEHLİKELİ: İlk kurulum durumuna döner',
+          color: Colors.red,
+          onTap: () => _showResetConfirmation(),
+          isDarkMode: isDarkMode,
+        ),
+        
+        const SizedBox(height: 8),
+        
+        // Kelime test et
+        _buildTestButton(
+          icon: Icons.search,
+          title: 'Kelime Açma Testi',
+          subtitle: 'Hak düşürme sistemini test et',
+          color: Colors.indigo,
+          onTap: () => _testWordOpening(),
+          isDarkMode: isDarkMode,
         ),
       ],
     );
+  }
+  
+  Widget _buildStatusRow(String label, String value, bool isDarkMode) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              color: isDarkMode 
+                  ? Colors.white.withOpacity(0.7)
+                  : Colors.black.withOpacity(0.7),
+            ),
+          ),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: isDarkMode ? Colors.white : Colors.black,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+  
+  Widget _buildTestButton({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required Color color,
+    required VoidCallback onTap,
+    required bool isDarkMode,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: isDarkMode 
+            ? const Color(0xFF1C1C1E) 
+            : const Color(0xFFF2F2F7),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: ListTile(
+        leading: Icon(icon, color: color, size: 20),
+        title: Text(
+          title,
+          style: TextStyle(
+            color: isDarkMode ? Colors.white : Colors.black,
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        subtitle: Text(
+          subtitle,
+          style: TextStyle(
+            fontSize: 11,
+            color: isDarkMode 
+                ? Colors.white.withOpacity(0.6)
+                : Colors.black.withOpacity(0.6),
+          ),
+        ),
+        onTap: onTap,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      ),
+    );
+  }
+  
+  void _showTestResult(String message) {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message),
+          duration: const Duration(seconds: 3),
+          backgroundColor: const Color(0xFF007AFF),
+        ),
+      );
+    }
+  }
+  
+  void _showResetConfirmation() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('⚠️ TEHLİKELİ İŞLEM'),
+        content: const Text(
+          'Bu işlem tüm kullanıcı verilerini siler ve uygulamayı ilk kurulum durumuna döndürür.\n\n'
+          'Sistem sıfırlandıktan sonra:\n'
+          '• 50 yeni ücretsiz hak verilir\n'
+          '• Premium iptal edilir\n'
+          '• Tüm geçmiş silinir\n\n'
+          'Devam etmek istediğinizden emin misiniz?'
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('İptal'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              await _resetCompleteSystem();
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('SIFIRLA', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+  
+  Future<void> _resetCompleteSystem() async {
+    final prefs = await SharedPreferences.getInstance();
+    
+    // Tüm anahtarları sil
+    await prefs.clear();
+    
+    // Servisi yeniden başlat
+    await _creditsService.initialize();
+    
+    _showTestResult('SİSTEM TAMAMEN SIFIRLANDI! İlk kurulum durumuna döndü.');
+  }
+  
+  void _testWordOpening() async {
+    final testWordId = 'test_kelime_${DateTime.now().millisecondsSinceEpoch}';
+    
+    if (_creditsService.isPremium) {
+      _showTestResult('Premium aktif - Sınırsız erişim var!');
+      return;
+    }
+    
+    final canOpen = await _creditsService.canOpenWord(testWordId);
+    
+    if (canOpen) {
+      final success = await _creditsService.consumeCredit(testWordId);
+      if (success) {
+        _showTestResult('✅ Kelime açıldı! Kalan hak: ${_creditsService.credits}');
+      } else {
+        _showTestResult('❌ Kelime açılamadı - Hak yetersiz!');
+      }
+    } else {
+      _showTestResult('❌ Hak yetersiz - Kelime açılamaz!');
+    }
   }
 } 
