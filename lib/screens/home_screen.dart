@@ -130,6 +130,14 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
   }
 
   Future<void> _selectWord(WordModel word) async {
+    // Arapça klavye açıksa kapat
+    if (_showArabicKeyboard) {
+      setState(() {
+        _showArabicKeyboard = false;
+      });
+      widget.onArabicKeyboardStateChanged?.call(false);
+    }
+    
     // Önce hak kontrolü yap
     final canOpen = await _creditsService.canOpenWord(word.kelime);
     
@@ -358,8 +366,16 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
             child: NotificationListener<ScrollNotification>(
               onNotification: (notification) {
                 if (notification is UserScrollNotification) {
+                  // Normal klavye açıksa kapat
                   if (_searchFocusNode.hasFocus && !_showArabicKeyboard) {
                     _searchFocusNode.unfocus();
+                  }
+                  // Arapça klavye açıksa kapat
+                  if (_showArabicKeyboard) {
+                    setState(() {
+                      _showArabicKeyboard = false;
+                    });
+                    widget.onArabicKeyboardStateChanged?.call(false);
                   }
                 }
                 return false;
