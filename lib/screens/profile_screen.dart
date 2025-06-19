@@ -141,25 +141,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                     ),
                   ),
-                  if (_creditsService.isPremium) ...[
-                    const SizedBox(width: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF007AFF),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: const Text(
-                        'PREMIUM',
-                        style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
-                  ],
                 ],
               ),
             ),
@@ -436,21 +417,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 ),
                               ),
                             ],
-                          ),
-                        ),
-                        Container(
-                          padding: EdgeInsets.symmetric(vertical: 4, horizontal: 10),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.2),
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Text(
-                            'PREMIUM',
-                            style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
                           ),
                         ),
                       ],

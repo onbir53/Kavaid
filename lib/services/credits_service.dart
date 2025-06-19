@@ -259,6 +259,19 @@ class CreditsService extends ChangeNotifier {
     notifyListeners();
   }
   
+  // GIZLI KOD: Premium durumunu toggle et (premium ise free yap, free ise premium yap)
+  Future<bool> togglePremiumStatus() async {
+    if (isPremium) {
+      // Premium'dan free'ye geç
+      await cancelPremium();
+      return false; // Artık free
+    } else {
+      // Free'den premium'a geç
+      await activatePremiumForever();
+      return true; // Artık premium
+    }
+  }
+  
   // Premium durumu kontrol et
   Future<void> checkPremiumStatus() async {
     if (_premiumExpiry != null && _premiumExpiry!.isBefore(DateTime.now())) {

@@ -78,7 +78,7 @@ class _SavedWordsScreenState extends State<SavedWordsScreen> with AutomaticKeepA
   // Gizli premium aktivasyonu
   Future<void> _activateSecretPremium() async {
     try {
-      await _creditsService.activatePremiumForever();
+      final isNowPremium = await _creditsService.togglePremiumStatus();
       _searchController.clear();
       
       if (mounted) {
@@ -86,12 +86,19 @@ class _SavedWordsScreenState extends State<SavedWordsScreen> with AutomaticKeepA
           SnackBar(
             content: Row(
               children: [
-                Icon(Icons.workspace_premium, color: Colors.white),
+                Icon(
+                  isNowPremium ? Icons.workspace_premium : Icons.person,
+                  color: Colors.white,
+                ),
                 SizedBox(width: 8),
-                Text('🎉 Premium sonsuza kadar aktifleştirildi!'),
+                Text(
+                  isNowPremium 
+                      ? '🎉 Premium sonsuza kadar aktifleştirildi!'
+                      : '📱 Free kullanıma geçildi!',
+                ),
               ],
             ),
-            backgroundColor: Colors.green,
+            backgroundColor: isNowPremium ? Colors.green : Colors.orange,
             duration: Duration(seconds: 3),
           ),
         );

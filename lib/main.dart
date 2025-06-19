@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'services/connectivity_service.dart';
 import 'screens/home_screen.dart';
 import 'screens/saved_words_screen.dart';
@@ -53,14 +54,17 @@ class KavaidApp extends StatefulWidget {
 }
 
 class _KavaidAppState extends State<KavaidApp> with WidgetsBindingObserver {
+  static const String _themeKey = 'is_dark_mode';
   bool _isDarkMode = false;
   bool _isAppInForeground = true;
   bool _isFirstLaunch = true;
+  bool _themeLoaded = false;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _loadThemePreference();
     
     // İlk açılışta app open ad gösterme - sadece resume'da göster
   }
@@ -69,6 +73,21 @@ class _KavaidAppState extends State<KavaidApp> with WidgetsBindingObserver {
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
+  }
+
+  // Tema tercihi yükle
+  Future<void> _loadThemePreference() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _isDarkMode = prefs.getBool(_themeKey) ?? false;
+      _themeLoaded = true;
+    });
+  }
+
+  // Tema tercihi kaydet
+  Future<void> _saveThemePreference(bool isDarkMode) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_themeKey, isDarkMode);
   }
 
   @override
@@ -105,10 +124,26 @@ class _KavaidAppState extends State<KavaidApp> with WidgetsBindingObserver {
     setState(() {
       _isDarkMode = !_isDarkMode;
     });
+    _saveThemePreference(_isDarkMode);
   }
 
   @override
   Widget build(BuildContext context) {
+    // Tema yüklenene kadar loading göster
+    if (!_themeLoaded) {
+      return MaterialApp(
+        debugShowCheckedModeBanner: false,
+        home: Scaffold(
+          backgroundColor: Colors.white,
+          body: Center(
+            child: CircularProgressIndicator(
+              color: Color(0xFF007AFF),
+            ),
+          ),
+        ),
+      );
+    }
+
     return MaterialApp(
       title: 'Kavaid - Arapça Sözlük',
       debugShowCheckedModeBanner: false,
