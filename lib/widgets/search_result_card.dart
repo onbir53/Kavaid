@@ -20,11 +20,13 @@ class ExpandedCardController {
 class SearchResultCard extends StatefulWidget {
   final WordModel word;
   final VoidCallback onTap;
+  final VoidCallback? onExpand;
 
   const SearchResultCard({
     super.key,
     required this.word,
     required this.onTap,
+    this.onExpand,
   });
 
   @override
@@ -120,6 +122,9 @@ class _SearchResultCardState extends State<SearchResultCard> with TickerProvider
     
     // Klavyeyi kapat
     FocusScope.of(context).unfocus();
+    
+    // Arapça klavyeyi kapatmak için callback'i çağır
+    widget.onExpand?.call();
     
     if (!_isExpanded) {
       // Hak kontrolü yap

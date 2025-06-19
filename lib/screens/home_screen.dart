@@ -750,6 +750,15 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
                     return SearchResultCard(
                       word: _searchResults[actualIndex],
                       onTap: () => _selectWord(_searchResults[actualIndex]),
+                      onExpand: () {
+                        // Arapça klavye açıksa kapat
+                        if (_showArabicKeyboard) {
+                          setState(() {
+                            _showArabicKeyboard = false;
+                          });
+                          widget.onArabicKeyboardStateChanged?.call(false);
+                        }
+                      },
                     );
                   }
                 }
