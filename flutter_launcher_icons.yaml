@@ -1,0 +1,22 @@
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "assets/images/app_icon.png"
+  adaptive_icon_background: "#FFFFFF"
+  adaptive_icon_foreground: "assets/images/app_icon_foreground.png"
+  
+  # Web desteği
+  web:
+    generate: true
+    image_path: "assets/images/app_icon.png"
+    background_color: "#FFFFFF"
+    theme_color: "#007AFF"
+  
+  # macOS desteği
+  macos:
+    generate: true
+    image_path: "assets/images/app_icon.png"
+
+# Uygulama detayları
+name: "Kavaid"
+description: "Arapça-Türkçe Sözlük Uygulaması" 

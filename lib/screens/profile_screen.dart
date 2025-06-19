@@ -106,29 +106,43 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Hoş Geldiniz',
+                          _creditsService.isPremium
+                              ? 'Premium Üye'
+                              : 'Ücretsiz Kullanıcı',
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
                             color: isDarkMode ? Colors.white : Colors.black,
                           ),
                         ),
-                        const SizedBox(height: 2),
-                        Text(
-                          _creditsService.isPremium
-                              ? 'Premium Üye'
-                              : 'Ücretsiz Kullanıcı',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: isDarkMode 
-                                ? Colors.white.withOpacity(0.6)
-                                : Colors.black.withOpacity(0.6),
-                          ),
-                        ),
                       ],
                     ),
                   ),
-                  if (_creditsService.isPremium)
+                  // Tema değiştirme - sağ tarafa taşındı
+                  Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      onTap: widget.onThemeToggle,
+                      borderRadius: BorderRadius.circular(20),
+                      child: Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          color: isDarkMode 
+                              ? Colors.white.withOpacity(0.1)
+                              : Colors.black.withOpacity(0.1),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          isDarkMode ? Icons.light_mode : Icons.dark_mode,
+                          color: isDarkMode ? Colors.white : Colors.black,
+                          size: 20,
+                        ),
+                      ),
+                    ),
+                  ),
+                  if (_creditsService.isPremium) ...[
+                    const SizedBox(width: 8),
                     Container(
                       padding: const EdgeInsets.symmetric(
                           horizontal: 10, vertical: 4),
@@ -145,6 +159,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ),
                       ),
                     ),
+                  ],
                 ],
               ),
             ),
@@ -180,7 +195,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         const SizedBox(width: 6),
                         Text(
                           _creditsService.hasInitialCredits 
-                              ? 'Hoşgeldin Hakları' 
+                              ? 'Ücretsiz Hak' 
                               : 'Günlük Haklar',
                           style: TextStyle(
                             fontSize: 14,
@@ -473,68 +488,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
               ),
             ],
-            
-            const SizedBox(height: 24),
-            
-            // Ayarlar
-            Text(
-              'Ayarlar',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: isDarkMode ? Colors.white : Colors.black,
-              ),
-            ),
-            const SizedBox(height: 12),
-            
-            // Tema değiştirme
-            Container(
-              decoration: BoxDecoration(
-                color: isDarkMode 
-                    ? const Color(0xFF1C1C1E) 
-                    : Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: isDarkMode 
-                      ? const Color(0xFF3A3A3C)
-                      : const Color(0xFFE5E5EA),
-                  width: 1,
-                ),
-              ),
-              child: ListTile(
-                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                leading: Icon(
-                  isDarkMode ? Icons.dark_mode : Icons.light_mode,
-                  color: isDarkMode ? Colors.white : Colors.black,
-                  size: 20,
-                ),
-                title: Text(
-                  'Tema',
-                  style: TextStyle(
-                    color: isDarkMode ? Colors.white : Colors.black,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                subtitle: Text(
-                  isDarkMode ? 'Koyu tema' : 'Açık tema',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: isDarkMode 
-                        ? Colors.white.withOpacity(0.6)
-                        : Colors.black.withOpacity(0.6),
-                  ),
-                ),
-                trailing: Transform.scale(
-                  scale: 0.8,
-                  child: Switch(
-                    value: isDarkMode,
-                    onChanged: (_) => widget.onThemeToggle(),
-                    activeColor: const Color(0xFF007AFF),
-                  ),
-                ),
-              ),
-            ),
 
           ],
         ),

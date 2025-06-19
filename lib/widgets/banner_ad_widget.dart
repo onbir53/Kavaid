@@ -221,25 +221,42 @@ class BannerAdWidgetState extends State<BannerAdWidget> with AutomaticKeepAliveC
 
     // Reklam yüklü ve boyut bilgisi varsa göster
     if (_bannerAd != null && _isAdLoaded && _adSize != null) {
-      return Container(
-        width: MediaQuery.of(context).size.width, // Tam ekran genişliği
-        height: _adSize!.height.toDouble(),
-        color: Theme.of(context).scaffoldBackgroundColor,
-        child: AdWidget(ad: _bannerAd!),
+      return SafeArea(
+        bottom: false,
+        child: Container(
+          width: MediaQuery.of(context).size.width,
+          height: _adSize!.height.toDouble(),
+          clipBehavior: Clip.hardEdge,
+          decoration: BoxDecoration(
+            color: Theme.of(context).scaffoldBackgroundColor,
+            borderRadius: BorderRadius.circular(0),
+          ),
+          child: OverflowBox(
+            maxWidth: MediaQuery.of(context).size.width,
+            maxHeight: _adSize!.height.toDouble(),
+            child: AdWidget(ad: _bannerAd!),
+          ),
+        ),
       );
     } else if (_retryCount < _maxRetries) {
       // Reklam yüklenene kadar ve retry devam ederken minimal placeholder
-      return Container(
-        width: MediaQuery.of(context).size.width,
-        height: 50,
-        color: Theme.of(context).scaffoldBackgroundColor,
-        child: const Center(
-          child: SizedBox(
-            width: 16,
-            height: 16,
-            child: CircularProgressIndicator(
-              strokeWidth: 1.5,
-              valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF8E8E93)),
+      return SafeArea(
+        bottom: false,
+        child: Container(
+          width: MediaQuery.of(context).size.width,
+          height: 50,
+          clipBehavior: Clip.hardEdge,
+          decoration: BoxDecoration(
+            color: Theme.of(context).scaffoldBackgroundColor,
+          ),
+          child: const Center(
+            child: SizedBox(
+              width: 16,
+              height: 16,
+              child: CircularProgressIndicator(
+                strokeWidth: 1.5,
+                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF8E8E93)),
+              ),
             ),
           ),
         ),
