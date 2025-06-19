@@ -125,7 +125,7 @@ class _SearchResultCardState extends State<SearchResultCard> with TickerProvider
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: const Text(
-                'Kelime görüntüleme hakkınız bitti. Premium üyelik alarak sınırsız erişim sağlayabilirsiniz.',
+                'Kelime detayları görüntüleme hakkınız bitti. Premium üyelik alarak sınırsız erişim sağlayabilirsiniz.',
                 style: TextStyle(fontSize: 12),
               ),
               backgroundColor: Colors.red.shade600,

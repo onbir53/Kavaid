@@ -28,7 +28,7 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMixin {
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
   final GeminiService _geminiService = GeminiService();
@@ -44,6 +44,9 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _showArabicKeyboard = false;
   Timer? _debounceTimer;
   StreamSubscription<List<WordModel>>? _searchSubscription;
+
+  @override
+  bool get wantKeepAlive => true; // Widget state'ini koru
 
   @override
   void initState() {
@@ -321,6 +324,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context); // AutomaticKeepAliveClientMixin için gerekli
+    
     return Scaffold(
       resizeToAvoidBottomInset: false,
       body: Stack(
