@@ -62,28 +62,19 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
       // Hem immediate hem delayed focus
       _searchFocusNode.requestFocus();
       
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted && widget.isFirstOpen) {
-          _searchFocusNode.requestFocus();
-          
-          // Ekstra güvenlik için birden fazla deneme
-          Future.delayed(const Duration(milliseconds: 300), () {
-            if (mounted && widget.isFirstOpen && !_searchFocusNode.hasFocus) {
-              FocusScope.of(context).requestFocus(_searchFocusNode);
-              _searchFocusNode.requestFocus();
+      // Multiple attempts with increasing delays
+      for (int i = 1; i <= 5; i++) {
+        Future.delayed(Duration(milliseconds: i * 200), () {
+          if (mounted && widget.isFirstOpen && !_searchFocusNode.hasFocus) {
+            FocusScope.of(context).requestFocus(_searchFocusNode);
+            _searchFocusNode.requestFocus();
+            if (i == 5) {
+              // Son denemede callback'i çağır
               widget.onKeyboardOpened?.call();
             }
-          });
-          
-          Future.delayed(const Duration(milliseconds: 600), () {
-            if (mounted && widget.isFirstOpen && !_searchFocusNode.hasFocus) {
-              FocusScope.of(context).requestFocus(_searchFocusNode);
-              _searchFocusNode.requestFocus();
-              widget.onKeyboardOpened?.call();
-            }
-          });
-        }
-      });
+          }
+        });
+      }
     }
   }
 
@@ -357,6 +348,10 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
   Widget build(BuildContext context) {
     super.build(context); // AutomaticKeepAliveClientMixin için gerekli
     
+    // Klavye durumunu kontrol et
+    final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
+    final hasKeyboard = keyboardHeight > 0;
+    
     return PopScope(
       canPop: !_showArabicKeyboard, // Arapça klavye açıkken çıkışı engelle
       onPopInvoked: (didPop) {
@@ -375,8 +370,8 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
           // Ana içerik
           Positioned.fill(
             bottom: _showArabicKeyboard 
-                ? 330 // Arapça klavye (280) + Banner (50)
-                : 0, // Normal durumda main.dart banner ve navbar'ı hallediyor
+                ? 280 // Arapça klavye yüksekliği
+                : 0, // Normal durumda bottom 0
             child: NotificationListener<ScrollNotification>(
               onNotification: (notification) {
                 if (notification is UserScrollNotification) {
@@ -395,6 +390,7 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
                 return false;
               },
               child: CustomScrollView(
+                physics: const ClampingScrollPhysics(),
                 slivers: <Widget>[
                   SliverAppBar(
                     backgroundColor: widget.isDarkMode 
@@ -611,33 +607,27 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
           // Arapça klavye
           if (_showArabicKeyboard)
             Positioned(
-              bottom: 0, // En altta
+              bottom: 0,
               left: 0,
               right: 0,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // Banner klavyenin üstünde
-                  const BannerAdWidget(
-                    key: ValueKey('keyboard_banner_ad'),
-                    stableKey: 'keyboard_banner',
+              child: Container(
+                color: widget.isDarkMode 
+                    ? const Color(0xFF1C1C1E) 
+                    : const Color(0xFFF5F7FB), // Arka plan rengi
+                child: SizedBox(
+                  height: 280,
+                  child: ArabicKeyboard(
+                    controller: _searchController,
+                    onSearch: _searchWithAI,
+                    onClose: () {
+                      setState(() {
+                        _showArabicKeyboard = false;
+                      });
+                      // Main ekrana klavye durumunu bildir
+                      widget.onArabicKeyboardStateChanged?.call(false);
+                    },
                   ),
-                  // Klavye
-                  SizedBox(
-                    height: 280,
-                    child: ArabicKeyboard(
-                      controller: _searchController,
-                      onSearch: _searchWithAI,
-                      onClose: () {
-                        setState(() {
-                          _showArabicKeyboard = false;
-                        });
-                        // Main ekrana klavye durumunu bildir
-                        widget.onArabicKeyboardStateChanged?.call(false);
-                      },
-                    ),
-                  ),
-                ],
+                ),
               ),
             ),
         ],
@@ -744,7 +734,7 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
       
       slivers.add(
         SliverPadding(
-          padding: const EdgeInsets.fromLTRB(8, 12, 8, 80),
+          padding: const EdgeInsets.fromLTRB(8, 12, 8, 110), // Banner + Navbar için bottom padding
           sliver: SliverList(
             delegate: SliverChildBuilderDelegate(
               (context, index) {
@@ -789,7 +779,7 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
     if (_selectedWord != null) {
       slivers.add(
         SliverPadding(
-          padding: const EdgeInsets.fromLTRB(8, 12, 8, 80),
+          padding: const EdgeInsets.fromLTRB(8, 12, 8, 110), // Banner + Navbar için bottom padding
           sliver: SliverToBoxAdapter(
             child: WordCard(word: _selectedWord!),
           ),

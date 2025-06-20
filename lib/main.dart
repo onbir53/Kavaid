@@ -16,6 +16,18 @@ import 'widgets/banner_ad_widget.dart';
 import 'services/credits_service.dart';
 import 'services/subscription_service.dart';
 
+// Custom ScrollBehavior - overscroll glow efektini kaldırmak için
+class NoGlowScrollBehavior extends ScrollBehavior {
+  @override
+  Widget buildOverscrollIndicator(
+    BuildContext context,
+    Widget child,
+    ScrollableDetails details,
+  ) {
+    return child; // Glow efektini gösterme
+  }
+}
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
@@ -231,10 +243,8 @@ class _KavaidAppState extends State<KavaidApp> with WidgetsBindingObserver {
             // Platform varsayılanlarını kullan
           ),
           child: ScrollConfiguration(
-            // Smooth scrolling için platform optimizasyonları
-            behavior: const MaterialScrollBehavior().copyWith(
-              physics: const BouncingScrollPhysics(),
-            ),
+            // Overscroll glow efektini kaldır
+            behavior: NoGlowScrollBehavior(),
             child: child!,
           ),
         );
@@ -480,37 +490,60 @@ class _MainScreenState extends State<MainScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Klavye durumunu kontrol et
+    final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
+    final hasKeyboard = keyboardHeight > 0;
+    
     return Scaffold(
-      body: RepaintBoundary( // Performans optimizasyonu
-        child: IndexedStack(
-          index: _currentIndex,
-          children: [
-            HomeScreen(
-              isDarkMode: widget.isDarkMode,
-              onThemeToggle: widget.onThemeToggle,
-              onArabicKeyboardStateChanged: _setArabicKeyboardState,
-              isFirstOpen: _isFirstOpen && _currentIndex == 0,
-              onKeyboardOpened: () {
-                if (_isFirstOpen) {
-                  setState(() {
-                    _isFirstOpen = false;
-                  });
-                }
-              },
-            ), // Sözlük
-            SavedWordsScreen(
-              onRefreshCallback: (callback) => _refreshSavedWords = callback,
-            ), // Kaydedilenler
-            ProfileScreen(
-              isDarkMode: widget.isDarkMode,
-              onThemeToggle: widget.onThemeToggle,
-            ), // Profil
-          ],
-        ),
-      ),
-      bottomSheet: _showArabicKeyboard ? null : BannerAdWidget(
-        key: const ValueKey('main_banner_ad_stable'), // Sabit key ile yenilenmesini engelle
-        stableKey: 'main_banner_stable',
+      resizeToAvoidBottomInset: false,
+      body: Stack(
+        children: [
+          // Ana içerik - tam ekran
+          Positioned.fill(
+            child: RepaintBoundary(
+              child: IndexedStack(
+                index: _currentIndex,
+                children: [
+                  HomeScreen(
+                    isDarkMode: widget.isDarkMode,
+                    onThemeToggle: widget.onThemeToggle,
+                    onArabicKeyboardStateChanged: _setArabicKeyboardState,
+                    isFirstOpen: _isFirstOpen && _currentIndex == 0,
+                    onKeyboardOpened: () {
+                      if (_isFirstOpen) {
+                        setState(() {
+                          _isFirstOpen = false;
+                        });
+                      }
+                    },
+                  ), // Sözlük
+                  SavedWordsScreen(
+                    onRefreshCallback: (callback) => _refreshSavedWords = callback,
+                  ), // Kaydedilenler
+                  ProfileScreen(
+                    isDarkMode: widget.isDarkMode,
+                    onThemeToggle: widget.onThemeToggle,
+                  ), // Profil
+                ],
+              ),
+            ),
+          ),
+          
+          // Banner reklam - navigation bar'a bitişik
+          Positioned(
+            bottom: hasKeyboard 
+                ? keyboardHeight // Sistem klavyesi açıksa klavyenin üstünde
+                : _showArabicKeyboard 
+                    ? 336.0 // Arapça klavye (280) + navbar (56)
+                    : 56.0, // Navigation bar yüksekliği
+            left: 0,
+            right: 0,
+            child: const BannerAdWidget(
+              key: ValueKey('main_banner_ad_stable'),
+              stableKey: 'main_banner_stable',
+            ),
+          ),
+        ],
       ),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(

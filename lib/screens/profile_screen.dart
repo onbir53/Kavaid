@@ -62,7 +62,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         centerTitle: true,
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 110),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -118,29 +118,61 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ],
                     ),
                   ),
-                  // Tema değiştirme - toggle switch olarak
-                  Switch(
-                    value: widget.isDarkMode,
-                    onChanged: (_) => widget.onThemeToggle(),
-                    activeColor: const Color(0xFF007AFF),
-                    trackColor: MaterialStateProperty.resolveWith<Color?>(
-                      (Set<MaterialState> states) {
-                        if (states.contains(MaterialState.selected)) {
-                          return const Color(0xFF007AFF).withOpacity(0.5);
-                        }
-                        return isDarkMode 
-                            ? Colors.white.withOpacity(0.3)
-                            : Colors.black.withOpacity(0.3);
-                      },
+                  // Tema değiştirme - custom switch
+                  Container(
+                    width: 50,
+                    height: 30,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(15),
+                      color: widget.isDarkMode 
+                          ? const Color(0xFF007AFF).withOpacity(0.3)
+                          : Colors.orange.withOpacity(0.3),
                     ),
-                    thumbColor: MaterialStateProperty.resolveWith<Color?>(
-                      (Set<MaterialState> states) {
-                        return states.contains(MaterialState.selected)
-                            ? Colors.white
-                            : isDarkMode 
-                                ? Colors.white.withOpacity(0.7)
-                                : Colors.black.withOpacity(0.7);
-                      },
+                    child: Stack(
+                      children: [
+                        AnimatedPositioned(
+                          duration: const Duration(milliseconds: 200),
+                          curve: Curves.easeInOut,
+                          left: widget.isDarkMode ? 22 : 2,
+                          top: 2,
+                          child: GestureDetector(
+                            onTap: widget.onThemeToggle,
+                            child: Container(
+                              width: 26,
+                              height: 26,
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(13),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.2),
+                                    blurRadius: 4,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              child: Center(
+                                child: Icon(
+                                  widget.isDarkMode ? Icons.dark_mode : Icons.light_mode,
+                                  size: 16,
+                                  color: widget.isDarkMode 
+                                      ? const Color(0xFF007AFF)
+                                      : Colors.orange,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        // Tıklanabilir alan
+                        Positioned.fill(
+                          child: GestureDetector(
+                            onTap: widget.onThemeToggle,
+                            child: Container(
+                              color: Colors.transparent,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],

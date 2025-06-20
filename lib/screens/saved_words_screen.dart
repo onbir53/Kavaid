@@ -254,7 +254,8 @@ class _SavedWordsScreenState extends State<SavedWordsScreen> with AutomaticKeepA
           ),
         ),
         body: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(8, 0, 8, 80), // Banner alanında padding
+          physics: const ClampingScrollPhysics(),
+          padding: const EdgeInsets.fromLTRB(8, 0, 8, 110),
           child: WordCard(
             word: _selectedWord!,
             key: ValueKey('saved_word_detail_${_selectedWord!.kelime}'),
@@ -277,6 +278,7 @@ class _SavedWordsScreenState extends State<SavedWordsScreen> with AutomaticKeepA
               return false;
             },
             child: CustomScrollView(
+              physics: const ClampingScrollPhysics(),
               slivers: <Widget>[
                 SliverAppBar(
                   backgroundColor: isDarkMode 
@@ -571,7 +573,7 @@ class _SavedWordsScreenState extends State<SavedWordsScreen> with AutomaticKeepA
     }
 
     return SliverPadding(
-      padding: const EdgeInsets.fromLTRB(8, 10, 8, 90),
+      padding: const EdgeInsets.fromLTRB(8, 10, 8, 110), // Banner + Navbar için bottom padding
       sliver: SliverList(
         delegate: SliverChildBuilderDelegate(
           (context, index) {
