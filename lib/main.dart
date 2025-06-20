@@ -407,8 +407,9 @@ class _MainScreenState extends State<MainScreen> {
   int _currentIndex = 0;
   VoidCallback? _refreshSavedWords;
   bool _showArabicKeyboard = false;
-  bool _isFirstOpen = true; // İlk açılış kontrolü için
+  bool _isFirstOpen = true;
   final ConnectivityService _connectivityService = ConnectivityService();
+  double _bannerHeight = 0; // Dinamik banner yüksekliği için state
 
   @override
   void initState() {
@@ -490,131 +491,129 @@ class _MainScreenState extends State<MainScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Klavye durumunu kontrol et
     final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
-    final hasKeyboard = keyboardHeight > 0;
-    
+    final hasSystemKeyboard = keyboardHeight > 0;
+    const navBarHeight = 56.0;
+
     return Scaffold(
       resizeToAvoidBottomInset: false,
       body: Stack(
         children: [
-          // Ana içerik - tam ekran
+          // 1. Ana İçerik
           Positioned.fill(
             child: RepaintBoundary(
               child: IndexedStack(
                 index: _currentIndex,
                 children: [
                   HomeScreen(
+                    bottomPadding: _bannerHeight + navBarHeight,
                     isDarkMode: widget.isDarkMode,
                     onThemeToggle: widget.onThemeToggle,
                     onArabicKeyboardStateChanged: _setArabicKeyboardState,
                     isFirstOpen: _isFirstOpen && _currentIndex == 0,
                     onKeyboardOpened: () {
-                      if (_isFirstOpen) {
-                        setState(() {
-                          _isFirstOpen = false;
-                        });
-                      }
+                      if (_isFirstOpen) setState(() => _isFirstOpen = false);
                     },
-                  ), // Sözlük
+                  ),
                   SavedWordsScreen(
+                    bottomPadding: _bannerHeight + navBarHeight,
                     onRefreshCallback: (callback) => _refreshSavedWords = callback,
-                  ), // Kaydedilenler
+                  ),
                   ProfileScreen(
+                    bottomPadding: _bannerHeight + navBarHeight,
                     isDarkMode: widget.isDarkMode,
                     onThemeToggle: widget.onThemeToggle,
-                  ), // Profil
+                  ),
                 ],
               ),
             ),
           ),
-          
-          // Banner reklam - navigation bar'a bitişik
-          Positioned(
-            bottom: hasKeyboard 
-                ? keyboardHeight // Sistem klavyesi açıksa klavyenin üstünde
-                : _showArabicKeyboard 
-                    ? 336.0 // Arapça klavye (280) + navbar (56)
-                    : 56.0, // Navigation bar yüksekliği
+
+          // 2. Banner Reklam
+          AnimatedPositioned(
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeOut,
+            bottom: hasSystemKeyboard
+                ? keyboardHeight
+                : _showArabicKeyboard
+                    ? 280.0
+                    : navBarHeight,
             left: 0,
             right: 0,
-            child: const BannerAdWidget(
-              key: ValueKey('main_banner_ad_stable'),
+            height: _bannerHeight,
+            child: BannerAdWidget(
+              onAdHeightChanged: (height) {
+                if (mounted && _bannerHeight != height) {
+                  setState(() => _bannerHeight = height);
+                }
+              },
+              key: const ValueKey('main_banner_ad_stable'),
               stableKey: 'main_banner_stable',
             ),
           ),
+
+          // 3. Bottom Navigation Bar
+          AnimatedPositioned(
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeOut,
+            bottom: (hasSystemKeyboard || _showArabicKeyboard) ? -navBarHeight : 0,
+            left: 0,
+            right: 0,
+            height: navBarHeight,
+            child: Container(
+              decoration: BoxDecoration(
+                color: widget.isDarkMode ? const Color(0xFF1C1C1E) : Colors.white,
+                boxShadow: [
+                  BoxShadow(
+                    color: widget.isDarkMode
+                        ? Colors.black.withOpacity(0.3)
+                        : Colors.black.withOpacity(0.08),
+                    blurRadius: 10,
+                    offset: const Offset(0, -2),
+                  ),
+                ],
+              ),
+              child: BottomNavigationBar(
+                currentIndex: _currentIndex,
+                onTap: _onTabTapped,
+                type: BottomNavigationBarType.fixed,
+                backgroundColor: Colors.transparent, // Arka planı parent container'dan alır
+                selectedItemColor: const Color(0xFF007AFF),
+                unselectedItemColor: widget.isDarkMode
+                    ? const Color(0xFF8E8E93)
+                    : const Color(0xFF8E8E93),
+                selectedLabelStyle: const TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.2,
+                ),
+                unselectedLabelStyle: const TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w400,
+                ),
+                elevation: 0,
+                iconSize: 24,
+                items: [
+                  BottomNavigationBarItem(
+                    icon: const Icon(Icons.menu_book_outlined),
+                    activeIcon: const Icon(Icons.menu_book),
+                    label: 'Sözlük',
+                  ),
+                  BottomNavigationBarItem(
+                    icon: const Icon(Icons.bookmark_border),
+                    activeIcon: const Icon(Icons.bookmark),
+                    label: 'Kaydedilenler',
+                  ),
+                  BottomNavigationBarItem(
+                    icon: const Icon(Icons.person_outline),
+                    activeIcon: const Icon(Icons.person),
+                    label: 'Profil',
+                  ),
+                ],
+              ),
+            ),
+          ),
         ],
-      ),
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          boxShadow: [
-            BoxShadow(
-              color: widget.isDarkMode
-                  ? Colors.black.withOpacity(0.3)
-                  : Colors.black.withOpacity(0.08),
-              blurRadius: 10,
-              offset: const Offset(0, -2),
-            ),
-          ],
-        ),
-        child: BottomNavigationBar(
-          currentIndex: _currentIndex,
-          onTap: _onTabTapped,
-          type: BottomNavigationBarType.fixed,
-          backgroundColor: widget.isDarkMode
-              ? const Color(0xFF1C1C1E)
-              : Colors.white,
-          selectedItemColor: const Color(0xFF007AFF),
-          unselectedItemColor: widget.isDarkMode
-              ? const Color(0xFF8E8E93)
-              : const Color(0xFF8E8E93),
-          selectedLabelStyle: const TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.w600,
-            letterSpacing: 0.2,
-          ),
-          unselectedLabelStyle: const TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.w400,
-          ),
-          elevation: 0,
-          iconSize: 24,
-          items: [
-            BottomNavigationBarItem(
-              icon: Container(
-                padding: const EdgeInsets.symmetric(vertical: 2),
-                child: const Icon(Icons.menu_book_outlined),
-              ),
-              activeIcon: Container(
-                padding: const EdgeInsets.symmetric(vertical: 2),
-                child: const Icon(Icons.menu_book),
-              ),
-              label: 'Sözlük',
-            ),
-            BottomNavigationBarItem(
-              icon: Container(
-                padding: const EdgeInsets.symmetric(vertical: 2),
-                child: const Icon(Icons.bookmark_border),
-              ),
-              activeIcon: Container(
-                padding: const EdgeInsets.symmetric(vertical: 2),
-                child: const Icon(Icons.bookmark),
-              ),
-              label: 'Kaydedilenler',
-            ),
-            BottomNavigationBarItem(
-              icon: Container(
-                padding: const EdgeInsets.symmetric(vertical: 2),
-                child: const Icon(Icons.person_outline),
-              ),
-              activeIcon: Container(
-                padding: const EdgeInsets.symmetric(vertical: 2),
-                child: const Icon(Icons.person),
-              ),
-              label: 'Profil',
-            ),
-          ],
-        ),
       ),
     );
   }

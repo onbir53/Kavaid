@@ -3,11 +3,13 @@ import '../services/credits_service.dart';
 import '../services/subscription_service.dart';
 
 class ProfileScreen extends StatefulWidget {
+  final double bottomPadding;
   final bool isDarkMode;
   final VoidCallback onThemeToggle;
 
   const ProfileScreen({
     super.key,
+    required this.bottomPadding,
     required this.isDarkMode,
     required this.onThemeToggle,
   });
@@ -62,7 +64,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         centerTitle: true,
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 110),
+        padding: EdgeInsets.fromLTRB(16, 16, 16, widget.bottomPadding),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [

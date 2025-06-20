@@ -13,6 +13,7 @@ import '../widgets/native_ad_widget.dart';
 
 
 class HomeScreen extends StatefulWidget {
+  final double bottomPadding;
   final bool isDarkMode;
   final VoidCallback onThemeToggle;
   final Function(bool)? onArabicKeyboardStateChanged;
@@ -21,6 +22,7 @@ class HomeScreen extends StatefulWidget {
 
   const HomeScreen({
     super.key,
+    required this.bottomPadding,
     required this.isDarkMode,
     required this.onThemeToggle,
     this.onArabicKeyboardStateChanged,
@@ -369,9 +371,7 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
         children: [
           // Ana içerik
           Positioned.fill(
-            bottom: _showArabicKeyboard 
-                ? 280 // Arapça klavye yüksekliği
-                : 0, // Normal durumda bottom 0
+            bottom: 0, // İçerik her zaman en alta kadar uzanacak
             child: NotificationListener<ScrollNotification>(
               onNotification: (notification) {
                 if (notification is UserScrollNotification) {
@@ -734,7 +734,7 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
       
       slivers.add(
         SliverPadding(
-          padding: const EdgeInsets.fromLTRB(8, 12, 8, 110), // Banner + Navbar için bottom padding
+          padding: EdgeInsets.fromLTRB(8, 12, 8, widget.bottomPadding),
           sliver: SliverList(
             delegate: SliverChildBuilderDelegate(
               (context, index) {
@@ -779,7 +779,7 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
     if (_selectedWord != null) {
       slivers.add(
         SliverPadding(
-          padding: const EdgeInsets.fromLTRB(8, 12, 8, 110), // Banner + Navbar için bottom padding
+          padding: EdgeInsets.fromLTRB(8, 12, 8, widget.bottomPadding),
           sliver: SliverToBoxAdapter(
             child: WordCard(word: _selectedWord!),
           ),

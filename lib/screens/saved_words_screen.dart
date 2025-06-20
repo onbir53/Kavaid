@@ -8,11 +8,13 @@ import '../widgets/word_card.dart';
 import '../widgets/search_result_card.dart';
 
 class SavedWordsScreen extends StatefulWidget {
-  final Function(VoidCallback)? onRefreshCallback;
+  final double bottomPadding;
+  final Function(VoidCallback) onRefreshCallback;
   
   const SavedWordsScreen({
     super.key,
-    this.onRefreshCallback,
+    required this.bottomPadding,
+    required this.onRefreshCallback,
   });
 
   @override
@@ -255,7 +257,7 @@ class _SavedWordsScreenState extends State<SavedWordsScreen> with AutomaticKeepA
         ),
         body: SingleChildScrollView(
           physics: const ClampingScrollPhysics(),
-          padding: const EdgeInsets.fromLTRB(8, 0, 8, 110),
+          padding: EdgeInsets.fromLTRB(8, 0, 8, widget.bottomPadding),
           child: WordCard(
             word: _selectedWord!,
             key: ValueKey('saved_word_detail_${_selectedWord!.kelime}'),
@@ -573,7 +575,7 @@ class _SavedWordsScreenState extends State<SavedWordsScreen> with AutomaticKeepA
     }
 
     return SliverPadding(
-      padding: const EdgeInsets.fromLTRB(8, 10, 8, 110), // Banner + Navbar için bottom padding
+      padding: EdgeInsets.fromLTRB(8, 10, 8, widget.bottomPadding),
       sliver: SliverList(
         delegate: SliverChildBuilderDelegate(
           (context, index) {
