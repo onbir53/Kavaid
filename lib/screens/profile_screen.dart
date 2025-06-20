@@ -118,27 +118,29 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ],
                     ),
                   ),
-                  // Tema değiştirme - sağ tarafa taşındı
-                  Material(
-                    color: Colors.transparent,
-                    child: InkWell(
-                      onTap: widget.onThemeToggle,
-                      borderRadius: BorderRadius.circular(20),
-                      child: Container(
-                        width: 40,
-                        height: 40,
-                        decoration: BoxDecoration(
-                          color: isDarkMode 
-                              ? Colors.white.withOpacity(0.1)
-                              : Colors.black.withOpacity(0.1),
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(
-                          isDarkMode ? Icons.light_mode : Icons.dark_mode,
-                          color: isDarkMode ? Colors.white : Colors.black,
-                          size: 20,
-                        ),
-                      ),
+                  // Tema değiştirme - toggle switch olarak
+                  Switch(
+                    value: widget.isDarkMode,
+                    onChanged: (_) => widget.onThemeToggle(),
+                    activeColor: const Color(0xFF007AFF),
+                    trackColor: MaterialStateProperty.resolveWith<Color?>(
+                      (Set<MaterialState> states) {
+                        if (states.contains(MaterialState.selected)) {
+                          return const Color(0xFF007AFF).withOpacity(0.5);
+                        }
+                        return isDarkMode 
+                            ? Colors.white.withOpacity(0.3)
+                            : Colors.black.withOpacity(0.3);
+                      },
+                    ),
+                    thumbColor: MaterialStateProperty.resolveWith<Color?>(
+                      (Set<MaterialState> states) {
+                        return states.contains(MaterialState.selected)
+                            ? Colors.white
+                            : isDarkMode 
+                                ? Colors.white.withOpacity(0.7)
+                                : Colors.black.withOpacity(0.7);
+                      },
                     ),
                   ),
                 ],
@@ -200,7 +202,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           ),
                         ),
                         Text(
-                          _creditsService.hasInitialCredits ? ' / 50' : ' / 5',
+                          _creditsService.hasInitialCredits ? ' / 100' : ' / 5',
                           style: TextStyle(
                             fontSize: 20,
                             color: isDarkMode 
@@ -216,7 +218,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       borderRadius: BorderRadius.circular(6),
                       child: LinearProgressIndicator(
                         value: _creditsService.hasInitialCredits 
-                            ? _creditsService.credits / 50 
+                            ? _creditsService.credits / 100 
                             : _creditsService.credits / 5,
                         minHeight: 6,
                         backgroundColor: isDarkMode
@@ -267,7 +269,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           const SizedBox(height: 6),
                           Text(
                             _creditsService.hasInitialCredits
-                                ? '• İlk açılışta 50 ücretsiz hak kazanırsınız\n• Her kelime detayı 1 hak harcar\n• 50 ücretsiz hak bitince günlük yenilenen 5 hakkınız olur\n• Her gün saat 00:00\'da yenilenir'
+                                ? '• İlk açılışta 100 ücretsiz hak kazanırsınız\n• Her kelime detayı 1 hak harcar\n• 100 ücretsiz hak bitince günlük yenilenen 5 hakkınız olur\n• Her gün saat 00:00\'da yenilenir'
                                 : '• Her gün saat 00:00\'da 5 hakkınız yenilenir',
                             style: TextStyle(
                               fontSize: 11,

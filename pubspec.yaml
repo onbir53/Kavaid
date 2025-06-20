@@ -67,6 +67,11 @@ dependencies:
   # In-App Purchase
   in_app_purchase: ^3.2.0
 
+  # New dependencies
+  flutter_launcher_icons: ^0.14.1
+  file_picker: ^8.1.6
+  flutter_displaymode: ^0.6.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

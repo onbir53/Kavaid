@@ -32,7 +32,7 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMixin {
+class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMixin, TickerProviderStateMixin {
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
   final GeminiService _geminiService = GeminiService();
@@ -59,16 +59,30 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
     
     // İlk açılışta klavyeyi aç - daha güçlü yöntem
     if (widget.isFirstOpen) {
+      // Hem immediate hem delayed focus
+      _searchFocusNode.requestFocus();
+      
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        Future.delayed(const Duration(milliseconds: 500), () {
-          if (mounted && widget.isFirstOpen) {
-            // Daha güçlü focus yöntemi
-            FocusScope.of(context).requestFocus(_searchFocusNode);
-            // Klavyeyi açmak için ekstra try
-            _searchFocusNode.requestFocus();
-            widget.onKeyboardOpened?.call();
-          }
-        });
+        if (mounted && widget.isFirstOpen) {
+          _searchFocusNode.requestFocus();
+          
+          // Ekstra güvenlik için birden fazla deneme
+          Future.delayed(const Duration(milliseconds: 300), () {
+            if (mounted && widget.isFirstOpen && !_searchFocusNode.hasFocus) {
+              FocusScope.of(context).requestFocus(_searchFocusNode);
+              _searchFocusNode.requestFocus();
+              widget.onKeyboardOpened?.call();
+            }
+          });
+          
+          Future.delayed(const Duration(milliseconds: 600), () {
+            if (mounted && widget.isFirstOpen && !_searchFocusNode.hasFocus) {
+              FocusScope.of(context).requestFocus(_searchFocusNode);
+              _searchFocusNode.requestFocus();
+              widget.onKeyboardOpened?.call();
+            }
+          });
+        }
       });
     }
   }
@@ -208,7 +222,7 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
           children: [
             Text(
               _creditsService.hasInitialCredits
-                  ? '50 ücretsiz hakkınız bitmiştir. Günlük yenilenen 5 hak ile devam edebilir veya Premium\'a yükselterek sınırsız erişim kazanabilirsiniz.'
+                  ? '100 ücretsiz hakkınız bitmiştir. Günlük yenilenen 5 hak ile devam edebilir veya Premium\'a yükselterek sınırsız erişim kazanabilirsiniz.'
                   : 'Günlük 5 hakkınız bitmiştir. Yarın saat 00:00\'da yeni haklarınız yüklenecektir.',
               style: TextStyle(
                 fontSize: 14,

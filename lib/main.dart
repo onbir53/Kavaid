@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_displaymode/flutter_displaymode.dart';
+import 'dart:io' show Platform;
 import 'services/connectivity_service.dart';
 import 'screens/home_screen.dart';
 import 'screens/saved_words_screen.dart';
@@ -16,6 +18,37 @@ import 'services/subscription_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // Android'de yüksek FPS desteğini aktif et
+  if (!kIsWeb && Platform.isAndroid) {
+    try {
+      // Mevcut aktif display mode'u al
+      final activeMode = await FlutterDisplayMode.active;
+      debugPrint('📱 Mevcut ekran modu: ${activeMode?.width}x${activeMode?.height} @ ${activeMode?.refreshRate}Hz');
+      
+      // Desteklenen modları listele (debug için)
+      final modes = await FlutterDisplayMode.supported;
+      debugPrint('📱 Desteklenen ekran modları:');
+      for (final mode in modes) {
+        debugPrint('   ${mode.width}x${mode.height} @ ${mode.refreshRate}Hz');
+      }
+      
+      // Cihazın mevcut aktif modunu kullan
+      if (activeMode != null) {
+        await FlutterDisplayMode.setPreferredMode(activeMode);
+        debugPrint('✅ Cihazın aktif yenileme hızı kullanılıyor: ${activeMode.refreshRate}Hz');
+      }
+    } catch (e) {
+      debugPrint('⚠️ Display mode ayarlanamadı: $e');
+    }
+  }
+  
+  // iOS ve diğer platformlarda varsayılan davranışı kullan
+  if (!kIsWeb && Platform.isIOS) {
+    // iOS otomatik olarak sistem ayarlarındaki yenileme hızını kullanır
+    // Low Power Mode'da veya kullanıcı ayarlarına göre otomatik adaptasyon
+    debugPrint('🍎 iOS ProMotion sistem ayarlarını otomatik takip ediyor');
+  }
   
   try {
     // Firebase'i başlat (zorunlu) - 10 saniye timeout ile
@@ -187,6 +220,25 @@ class _KavaidAppState extends State<KavaidApp> with WidgetsBindingObserver {
         isDarkMode: _isDarkMode,
         onThemeToggle: _toggleTheme,
       ),
+      builder: (context, child) {
+        // Cihazın aktif yenileme hızında çalış
+        final mediaQuery = MediaQuery.of(context);
+        
+        return MediaQuery(
+          data: mediaQuery.copyWith(
+            // Display metrics'i koru
+            devicePixelRatio: mediaQuery.devicePixelRatio,
+            // Platform varsayılanlarını kullan
+          ),
+          child: ScrollConfiguration(
+            // Smooth scrolling için platform optimizasyonları
+            behavior: const MaterialScrollBehavior().copyWith(
+              physics: const BouncingScrollPhysics(),
+            ),
+            child: child!,
+          ),
+        );
+      },
     );
   }
 
@@ -429,34 +481,36 @@ class _MainScreenState extends State<MainScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: IndexedStack(
-        index: _currentIndex,
-        children: [
-          HomeScreen(
-            isDarkMode: widget.isDarkMode,
-            onThemeToggle: widget.onThemeToggle,
-            onArabicKeyboardStateChanged: _setArabicKeyboardState,
-            isFirstOpen: _isFirstOpen && _currentIndex == 0,
-            onKeyboardOpened: () {
-              if (_isFirstOpen) {
-                setState(() {
-                  _isFirstOpen = false;
-                });
-              }
-            },
-          ), // Sözlük
-          SavedWordsScreen(
-            onRefreshCallback: (callback) => _refreshSavedWords = callback,
-          ), // Kaydedilenler
-          ProfileScreen(
-            isDarkMode: widget.isDarkMode,
-            onThemeToggle: widget.onThemeToggle,
-          ), // Profil
-        ],
+      body: RepaintBoundary( // Performans optimizasyonu
+        child: IndexedStack(
+          index: _currentIndex,
+          children: [
+            HomeScreen(
+              isDarkMode: widget.isDarkMode,
+              onThemeToggle: widget.onThemeToggle,
+              onArabicKeyboardStateChanged: _setArabicKeyboardState,
+              isFirstOpen: _isFirstOpen && _currentIndex == 0,
+              onKeyboardOpened: () {
+                if (_isFirstOpen) {
+                  setState(() {
+                    _isFirstOpen = false;
+                  });
+                }
+              },
+            ), // Sözlük
+            SavedWordsScreen(
+              onRefreshCallback: (callback) => _refreshSavedWords = callback,
+            ), // Kaydedilenler
+            ProfileScreen(
+              isDarkMode: widget.isDarkMode,
+              onThemeToggle: widget.onThemeToggle,
+            ), // Profil
+          ],
+        ),
       ),
-      bottomSheet: _showArabicKeyboard ? null : const BannerAdWidget(
-        key: ValueKey('main_banner_ad'),
-        stableKey: 'main_banner',
+      bottomSheet: _showArabicKeyboard ? null : BannerAdWidget(
+        key: const ValueKey('main_banner_ad_stable'), // Sabit key ile yenilenmesini engelle
+        stableKey: 'main_banner_stable',
       ),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(

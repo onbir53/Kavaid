@@ -68,6 +68,10 @@ class BannerAdWidgetState extends State<BannerAdWidget> with AutomaticKeepAliveC
   void activate() {
     // Widget yeniden activate olduğunda visibility'yi true yap
     _isVisible = true;
+    // Banner zaten yüklüyse tekrar yükleme
+    if (_bannerAd == null && _retryCount < _maxRetries && !_isAdLoaded) {
+      _loadBannerAd();
+    }
     super.activate();
   }
 
@@ -224,17 +228,19 @@ class BannerAdWidgetState extends State<BannerAdWidget> with AutomaticKeepAliveC
       return SafeArea(
         bottom: false,
         child: Container(
-          width: MediaQuery.of(context).size.width,
+          width: double.infinity, // Tam ekran genişliği
           height: _adSize!.height.toDouble(),
           clipBehavior: Clip.hardEdge,
           decoration: BoxDecoration(
             color: Theme.of(context).scaffoldBackgroundColor,
             borderRadius: BorderRadius.circular(0),
           ),
-          child: OverflowBox(
-            maxWidth: MediaQuery.of(context).size.width,
-            maxHeight: _adSize!.height.toDouble(),
-            child: AdWidget(ad: _bannerAd!),
+          child: Center( // AdWidget'ı ortala
+            child: SizedBox(
+              width: _adSize!.width.toDouble(),
+              height: _adSize!.height.toDouble(),
+              child: AdWidget(ad: _bannerAd!),
+            ),
           ),
         ),
       );
@@ -243,7 +249,7 @@ class BannerAdWidgetState extends State<BannerAdWidget> with AutomaticKeepAliveC
       return SafeArea(
         bottom: false,
         child: Container(
-          width: MediaQuery.of(context).size.width,
+          width: double.infinity, // Tam ekran genişliği
           height: 50,
           clipBehavior: Clip.hardEdge,
           decoration: BoxDecoration(

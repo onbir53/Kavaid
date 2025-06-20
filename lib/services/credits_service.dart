@@ -15,7 +15,7 @@ class CreditsService extends ChangeNotifier {
   static const String _deviceIdKey = 'device_id';
   static const String _deviceFirstLaunchKey = 'device_first_launch_';
   
-  static const int _initialCredits = 50; // İlk açılışta 50 hak
+  static const int _initialCredits = 100; // İlk açılışta 100 hak
   static const int _dailyCredits = 5; // Günlük 5 hak
   
   int _credits = 0;
@@ -44,16 +44,24 @@ class CreditsService extends ChangeNotifier {
     // Cihaz ID'sini al veya oluştur
     await _initializeDeviceId(prefs);
     
-    // Premium durumunu yükle
-    _isPremium = prefs.getBool(_premiumKey) ?? false;
+    // Cihaz bazlı key'ler oluştur
+    final deviceCreditsKey = '${_creditsKey}_$_deviceId';
+    final devicePremiumKey = '${_premiumKey}_$_deviceId';
+    final devicePremiumExpiryKey = '${_premiumExpiryKey}_$_deviceId';
+    final deviceInitialCreditsUsedKey = '${_initialCreditsUsedKey}_$_deviceId';
+    final deviceLastResetDateKey = '${_lastResetDateKey}_$_deviceId';
+    final deviceSessionWordsKey = '${_sessionWordsKey}_$_deviceId';
     
-    final expiryMillis = prefs.getInt(_premiumExpiryKey);
+    // Premium durumunu yükle
+    _isPremium = prefs.getBool(devicePremiumKey) ?? false;
+    
+    final expiryMillis = prefs.getInt(devicePremiumExpiryKey);
     if (expiryMillis != null) {
       _premiumExpiry = DateTime.fromMillisecondsSinceEpoch(expiryMillis);
     }
     
     // Son sıfırlama tarihini yükle - ÖNEMLİ: _checkDailyReset'ten önce!
-    final lastResetStr = prefs.getString(_lastResetDateKey);
+    final lastResetStr = prefs.getString(deviceLastResetDateKey);
     if (lastResetStr != null) {
       _lastResetDate = DateTime.parse(lastResetStr);
     }
@@ -63,24 +71,23 @@ class CreditsService extends ChangeNotifier {
     final isDeviceFirstLaunch = prefs.getBool(deviceFirstLaunchKey) ?? true;
     
     if (isDeviceFirstLaunch) {
-      // Bu cihazda ilk açılış - 50 kredi ver
-      await prefs.setInt(_creditsKey, _initialCredits);
+      // Bu cihazda ilk açılış - 100 kredi ver
+      await prefs.setInt(deviceCreditsKey, _initialCredits);
       await prefs.setBool(deviceFirstLaunchKey, false);
-      await prefs.setBool(_firstLaunchKey, false);
-      await prefs.setBool(_initialCreditsUsedKey, false);
+      await prefs.setBool(deviceInitialCreditsUsedKey, false);
       
       // İlk açılışta bugünün tarihini kaydet
       final now = DateTime.now();
       final turkeyTime = now.toUtc().add(const Duration(hours: 3));
       _lastResetDate = DateTime(turkeyTime.year, turkeyTime.month, turkeyTime.day);
-      await prefs.setString(_lastResetDateKey, _lastResetDate!.toIso8601String());
+      await prefs.setString(deviceLastResetDateKey, _lastResetDate!.toIso8601String());
       
       _credits = _initialCredits;
       _initialCreditsUsed = false;
     } else {
       // Bu cihazda daha önce açılmış
-      _initialCreditsUsed = prefs.getBool(_initialCreditsUsedKey) ?? false;
-      _credits = prefs.getInt(_creditsKey) ?? 0;
+      _initialCreditsUsed = prefs.getBool(deviceInitialCreditsUsedKey) ?? false;
+      _credits = prefs.getInt(deviceCreditsKey) ?? 0;
       
       // Eğer ilk krediler bitmiş ve günlük sistem aktifse günlük kontrolü yap
       if (_initialCreditsUsed) {
@@ -130,10 +137,15 @@ class CreditsService extends ChangeNotifier {
     final turkeyTime = now.toUtc().add(const Duration(hours: 3));
     final todayMidnight = DateTime(turkeyTime.year, turkeyTime.month, turkeyTime.day);
     
+    // Cihaz bazlı key'ler
+    final deviceCreditsKey = '${_creditsKey}_$_deviceId';
+    final deviceLastResetDateKey = '${_lastResetDateKey}_$_deviceId';
+    final deviceSessionWordsKey = '${_sessionWordsKey}_$_deviceId';
+    
     // Eğer _lastResetDate null ise (beklenmedik durum), bugünün tarihini kaydet ama kredi verme
     if (_lastResetDate == null) {
       _lastResetDate = todayMidnight;
-      await prefs.setString(_lastResetDateKey, todayMidnight.toIso8601String());
+      await prefs.setString(deviceLastResetDateKey, todayMidnight.toIso8601String());
       // Kredi vermiyoruz, sadece tarihi kaydediyoruz
       return;
     }
@@ -144,12 +156,12 @@ class CreditsService extends ChangeNotifier {
       _credits = _dailyCredits;
       _lastResetDate = todayMidnight;
       
-      await prefs.setInt(_creditsKey, _credits);
-      await prefs.setString(_lastResetDateKey, todayMidnight.toIso8601String());
+      await prefs.setInt(deviceCreditsKey, _credits);
+      await prefs.setString(deviceLastResetDateKey, todayMidnight.toIso8601String());
       
       // Günlük kelime setini temizle
       _sessionOpenedWords.clear();
-      await prefs.setStringList(_sessionWordsKey, []);
+      await prefs.setStringList(deviceSessionWordsKey, []);
     }
     // Eğer aynı gündeyse, mevcut krediler korunur (birikme yok)
   }
@@ -158,15 +170,18 @@ class CreditsService extends ChangeNotifier {
     final savedSessionId = prefs.getString(_sessionIdKey) ?? '';
     final currentSessionId = DateTime.now().toIso8601String();
     
+    // Cihaz bazlı key
+    final deviceSessionWordsKey = '${_sessionWordsKey}_$_deviceId';
+    
     // Yeni oturum oluştur
     if (savedSessionId != currentSessionId.substring(0, 10)) { // Gün bazlı oturum
       _currentSessionId = currentSessionId;
       _sessionOpenedWords.clear();
       await prefs.setString(_sessionIdKey, _currentSessionId);
-      await prefs.setStringList(_sessionWordsKey, []);
+      await prefs.setStringList(deviceSessionWordsKey, []);
     } else {
       _currentSessionId = savedSessionId;
-      _sessionOpenedWords = (prefs.getStringList(_sessionWordsKey) ?? []).toSet();
+      _sessionOpenedWords = (prefs.getStringList(deviceSessionWordsKey) ?? []).toSet();
     }
   }
   
@@ -203,19 +218,26 @@ class CreditsService extends ChangeNotifier {
     _sessionOpenedWords.add(wordId);
     
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt(_creditsKey, _credits);
-    await prefs.setStringList(_sessionWordsKey, _sessionOpenedWords.toList());
+    
+    // Cihaz bazlı key'ler
+    final deviceCreditsKey = '${_creditsKey}_$_deviceId';
+    final deviceSessionWordsKey = '${_sessionWordsKey}_$_deviceId';
+    final deviceInitialCreditsUsedKey = '${_initialCreditsUsedKey}_$_deviceId';
+    final deviceLastResetDateKey = '${_lastResetDateKey}_$_deviceId';
+    
+    await prefs.setInt(deviceCreditsKey, _credits);
+    await prefs.setStringList(deviceSessionWordsKey, _sessionOpenedWords.toList());
     
     // Eğer ilk krediler bittiyse, günlük sisteme geç
     if (!_initialCreditsUsed && _credits == 0) {
       _initialCreditsUsed = true;
-      await prefs.setBool(_initialCreditsUsedKey, true);
+      await prefs.setBool(deviceInitialCreditsUsedKey, true);
       
       // Türkiye saatine göre bugünün gece yarısını ayarla
       final now = DateTime.now();
       final turkeyTime = now.toUtc().add(const Duration(hours: 3));
       _lastResetDate = DateTime(turkeyTime.year, turkeyTime.month, turkeyTime.day);
-      await prefs.setString(_lastResetDateKey, _lastResetDate!.toIso8601String());
+      await prefs.setString(deviceLastResetDateKey, _lastResetDate!.toIso8601String());
     }
     
     notifyListeners();
@@ -228,8 +250,11 @@ class CreditsService extends ChangeNotifier {
     _premiumExpiry = DateTime.now().add(const Duration(days: 60 * 30)); // 60 ay
     
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(_premiumKey, true);
-    await prefs.setInt(_premiumExpiryKey, _premiumExpiry!.millisecondsSinceEpoch);
+    final devicePremiumKey = '${_premiumKey}_$_deviceId';
+    final devicePremiumExpiryKey = '${_premiumExpiryKey}_$_deviceId';
+    
+    await prefs.setBool(devicePremiumKey, true);
+    await prefs.setInt(devicePremiumExpiryKey, _premiumExpiry!.millisecondsSinceEpoch);
     
     notifyListeners();
   }
@@ -240,8 +265,11 @@ class CreditsService extends ChangeNotifier {
     _premiumExpiry = DateTime.now().add(const Duration(days: 30)); // 1 ay
     
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(_premiumKey, true);
-    await prefs.setInt(_premiumExpiryKey, _premiumExpiry!.millisecondsSinceEpoch);
+    final devicePremiumKey = '${_premiumKey}_$_deviceId';
+    final devicePremiumExpiryKey = '${_premiumExpiryKey}_$_deviceId';
+    
+    await prefs.setBool(devicePremiumKey, true);
+    await prefs.setInt(devicePremiumExpiryKey, _premiumExpiry!.millisecondsSinceEpoch);
     
     notifyListeners();
   }
@@ -253,8 +281,11 @@ class CreditsService extends ChangeNotifier {
     _premiumExpiry = DateTime.now().add(const Duration(days: 365 * 100));
     
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(_premiumKey, true);
-    await prefs.setInt(_premiumExpiryKey, _premiumExpiry!.millisecondsSinceEpoch);
+    final devicePremiumKey = '${_premiumKey}_$_deviceId';
+    final devicePremiumExpiryKey = '${_premiumExpiryKey}_$_deviceId';
+    
+    await prefs.setBool(devicePremiumKey, true);
+    await prefs.setInt(devicePremiumExpiryKey, _premiumExpiry!.millisecondsSinceEpoch);
     
     notifyListeners();
   }
@@ -277,7 +308,8 @@ class CreditsService extends ChangeNotifier {
     if (_premiumExpiry != null && _premiumExpiry!.isBefore(DateTime.now())) {
       _isPremium = false;
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setBool(_premiumKey, false);
+      final devicePremiumKey = '${_premiumKey}_$_deviceId';
+      await prefs.setBool(devicePremiumKey, false);
       notifyListeners();
     }
   }
@@ -286,8 +318,13 @@ class CreditsService extends ChangeNotifier {
   Future<void> resetCreditsForTesting() async {
     final prefs = await SharedPreferences.getInstance();
     
+    // Cihaz bazlı key'ler
+    final deviceCreditsKey = '${_creditsKey}_$_deviceId';
+    final deviceLastResetDateKey = '${_lastResetDateKey}_$_deviceId';
+    final deviceSessionWordsKey = '${_sessionWordsKey}_$_deviceId';
+    
     if (!_initialCreditsUsed) {
-      // İlk krediler henüz bitmemişse, 50'ye sıfırla
+      // İlk krediler henüz bitmemişse, 100'e sıfırla
       _credits = _initialCredits;
     } else {
       // Günlük sisteme geçilmişse, günlük kredileri ver
@@ -295,13 +332,13 @@ class CreditsService extends ChangeNotifier {
       final now = DateTime.now();
       final turkeyTime = now.toUtc().add(const Duration(hours: 3));
       _lastResetDate = DateTime(turkeyTime.year, turkeyTime.month, turkeyTime.day);
-      await prefs.setString(_lastResetDateKey, _lastResetDate!.toIso8601String());
+      await prefs.setString(deviceLastResetDateKey, _lastResetDate!.toIso8601String());
     }
     
     _sessionOpenedWords.clear();
     
-    await prefs.setInt(_creditsKey, _credits);
-    await prefs.setStringList(_sessionWordsKey, []);
+    await prefs.setInt(deviceCreditsKey, _credits);
+    await prefs.setStringList(deviceSessionWordsKey, []);
     
     notifyListeners();
   }
@@ -313,14 +350,20 @@ class CreditsService extends ChangeNotifier {
       _initialCreditsUsed = true;
       
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setInt(_creditsKey, _credits);
-      await prefs.setBool(_initialCreditsUsedKey, true);
+      
+      // Cihaz bazlı key'ler
+      final deviceCreditsKey = '${_creditsKey}_$_deviceId';
+      final deviceInitialCreditsUsedKey = '${_initialCreditsUsedKey}_$_deviceId';
+      final deviceLastResetDateKey = '${_lastResetDateKey}_$_deviceId';
+      
+      await prefs.setInt(deviceCreditsKey, _credits);
+      await prefs.setBool(deviceInitialCreditsUsedKey, true);
       
       // Günlük sisteme geç - yarın yeni krediler gelsin diye bugünün tarihini ayarla
       final now = DateTime.now();
       final turkeyTime = now.toUtc().add(const Duration(hours: 3));
       _lastResetDate = DateTime(turkeyTime.year, turkeyTime.month, turkeyTime.day).subtract(const Duration(days: 1));
-      await prefs.setString(_lastResetDateKey, _lastResetDate!.toIso8601String());
+      await prefs.setString(deviceLastResetDateKey, _lastResetDate!.toIso8601String());
       
       notifyListeners();
     }
@@ -332,8 +375,11 @@ class CreditsService extends ChangeNotifier {
     _premiumExpiry = null;
     
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(_premiumKey, false);
-    await prefs.remove(_premiumExpiryKey);
+    final devicePremiumKey = '${_premiumKey}_$_deviceId';
+    final devicePremiumExpiryKey = '${_premiumExpiryKey}_$_deviceId';
+    
+    await prefs.setBool(devicePremiumKey, false);
+    await prefs.remove(devicePremiumExpiryKey);
     
     notifyListeners();
   }
