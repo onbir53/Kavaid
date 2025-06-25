@@ -126,17 +126,7 @@ class _WordCardState extends State<WordCard> {
       key: ValueKey('word_card_${widget.word.kelime}'),
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
-        gradient: isDarkMode 
-            ? null
-            : const LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  Color(0xFFFFFFFF),
-                  Color(0xFFFBFCFF), // Hafif mavimsi gradient
-                ],
-              ),
-        color: isDarkMode ? const Color(0xFF1C1C1E) : null,
+        color: isDarkMode ? const Color(0xFF1C1C1E) : Colors.white,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: isDarkMode 
@@ -144,29 +134,12 @@ class _WordCardState extends State<WordCard> {
               : const Color(0xFFD8E4F5), // Daha açık mavi kenar
           width: 0.8,
         ),
-        boxShadow: [
+        boxShadow: isDarkMode ? null : [
           BoxShadow(
-            color: isDarkMode 
-                ? Colors.black.withOpacity(0.3)
-                : const Color(0xFF007AFF).withOpacity(0.1), // Daha belirgin mavi gölge
-            blurRadius: isDarkMode ? 8 : 16,
-            offset: Offset(0, isDarkMode ? 2 : 6),
-            spreadRadius: isDarkMode ? 0 : 1,
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
           ),
-          if (!isDarkMode) ...[
-            BoxShadow(
-              color: Colors.white.withOpacity(0.95),
-              blurRadius: 1,
-              offset: const Offset(0, -1),
-              spreadRadius: 0,
-            ),
-            BoxShadow(
-              color: const Color(0xFF007AFF).withOpacity(0.03), // Ekstra mavi gölge
-              blurRadius: 8,
-              offset: const Offset(0, 3),
-              spreadRadius: 0,
-            ),
-          ],
         ],
       ),
       child: Padding(

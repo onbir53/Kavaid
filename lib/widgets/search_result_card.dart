@@ -220,212 +220,187 @@ class _SearchResultCardState extends State<SearchResultCard> with TickerProvider
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 3),
-      child: Container(
-        key: ValueKey('search_card_${widget.word.kelime}'),
-        decoration: BoxDecoration(
-          gradient: isDarkMode 
-              ? null
-              : const LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    Color(0xFFFFFFFF),
-                    Color(0xFFF8F9FA),
-                  ],
-                ),
-          color: isDarkMode ? const Color(0xFF1C1C1E) : null,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-            color: isDarkMode 
-                ? const Color(0xFF48484A)
-                : const Color(0xFFD0D0D0),
-            width: 0.8,
-          ),
-          boxShadow: [
-            BoxShadow(
+    return RepaintBoundary(
+      child: Padding(
+        padding: const EdgeInsets.only(bottom: 3),
+        child: Container(
+          key: ValueKey('search_card_${widget.word.kelime}'),
+          decoration: BoxDecoration(
+            color: isDarkMode ? const Color(0xFF1C1C1E) : Colors.white,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
               color: isDarkMode 
-                  ? Colors.black.withOpacity(0.4)
-                  : const Color(0xFF007AFF).withOpacity(0.06),
-              blurRadius: isDarkMode ? 10 : 10,
-              offset: Offset(0, isDarkMode ? 4 : 3),
-              spreadRadius: isDarkMode ? 1 : 0.3,
+                  ? const Color(0xFF48484A)
+                  : const Color(0xFFD0D0D0),
+              width: 0.8,
             ),
-            if (!isDarkMode) ...[
+            boxShadow: isDarkMode ? null : [
               BoxShadow(
-                color: Colors.white.withOpacity(0.9),
-                blurRadius: 1,
-                offset: const Offset(0, -1),
-                spreadRadius: 0,
-              ),
-              BoxShadow(
-                color: Colors.black.withOpacity(0.02),
-                blurRadius: 4,
-                offset: const Offset(0, 1),
-                spreadRadius: 0,
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 6,
+                offset: const Offset(0, 2),
               ),
             ],
-          ],
-        ),
-        child: Column(
-          children: [
-            // Ana kart içeriği
-            InkWell(
-              onTap: _toggleExpanded,
-              borderRadius: BorderRadius.circular(6),
-              child: Container(
-                padding: const EdgeInsets.all(12),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              // Harekeli Arapça kelime
-                              Flexible(
-                                child: Container(
-                                  constraints: BoxConstraints(
-                                    maxWidth: MediaQuery.of(context).size.width * 0.4,
-                                  ),
-                                  child: Text(
-                                    widget.word.harekeliKelime?.isNotEmpty == true 
-                                        ? widget.word.harekeliKelime! 
-                                        : widget.word.kelime,
-                                    style: GoogleFonts.scheherazadeNew(
-                                      fontSize: 20,
-                                      fontWeight: FontWeight.w700,
-                                      color: isDarkMode ? Colors.white : const Color(0xFF1C1C1E),
-                                      height: 1.4,
-                                      fontFeatures: const [
-                                        ui.FontFeature.enable('liga'),
-                                        ui.FontFeature.enable('calt'),
-                                      ],
+          ),
+          child: Column(
+            children: [
+              // Ana kart içeriği
+              InkWell(
+                onTap: _toggleExpanded,
+                borderRadius: BorderRadius.circular(6),
+                child: Container(
+                  padding: const EdgeInsets.all(12),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                // Harekeli Arapça kelime
+                                Flexible(
+                                  child: Container(
+                                    constraints: BoxConstraints(
+                                      maxWidth: MediaQuery.of(context).size.width * 0.4,
                                     ),
-                                    textDirection: TextDirection.rtl,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    softWrap: false,
+                                    child: Text(
+                                      widget.word.harekeliKelime?.isNotEmpty == true 
+                                          ? widget.word.harekeliKelime! 
+                                          : widget.word.kelime,
+                                      style: GoogleFonts.scheherazadeNew(
+                                        fontSize: 20,
+                                        fontWeight: FontWeight.w700,
+                                        color: isDarkMode ? Colors.white : const Color(0xFF1C1C1E),
+                                        height: 1.4,
+                                        fontFeatures: const [
+                                          ui.FontFeature.enable('liga'),
+                                          ui.FontFeature.enable('calt'),
+                                        ],
+                                      ),
+                                      textDirection: TextDirection.rtl,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      softWrap: false,
+                                    ),
                                   ),
                                 ),
-                              ),
-                              const SizedBox(width: 8),
-                              // Kelime türü chip'i
-                              Flexible(
-                                child: Wrap(
-                                  spacing: 6,
-                                  runSpacing: 4,
-                                  children: _buildWordInfoChips(isDarkMode),
+                                const SizedBox(width: 8),
+                                // Kelime türü chip'i
+                                Flexible(
+                                  child: Wrap(
+                                    spacing: 6,
+                                    runSpacing: 4,
+                                    children: _buildWordInfoChips(isDarkMode),
+                                  ),
                                 ),
+                              ],
+                            ),
+                            const SizedBox(height: 4),
+                            // Türkçe anlam
+                            if (widget.word.anlam?.isNotEmpty == true) ...[
+                              Text(
+                                widget.word.anlam!,
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: isDarkMode 
+                                      ? const Color(0xFF8E8E93) 
+                                      : const Color(0xFF6D6D70),
+                                  height: 1.3,
+                                  fontWeight: FontWeight.w400,
+                                ),
+                                maxLines: _isExpanded ? null : 2,
+                                overflow: _isExpanded ? null : TextOverflow.ellipsis,
                               ),
                             ],
-                          ),
-                          const SizedBox(height: 4),
-                          // Türkçe anlam
-                          if (widget.word.anlam?.isNotEmpty == true) ...[
-                            Text(
-                              widget.word.anlam!,
-                              style: TextStyle(
-                                fontSize: 13,
-                                color: isDarkMode 
-                                    ? const Color(0xFF8E8E93) 
-                                    : const Color(0xFF6D6D70),
-                                height: 1.3,
-                                fontWeight: FontWeight.w400,
-                              ),
-                              maxLines: _isExpanded ? null : 2,
-                              overflow: _isExpanded ? null : TextOverflow.ellipsis,
-                            ),
                           ],
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    // Kaydetme tuşu
-                    Material(
-                      color: Colors.transparent,
-                      child: InkWell(
-                        onTap: _isLoading ? null : _toggleSaved,
-                        borderRadius: BorderRadius.circular(16),
-                        child: Container(
-                          width: 32,
-                          height: 32,
-                          padding: const EdgeInsets.all(6),
-                          child: Icon(
-                            _isSaved ? Icons.bookmark : Icons.bookmark_border,
-                            color: _isSaved 
-                                ? const Color(0xFF007AFF)
-                                : (isDarkMode ? const Color(0xFF8E8E93) : const Color(0xFF6D6D70)),
-                            size: 20,
-                          ),
                         ),
                       ),
-                    ),
-                    // Açılır menü ikonu
-                    Material(
-                      color: Colors.transparent,
-                      child: InkWell(
-                        onTap: _toggleExpanded,
-                        borderRadius: BorderRadius.circular(20),
-                        child: Container(
-                          width: 32,
-                          height: 32,
-                          padding: const EdgeInsets.all(4),
-                          child: AnimatedRotation(
-                            turns: _isExpanded ? 0.5 : 0,
-                            duration: const Duration(milliseconds: 200),
-                            curve: Curves.easeInOut,
+                      const SizedBox(width: 12),
+                      // Kaydetme tuşu
+                      Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          onTap: _isLoading ? null : _toggleSaved,
+                          borderRadius: BorderRadius.circular(16),
+                          child: Container(
+                            width: 32,
+                            height: 32,
+                            padding: const EdgeInsets.all(6),
                             child: Icon(
-                              Icons.expand_more,
-                              color: isDarkMode 
-                                  ? const Color(0xFF8E8E93) 
-                                  : const Color(0xFF6D6D70),
+                              _isSaved ? Icons.bookmark : Icons.bookmark_border,
+                              color: _isSaved 
+                                  ? const Color(0xFF007AFF)
+                                  : (isDarkMode ? const Color(0xFF8E8E93) : const Color(0xFF6D6D70)),
                               size: 20,
                             ),
                           ),
                         ),
                       ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            
-            // Genişleyebilir detay alanı
-            SizeTransition(
-              sizeFactor: _expandAnimation,
-              child: FadeTransition(
-                opacity: _fadeAnimation,
-                child: Container(
-                  padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Container(
-                        height: 1.0,
-                        color: isDarkMode 
-                            ? const Color(0xFF48484A)
-                            : const Color(0xFFD1D1D6),
+                      // Açılır menü ikonu
+                      Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          onTap: _toggleExpanded,
+                          borderRadius: BorderRadius.circular(20),
+                          child: Container(
+                            width: 32,
+                            height: 32,
+                            padding: const EdgeInsets.all(4),
+                            child: AnimatedRotation(
+                              turns: _isExpanded ? 0.5 : 0,
+                              duration: const Duration(milliseconds: 200),
+                              curve: Curves.easeInOut,
+                              child: Icon(
+                                Icons.expand_more,
+                                color: isDarkMode 
+                                    ? const Color(0xFF8E8E93) 
+                                    : const Color(0xFF6D6D70),
+                                size: 20,
+                              ),
+                            ),
+                          ),
+                        ),
                       ),
-                      const SizedBox(height: 8),
-                      
-                      // Kök ve çoğul bilgileri (yan yana, sadece varsa göster)
-                      _buildRootAndPluralRow(isDarkMode),
-                      
-                      // Fiil çekimleri (yan yana, sadece varsa göster)
-                      _buildConjugationRow(isDarkMode),
-                      
-                      // Örnek cümleler
-                      _buildExampleSentences(isDarkMode),
                     ],
                   ),
                 ),
               ),
-            ),
-          ],
+              
+              // Genişleyebilir detay alanı
+              SizeTransition(
+                sizeFactor: _expandAnimation,
+                child: FadeTransition(
+                  opacity: _fadeAnimation,
+                  child: Container(
+                    padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          height: 1.0,
+                          color: isDarkMode 
+                              ? const Color(0xFF48484A)
+                              : const Color(0xFFD1D1D6),
+                        ),
+                        const SizedBox(height: 8),
+                        
+                        // Kök ve çoğul bilgileri (yan yana, sadece varsa göster)
+                        _buildRootAndPluralRow(isDarkMode),
+                        
+                        // Fiil çekimleri (yan yana, sadece varsa göster)
+                        _buildConjugationRow(isDarkMode),
+                        
+                        // Örnek cümleler
+                        _buildExampleSentences(isDarkMode),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

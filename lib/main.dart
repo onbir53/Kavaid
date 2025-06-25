@@ -13,6 +13,7 @@ import 'services/firebase_options.dart';
 import 'services/saved_words_service.dart';
 import 'services/admob_service.dart';
 import 'widgets/banner_ad_widget.dart';
+import 'widgets/fps_counter.dart';
 import 'services/credits_service.dart';
 import 'services/subscription_service.dart';
 
@@ -529,10 +530,8 @@ class _MainScreenState extends State<MainScreen> {
             ),
           ),
 
-          // 2. Banner Reklam
-          AnimatedPositioned(
-            duration: const Duration(milliseconds: 200),
-            curve: Curves.easeOut,
+          // 2. Banner Reklam - RepaintBoundary ile performans optimizasyonu
+          Positioned(
             bottom: hasSystemKeyboard
                 ? keyboardHeight
                 : _showArabicKeyboard
@@ -541,26 +540,27 @@ class _MainScreenState extends State<MainScreen> {
             left: 0,
             right: 0,
             height: _bannerHeight,
-            child: BannerAdWidget(
-              onAdHeightChanged: (height) {
-                if (mounted && _bannerHeight != height) {
-                  setState(() => _bannerHeight = height);
-                }
-              },
-              key: const ValueKey('main_banner_ad_stable'),
-              stableKey: 'main_banner_stable',
+            child: RepaintBoundary(
+              child: BannerAdWidget(
+                onAdHeightChanged: (height) {
+                  if (mounted && _bannerHeight != height) {
+                    setState(() => _bannerHeight = height);
+                  }
+                },
+                key: const ValueKey('main_banner_ad_stable'),
+                stableKey: 'main_banner_stable',
+              ),
             ),
           ),
 
-          // 3. Bottom Navigation Bar
-          AnimatedPositioned(
-            duration: const Duration(milliseconds: 200),
-            curve: Curves.easeOut,
+          // 3. Bottom Navigation Bar - RepaintBoundary ile performans optimizasyonu
+          Positioned(
             bottom: (hasSystemKeyboard || _showArabicKeyboard) ? -navBarHeight : 0,
             left: 0,
             right: 0,
             height: navBarHeight,
-            child: Container(
+            child: RepaintBoundary(
+              child: Container(
               decoration: BoxDecoration(
                 color: widget.isDarkMode ? const Color(0xFF1C1C1E) : Colors.white,
                 boxShadow: [
@@ -611,8 +611,12 @@ class _MainScreenState extends State<MainScreen> {
                   ),
                 ],
               ),
+              ),
             ),
           ),
+          
+          // 4. FPS Sayacı - En üstte olacak
+          const FPSCounter(),
         ],
       ),
     );

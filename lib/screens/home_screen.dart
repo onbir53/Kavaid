@@ -389,10 +389,11 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
                 }
                 return false;
               },
-              child: CustomScrollView(
-                physics: const ClampingScrollPhysics(),
-                slivers: <Widget>[
-                  SliverAppBar(
+              child: RepaintBoundary(
+                child: CustomScrollView(
+                  physics: const ClampingScrollPhysics(),
+                  slivers: <Widget>[
+                    SliverAppBar(
                     backgroundColor: widget.isDarkMode 
                         ? const Color(0xFF1C1C1E)
                         : const Color(0xFF007AFF),
@@ -418,16 +419,6 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
                                   ? const Color(0xFF2C2C2E)
                                   : Colors.white,
                               borderRadius: BorderRadius.circular(4), // 8'den 4'e düşürdüm (daha sert)
-                              boxShadow: [
-                                BoxShadow(
-                                  color: widget.isDarkMode
-                                      ? Colors.black.withOpacity(0.3)
-                                      : Colors.black.withOpacity(0.1),
-                                  blurRadius: 12,
-                                  offset: const Offset(0, 4),
-                                  spreadRadius: 0,
-                                ),
-                              ],
                               border: Border.all(
                                 color: widget.isDarkMode
                                     ? const Color(0xFF48484A).withOpacity(0.3)
@@ -511,13 +502,6 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
                                                   ? const Color(0xFF3A3A3C).withOpacity(0.5)
                                                   : const Color(0xFFE5E5EA).withOpacity(0.5),
                                           shape: BoxShape.circle,
-                                          boxShadow: _showArabicKeyboard ? [
-                                            BoxShadow(
-                                              color: const Color(0xFF007AFF).withOpacity(0.3),
-                                              blurRadius: 8,
-                                              offset: const Offset(0, 2),
-                                            ),
-                                          ] : null,
                                         ),
                                         child: Icon(
                                           Icons.keyboard_alt_outlined,
@@ -575,32 +559,10 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
                         ),
                       ),
                     ),
-                    flexibleSpace: Container(
-                      decoration: BoxDecoration(
-                        gradient: widget.isDarkMode
-                            ? null
-                            : const LinearGradient(
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                                colors: [
-                                  Color(0xFF007AFF),
-                                  Color(0xFF0051D5),
-                                ],
-                              ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: widget.isDarkMode
-                                ? Colors.black.withOpacity(0.3)
-                                : const Color(0xFF007AFF).withOpacity(0.15),
-                            blurRadius: 8,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                    ),
                   ),
                   ..._buildMainContentSlivers(),
                 ],
+                ),
               ),
             ),
           ),
@@ -646,22 +608,8 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
             padding: const EdgeInsets.fromLTRB(8, 12, 8, 0),
             child: Container(
               decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    const Color(0xFF007AFF),
-                    const Color(0xFF0051D5),
-                  ],
-                ),
+                color: const Color(0xFF007AFF),
                 borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFF007AFF).withOpacity(0.3),
-                    blurRadius: 12,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
               ),
               child: Material(
                 color: Colors.transparent,
