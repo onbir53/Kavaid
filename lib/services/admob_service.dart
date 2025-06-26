@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import 'credits_service.dart';
 
 class AdMobService {
@@ -17,9 +18,16 @@ class AdMobService {
   DateTime? _appOpenLoadTime;
   DateTime? _lastAppOpenShowTime;
   
+  // Uygulama lifecycle kontrolü için  
+  bool _isFirstLaunch = true;
+  DateTime? _lastPausedTime;
+  bool _wasActuallyInBackground = false;
+  AppLifecycleState? _previousState;
+  
   // Reklam frekans kontrolü için sabitler
   static const Duration _minTimeBetweenAppOpenAds = Duration(minutes: 5); // App Open reklamlar arası minimum süre
   static const Duration _appOpenAdExpiration = Duration(hours: 4); // App Open reklam geçerlilik süresi
+  static const Duration _minBackgroundTime = Duration(seconds: 2); // Arka planda minimum kalma süresi (3'ten 2'ye düşürdüm)
   static const int _maxAdLoadRetries = 3; // Maksimum reklam yükleme deneme sayısı
   int _currentRetryCount = 0;
 
@@ -241,12 +249,66 @@ class AdMobService {
     return true;
   }
 
-  // App lifecycle için - uygulama arka plana geçtiğinde/öne çıktığında
-  void onAppStateChanged(bool isAppInForeground) {
-    if (isAppInForeground) {
-      // Uygulama öne çıktığında reklam göster
-      showAppOpenAd();
+  // App lifecycle için - basit durum kontrolü
+  void onAppStateChanged(AppLifecycleState state) {
+    debugPrint('🔄 AppLifecycleState değişti: $_previousState -> $state');
+    
+    switch (state) {
+      case AppLifecycleState.resumed:
+        // Uygulama geri döndüğünde kontrol et
+        if (_wasActuallyInBackground) {
+          // İlk açılışta reklam gösterme
+          if (_isFirstLaunch) {
+            debugPrint('🚀 İlk açılış - Reklam gösterilmeyecek');
+            _isFirstLaunch = false;
+            _wasActuallyInBackground = false;
+            _lastPausedTime = null;
+            return;
+          }
+          
+          // Arka planda ne kadar kaldığını kontrol et
+          if (_lastPausedTime != null) {
+            final backgroundDuration = DateTime.now().difference(_lastPausedTime!);
+            debugPrint('⏱️ Arka planda geçen süre: ${backgroundDuration.inSeconds} saniye');
+            
+            // Sadece belirli bir süre arka planda kaldıysa reklam göster
+            if (backgroundDuration >= _minBackgroundTime) {
+              debugPrint('✅ Uygulama yeterince arka planda kaldı, reklam gösterilebilir');
+              showAppOpenAd();
+            } else {
+              debugPrint('⚠️ Uygulama çok kısa süre arka planda kaldı (${backgroundDuration.inSeconds}s < ${_minBackgroundTime.inSeconds}s)');
+            }
+          }
+          _wasActuallyInBackground = false;
+          _lastPausedTime = null;
+        }
+        break;
+        
+      case AppLifecycleState.paused:
+        // Paused durumunda zaman damgası al
+        // Android'de genelde inactive -> paused -> background akışı olur
+        debugPrint('⏸️ Uygulama paused durumda');
+        if (_lastPausedTime == null) {
+          _lastPausedTime = DateTime.now();
+          _wasActuallyInBackground = true;
+        }
+        break;
+        
+      case AppLifecycleState.inactive:
+        // inactive durumu bildirim paneli, dialog vb. için tetiklenir
+        // Ama aynı zamanda arka plana geçiş öncesi de tetiklenir
+        debugPrint('⚡ Uygulama inactive durumda');
+        // Eğer inactive'den sonra paused gelirse, gerçekten arka plana geçiyordur
+        break;
+        
+      case AppLifecycleState.detached:
+      case AppLifecycleState.hidden:
+        // Bu durumlar için özel işlem yapma
+        debugPrint('📵 Uygulama detached/hidden durumda');
+        break;
     }
+    
+    _previousState = state;
   }
   
   // Tüm reklamları dispose et (uygulama kapanırken kullan)

@@ -1,7 +1,7 @@
 # 💳 Kavaid - Gerçek Abonelik Sistemi Kurulum Rehberi
 
 ## 🎯 Sistem Özellikleri
-- ✅ Aylık 60 TL otomatik yenilenen abonelik
+- ✅ Aylık 50 TL otomatik yenilenen abonelik
 - ✅ Sınırsız kelime erişimi
 - ✅ Reklamsız deneyim
 - ✅ iOS ve Android desteği
@@ -35,7 +35,7 @@ Description: Sınırsız kelime detayları ve reklamsız deneyim
 
 Base plan:
 - Billing period: Monthly (1 month)
-- Price: 60.00 TRY
+- Price: 50.00 TRY
 - Grace period: 3 days
 - Auto-renewal: ON
 ```
@@ -69,7 +69,7 @@ Reference Name: Kavaid Premium Monthly
 Product ID: kavaid_monthly_subscription
 Subscription Group: Kavaid Premium Group
 Duration: 1 Month
-Price: Tier 8 (≈60 TRY)
+Price: Tier 7 (≈50 TRY)
 ```
 
 ### 2️⃣ Subscription Group Ayarlama

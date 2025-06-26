@@ -130,7 +130,6 @@ class _KavaidAppState extends State<KavaidApp> with WidgetsBindingObserver {
   static const String _themeKey = 'is_dark_mode';
   bool _isDarkMode = false;
   bool _isAppInForeground = true;
-  bool _isFirstLaunch = true;
   bool _themeLoaded = false;
 
   @override
@@ -176,28 +175,19 @@ class _KavaidAppState extends State<KavaidApp> with WidgetsBindingObserver {
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
     
+    // AdMobService'e lifecycle state'i gönder
+    AdMobService().onAppStateChanged(state);
+    
+    // Ana uygulama için basit tracking
     switch (state) {
       case AppLifecycleState.resumed:
-        if (!_isAppInForeground) {
-          _isAppInForeground = true;
-          AdMobService().onAppStateChanged(true);
-          
-          // Sadece ilk açılış değilse app open ad göster
-          if (!_isFirstLaunch) {
-            debugPrint('📱 Uygulama geri döndü - App Open Ad gösteriliyor');
-            AdMobService().showAppOpenAd();
-          } else {
-            _isFirstLaunch = false;
-            debugPrint('📱 İlk açılış - App Open Ad gösterilmiyor');
-          }
-        }
+        _isAppInForeground = true;
         break;
       case AppLifecycleState.paused:
       case AppLifecycleState.inactive:
       case AppLifecycleState.detached:
       case AppLifecycleState.hidden:
         _isAppInForeground = false;
-        AdMobService().onAppStateChanged(false);
         break;
     }
   }

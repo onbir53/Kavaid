@@ -351,7 +351,7 @@ class SubscriptionService extends ChangeNotifier {
   String _getMonthlyPrice() {
     if (_products.isEmpty) {
       debugPrint('⚠️ [SUBSCRIPTION] Ürün listesi boş, varsayılan fiyat döndürülüyor');
-      return '60 TL';
+      return '50 TL';
     }
     
     final price = _products[0].price;
