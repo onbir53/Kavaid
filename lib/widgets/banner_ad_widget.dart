@@ -37,19 +37,57 @@ class BannerAdWidgetState extends State<BannerAdWidget>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    
+    // Credits service'i dinle
+    _creditsService.addListener(_onCreditsChanged);
+    
     // Başlangıçta yüksekliği 0 olarak bildir
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         widget.onAdHeightChanged(0.0);
       }
     });
-    _loadBannerAd();
+    
+    // Credits service başlatıldıktan sonra reklam yükle
+    _initializeAndLoadAd();
+  }
+  
+  Future<void> _initializeAndLoadAd() async {
+    // Credits service'in başlatılmasını bekle
+    await _creditsService.initialize();
+    
+    // Şimdi reklam yükle
+    if (mounted) {
+      _loadBannerAd();
+    }
+  }
+  
+  void _onCreditsChanged() {
+    // Premium durumu değiştiğinde reklamı güncelle
+    if (_creditsService.isPremium && _bannerAd != null) {
+      // Premium olduysa reklamı kaldır
+      _disposeAd();
+    } else if (!_creditsService.isPremium && _bannerAd == null && !_isAdLoaded) {
+      // Premium değilse ve reklam yoksa yükle
+      _loadBannerAd();
+    }
+  }
+  
+  void _disposeAd() {
+    _bannerAd?.dispose();
+    _bannerAd = null;
+    _isAdLoaded = false;
+    _adSize = null;
+    widget.onAdHeightChanged(0.0);
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
-    if (state == AppLifecycleState.resumed && !_isAdLoaded) {
+    if (state == AppLifecycleState.resumed && !_isAdLoaded && !_creditsService.isPremium) {
       if (_bannerAd == null && _retryCount < _maxRetries) {
         _loadBannerAd();
       }
@@ -65,14 +103,16 @@ class BannerAdWidgetState extends State<BannerAdWidget>
   @override
   void activate() {
     _isVisible = true;
-    if (_bannerAd == null && _retryCount < _maxRetries && !_isAdLoaded) {
+    if (_bannerAd == null && _retryCount < _maxRetries && !_isAdLoaded && !_creditsService.isPremium) {
       _loadBannerAd();
     }
     super.activate();
   }
 
   Future<void> _loadBannerAd() async {
+    // Premium kontrolü - her zaman güncel değeri kontrol et
     if (_creditsService.isPremium) {
+      debugPrint('👑 [BannerAd] Premium kullanıcı - Reklam yüklenmeyecek');
       if (mounted) widget.onAdHeightChanged(0.0);
       return;
     }
@@ -110,6 +150,14 @@ class BannerAdWidgetState extends State<BannerAdWidget>
       listener: BannerAdListener(
         onAdLoaded: (ad) async {
           if (!mounted) return;
+          
+          // Reklam yüklendikten sonra da premium kontrolü yap
+          if (_creditsService.isPremium) {
+            debugPrint('👑 [BannerAd] Reklam yüklendi ama kullanıcı premium - Reklam gösterilmeyecek');
+            ad.dispose();
+            return;
+          }
+          
           final bannerAd = ad as BannerAd;
           final platformSize = await bannerAd.getPlatformAdSize();
           if (platformSize == null) return;
@@ -142,10 +190,10 @@ class BannerAdWidgetState extends State<BannerAdWidget>
       widget.onAdHeightChanged(0.0);
     }
 
-    if (_retryCount < _maxRetries) {
+    if (_retryCount < _maxRetries && !_creditsService.isPremium) {
       _retryCount++;
       Future.delayed(_retryDelay, () {
-        if (mounted && _isVisible) {
+        if (mounted && _isVisible && !_creditsService.isPremium) {
           _loadBannerAd();
         }
       });
@@ -155,6 +203,7 @@ class BannerAdWidgetState extends State<BannerAdWidget>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _creditsService.removeListener(_onCreditsChanged);
     _bannerAd?.dispose();
     super.dispose();
   }
@@ -162,6 +211,11 @@ class BannerAdWidgetState extends State<BannerAdWidget>
   @override
   Widget build(BuildContext context) {
     super.build(context);
+
+    // Build sırasında da premium kontrolü
+    if (_creditsService.isPremium) {
+      return const SizedBox.shrink();
+    }
 
     if (_isAdLoaded && _bannerAd != null && _adSize != null) {
       return Container(

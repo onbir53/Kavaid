@@ -192,8 +192,13 @@ void main() async {
 
 // Servisleri arka planda başlat
 void _initializeServicesInBackground() {
-  // AdMob'u arka planda başlat
-  Future.delayed(const Duration(milliseconds: 500), () async {
+  // Önce CreditsService'i başlat (premium kontrolü için)
+  Future.delayed(const Duration(milliseconds: 100), () async {
+    final creditsService = CreditsService();
+    await creditsService.initialize();
+    debugPrint('✅ CreditsService başlatıldı: ${creditsService.credits} hak, Premium: ${creditsService.isPremium}');
+    
+    // CreditsService başlatıldıktan sonra AdMob'u başlat
     try {
       await AdMobService.initialize();
       debugPrint('✅ AdMob başlatıldı');
@@ -203,17 +208,10 @@ void _initializeServicesInBackground() {
   });
 
   // SavedWordsService'i arka planda başlat
-  Future.delayed(const Duration(milliseconds: 100), () async {
+  Future.delayed(const Duration(milliseconds: 200), () async {
     final savedWordsService = SavedWordsService();
     await savedWordsService.initialize();
     debugPrint('✅ SavedWordsService başlatıldı: ${savedWordsService.savedWordsCount} kelime yüklendi');
-  });
-
-  // CreditsService'i arka planda başlat
-  Future.delayed(const Duration(milliseconds: 200), () async {
-    final creditsService = CreditsService();
-    await creditsService.initialize();
-    debugPrint('✅ CreditsService başlatıldı: ${creditsService.credits} hak, Premium: ${creditsService.isPremium}');
   });
 
   // SubscriptionService'i arka planda başlat
@@ -236,6 +234,7 @@ class _KavaidAppState extends State<KavaidApp> with WidgetsBindingObserver {
   bool _isDarkMode = false;
   bool _isAppInForeground = true;
   bool _themeLoaded = false;
+  final CreditsService _creditsService = CreditsService();
 
   @override
   void initState() {
@@ -243,12 +242,24 @@ class _KavaidAppState extends State<KavaidApp> with WidgetsBindingObserver {
     WidgetsBinding.instance.addObserver(this);
     _loadThemePreference();
     
+    // Credits service'i başlat ve dinle
+    _initializeCreditsService();
+    
     // İlk açılışta app open ad gösterme - sadece resume'da göster
+  }
+  
+  Future<void> _initializeCreditsService() async {
+    await _creditsService.initialize();
+    // Premium durumu değiştiğinde rebuild için dinle
+    _creditsService.addListener(() {
+      if (mounted) setState(() {});
+    });
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _creditsService.removeListener(() {});
     super.dispose();
   }
 

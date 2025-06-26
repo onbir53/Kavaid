@@ -7,7 +7,10 @@ import 'credits_service.dart';
 class AdMobService {
   static final AdMobService _instance = AdMobService._internal();
   factory AdMobService() => _instance;
-  AdMobService._internal();
+  AdMobService._internal() {
+    // Constructor'da credits service'i dinlemeye başla
+    _initializeCreditsListener();
+  }
   
   final CreditsService _creditsService = CreditsService();
 
@@ -23,6 +26,7 @@ class AdMobService {
   DateTime? _lastPausedTime;
   bool _wasActuallyInBackground = false;
   AppLifecycleState? _previousState;
+  bool _creditsServiceInitialized = false;
   
   // Reklam frekans kontrolü için sabitler
   static const Duration _minTimeBetweenAppOpenAds = Duration(minutes: 5); // App Open reklamlar arası minimum süre
@@ -128,16 +132,47 @@ class AdMobService {
         ),
       );
       
-      // App Open reklamını yükle
-      _instance.loadAppOpenAd();
+      // App Open reklamı yükleme artık credits service listener'da yapılacak
+      // _instance.loadAppOpenAd(); // KALDIRILDI
     } catch (e) {
       debugPrint('❌ AdMob başlatılamadı: $e');
+    }
+  }
+
+  void _initializeCreditsListener() async {
+    // Credits service başlatılmasını bekle
+    await _creditsService.initialize();
+    _creditsServiceInitialized = true;
+    
+    // Premium durumu değişikliklerini dinle
+    _creditsService.addListener(_onPremiumStatusChanged);
+    
+    // İlk kontrol
+    _onPremiumStatusChanged();
+  }
+  
+  void _onPremiumStatusChanged() {
+    if (_creditsService.isPremium) {
+      // Premium olduysa mevcut reklamı temizle
+      debugPrint('👑 [AdMob] Premium aktif - App Open reklamı temizleniyor');
+      _appOpenAd?.dispose();
+      _appOpenAd = null;
+    } else if (!_creditsService.isPremium && _appOpenAd == null && !_isLoadingAppOpenAd) {
+      // Premium değilse ve reklam yoksa yükle
+      debugPrint('📱 [AdMob] Premium değil - App Open reklamı yükleniyor');
+      loadAppOpenAd();
     }
   }
 
   // App Open reklamını yükle
   void loadAppOpenAd() {
     if (kIsWeb || (!Platform.isAndroid && !Platform.isIOS)) {
+      return;
+    }
+    
+    // Credits service başlatılmadıysa bekle
+    if (!_creditsServiceInitialized) {
+      debugPrint('⏳ Credits service henüz başlatılmadı, reklam yükleme erteleniyor');
       return;
     }
     
@@ -184,6 +219,12 @@ class AdMobService {
 
   // App Open reklamını göster
   void showAppOpenAd() {
+    // Credits service başlatılmadıysa bekle
+    if (!_creditsServiceInitialized) {
+      debugPrint('⏳ Credits service henüz başlatılmadı, reklam gösterilmeyecek');
+      return;
+    }
+    
     // Premium kullanıcılar için reklam gösterme
     if (_creditsService.isPremium) {
       debugPrint('👑 Premium kullanıcı - Reklam gösterilmeyecek');
