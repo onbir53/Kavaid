@@ -694,23 +694,27 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
                 
                 if (isAdPosition) {
                   // Native reklam göster
-                  return const NativeAdWidget();
+                  return RepaintBoundary(
+                    child: const NativeAdWidget(),
+                  );
                 } else {
                   // Normal arama sonucu
                   final int actualIndex = index - adsBefore;
                   if (actualIndex < _searchResults.length) {
-                    return SearchResultCard(
-                      word: _searchResults[actualIndex],
-                      onTap: () => _selectWord(_searchResults[actualIndex]),
-                      onExpand: () {
-                        // Arapça klavye açıksa kapat
-                        if (_showArabicKeyboard) {
-                          setState(() {
-                            _showArabicKeyboard = false;
-                          });
-                          widget.onArabicKeyboardStateChanged?.call(false);
-                        }
-                      },
+                    return RepaintBoundary(
+                      child: SearchResultCard(
+                        word: _searchResults[actualIndex],
+                        onTap: () => _selectWord(_searchResults[actualIndex]),
+                        onExpand: () {
+                          // Arapça klavye açıksa kapat
+                          if (_showArabicKeyboard) {
+                            setState(() {
+                              _showArabicKeyboard = false;
+                            });
+                            widget.onArabicKeyboardStateChanged?.call(false);
+                          }
+                        },
+                      ),
                     );
                   }
                 }

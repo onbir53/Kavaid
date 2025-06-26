@@ -45,9 +45,10 @@ android {
         multiDexEnabled = true
         
         // Native kod optimizasyonu
-        ndk {
-            abiFilters.addAll(listOf("armeabi-v7a", "arm64-v8a", "x86_64"))
-        }
+        // NOT: split-per-abi kullanırken bu satır yorum olmalı
+        // ndk {
+        //     abiFilters.addAll(listOf("armeabi-v7a", "arm64-v8a", "x86_64"))
+        // }
     }
 
     signingConfigs {

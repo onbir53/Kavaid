@@ -19,6 +19,7 @@ import 'services/credits_service.dart';
 import 'services/subscription_service.dart';
 import 'utils/performance_utils.dart';
 import 'utils/image_cache_manager.dart';
+import 'widgets/fps_counter_widget.dart';
 
 // Custom ScrollBehavior - overscroll glow efektini kaldırmak için
 class NoGlowScrollBehavior extends ScrollBehavior {
@@ -164,6 +165,9 @@ void main() async {
       // İlk frame'den sonra performans izlemeyi başlat
       // Context gerektirmeyen optimized version
       PerformanceUtils.enableFPSCounter();
+      
+      // 🚀 PERFORMANCE MOD: Cihaz performansını tespit et
+      PerformanceUtils.detectDevicePerformance();
     });
   }
   
@@ -358,7 +362,11 @@ class _KavaidAppState extends State<KavaidApp> with WidgetsBindingObserver {
             behavior: NoGlowScrollBehavior(),
             child: RepaintBoundary(
               // 🚀 PERFORMANCE MOD: Ana uygulama RepaintBoundary ile sarılı
-              child: child!,
+              child: FPSOverlay(
+                showFPS: const bool.fromEnvironment('SHOW_PERFORMANCE', defaultValue: false),
+                detailedFPS: true,
+                child: child!,
+              ),
             ),
           ),
         );

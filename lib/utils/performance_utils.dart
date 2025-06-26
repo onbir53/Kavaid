@@ -1,12 +1,131 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
+import 'dart:io' show Platform;
 
 class PerformanceUtils {
   static int _frameCount = 0;
   static int _droppedFrames = 0;
   static double _currentFPS = 60.0;
   static bool _isMonitoring = false;
+  static String _deviceCategory = 'unknown';
+  static bool _isLowEndDevice = false;
+  
+  // 🚀 PERFORMANCE MOD: Cihaz kategorileri
+  static const Map<String, Map<String, dynamic>> deviceCategories = {
+    'high_end': {
+      'cache_extent': 1500.0,
+      'max_cache_items': 75,
+      'animation_multiplier': 0.8,
+      'preload_items': 5,
+      'use_cache_images': true,
+    },
+    'mid_range': {
+      'cache_extent': 1000.0,
+      'max_cache_items': 50,
+      'animation_multiplier': 1.0,
+      'preload_items': 3,
+      'use_cache_images': true,
+    },
+    'low_end': {
+      'cache_extent': 600.0,
+      'max_cache_items': 25,
+      'animation_multiplier': 1.2,
+      'preload_items': 1,
+      'use_cache_images': false,
+    },
+  };
+  
+  // 🚀 PERFORMANCE MOD: Cihaz tespiti
+  static Future<void> detectDevicePerformance() async {
+    if (!Platform.isAndroid) return;
+    
+    try {
+      // Cihaz bilgilerini al
+      final channel = MethodChannel('device_info');
+      final deviceInfo = await channel.invokeMethod('getDeviceInfo').timeout(
+        const Duration(seconds: 2),
+        onTimeout: () {
+          debugPrint('⏱️ Device info timeout, fallback kullanılıyor');
+          return null;
+        },
+      );
+      
+      if (deviceInfo != null) {
+        debugPrint('📱 Cihaz Bilgileri: $deviceInfo');
+        
+        // Cihaz bilgilerine göre kategori belirle
+        final totalRamMB = deviceInfo['totalRamMB'] as int? ?? 0;
+        final glEsVersion = deviceInfo['glEsVersion'] as double? ?? 0.0;
+        final apiLevel = deviceInfo['apiLevel'] as int? ?? 0;
+        final performanceCategory = deviceInfo['performanceCategory'] as String? ?? 'unknown';
+        
+        // Native taraftan gelen kategoriyi kullan
+        if (performanceCategory != 'unknown') {
+          _deviceCategory = performanceCategory;
+          _isLowEndDevice = performanceCategory == 'low_end';
+          debugPrint('🎯 Native kategori kullanılıyor: $_deviceCategory');
+        } else {
+          // Fallback kategorilendirme
+          _categorizeDeviceBySpecs(totalRamMB, glEsVersion, apiLevel);
+        }
+      } else {
+        // Native channel başarısız, FPS bazlı tespit
+        debugPrint('⚠️ Native device info alınamadı, FPS bazlı tespit kullanılacak');
+        _categorizeDevice();
+      }
+    } catch (e) {
+      debugPrint('⚠️ Cihaz tespiti başarısız, varsayılan ayarlar kullanılacak: $e');
+      _categorizeDevice(); // Fallback kategorilendirme
+    }
+  }
+  
+  // 🚀 PERFORMANCE MOD: Cihaz özelliklerine göre kategorilendirme
+  static void _categorizeDeviceBySpecs(int totalRamMB, double glEsVersion, int apiLevel) {
+    if (totalRamMB >= 8192 && glEsVersion >= 3.2 && apiLevel >= 29) {
+      _deviceCategory = 'high_end';
+      _isLowEndDevice = false;
+      debugPrint('🚀 Cihaz Kategorisi: Yüksek Performans (8GB+ RAM, OpenGL ES 3.2+)');
+    } else if (totalRamMB >= 4096 && glEsVersion >= 3.0 && apiLevel >= 26) {
+      _deviceCategory = 'mid_range';
+      _isLowEndDevice = false;
+      debugPrint('⚡ Cihaz Kategorisi: Orta Performans (4GB+ RAM, OpenGL ES 3.0+)');
+    } else {
+      _deviceCategory = 'low_end';
+      _isLowEndDevice = true;
+      debugPrint('📱 Cihaz Kategorisi: Düşük Performans (optimizasyonlar devrede)');
+    }
+  }
+  
+  // 🚀 PERFORMANCE MOD: Basit cihaz kategorilendirme
+  static void _categorizeDevice() {
+    // FPS'e göre kategori belirleme
+    if (_currentFPS >= 115) {
+      _deviceCategory = 'high_end';
+      _isLowEndDevice = false;
+      debugPrint('🚀 Cihaz Kategorisi: Yüksek Performans (120Hz+)');
+    } else if (_currentFPS >= 85) {
+      _deviceCategory = 'mid_range';
+      _isLowEndDevice = false;
+      debugPrint('⚡ Cihaz Kategorisi: Orta Performans (90Hz+)');
+    } else {
+      // Düşük FPS oranına göre low-end kontrolü
+      if (dropRate > 10.0 || _currentFPS < 45) {
+        _deviceCategory = 'low_end';
+        _isLowEndDevice = true;
+        debugPrint('📱 Cihaz Kategorisi: Düşük Performans (optimizasyonlar devrede)');
+      } else {
+        _deviceCategory = 'mid_range';
+        _isLowEndDevice = false;
+        debugPrint('📱 Cihaz Kategorisi: Standart Performans');
+      }
+    }
+  }
+  
+  // 🚀 PERFORMANCE MOD: Adaptif ayar getters
+  static Map<String, dynamic> get currentDeviceSettings {
+    return deviceCategories[_deviceCategory] ?? deviceCategories['mid_range']!;
+  }
   
   // 🚀 PERFORMANCE MOD: Gelişmiş FPS izleme
   static void enableFPSCounter() {
@@ -55,18 +174,46 @@ class PerformanceUtils {
           debugPrint('⚠️ Frame Drop: ${_currentFPS.toStringAsFixed(1)} FPS | Build: ${buildTime.toStringAsFixed(1)}ms | Raster: ${rasterTime.toStringAsFixed(1)}ms');
         }
         
-        // Her 60 frame'de bir rapor
+        // Her 60 frame'de bir rapor ve cihaz kategorisi güncelle
         if (_frameCount % 60 == 0) {
           final dropRate = (_droppedFrames / _frameCount) * 100;
           debugPrint('📊 FPS Raporu: ${_currentFPS.toStringAsFixed(1)} FPS | Drop Rate: ${dropRate.toStringAsFixed(1)}% | Total Frames: $_frameCount');
           
+          // Cihaz kategorisini güncelle
+          _categorizeDevice();
+          
           // Drop rate %5'ten fazlaysa uyarı ver
           if (dropRate > 5.0) {
             debugPrint('🔴 PERFORMANS UYARISI: Yüksek frame drop oranı!');
+            debugPrint('🔧 Önerilen çözümler:');
+            debugPrint('   • Diğer uygulamaları kapatın');
+            debugPrint('   • Cihazın soğumasını bekleyin');
+            debugPrint('   • Geliştirici seçeneklerinde GPU rendering aktif edin');
           }
+        }
+        
+        // Çok düşük performans tespiti
+        if (_frameCount > 300 && dropRate > 15.0) {
+          debugPrint('🔴 CRİTİK PERFORMANS SORUNU TESPİT EDİLDİ!');
+          debugPrint('🔧 Acil düşük performans moduna geçiliyor...');
+          _activateEmergencyMode();
         }
       }
     });
+  }
+  
+  // 🚀 PERFORMANCE MOD: Acil durum modu
+  static void _activateEmergencyMode() {
+    _deviceCategory = 'low_end';
+    _isLowEndDevice = true;
+    
+    // Acil cache temizleme
+    optimizeMemory();
+    
+    debugPrint('🆘 ACİL PERFORMANS MODU AKTİF!');
+    debugPrint('   • Cache boyutu minimize edildi');
+    debugPrint('   • Animasyonlar yavaşlatıldı');
+    debugPrint('   • Görsel efektler devre dışı');
   }
   
   // 🚀 PERFORMANCE MOD: Sistem performans bilgileri
@@ -76,46 +223,61 @@ class PerformanceUtils {
     debugPrint('   • Dropped Frames: $_droppedFrames');
     debugPrint('   • Current FPS: ${_currentFPS.toStringAsFixed(1)}');
     debugPrint('   • Drop Rate: ${(_droppedFrames / _frameCount * 100).toStringAsFixed(1)}%');
+    debugPrint('   • Device Category: $_deviceCategory');
+    debugPrint('   • Low End Device: $_isLowEndDevice');
   }
   
   // Performans modu
   static const bool performanceMode = true;
   
-  // 🚀 PERFORMANCE MOD: FPS'e göre optimize edilmiş animasyon süreleri
+  // 🚀 PERFORMANCE MOD: Adaptif animasyon süreleri
   static Duration get fastAnimation {
-    if (_currentFPS >= 115) return const Duration(milliseconds: 80);   // 120Hz
-    if (_currentFPS >= 85) return const Duration(milliseconds: 100);   // 90Hz
-    return const Duration(milliseconds: 120);                          // 60Hz
+    final multiplier = currentDeviceSettings['animation_multiplier'] as double;
+    final baseMs = _currentFPS >= 115 ? 80 : (_currentFPS >= 85 ? 100 : 120);
+    return Duration(milliseconds: (baseMs * multiplier).round());
   }
   
   static Duration get normalAnimation {
-    if (_currentFPS >= 115) return const Duration(milliseconds: 150);  // 120Hz
-    if (_currentFPS >= 85) return const Duration(milliseconds: 180);   // 90Hz
-    return const Duration(milliseconds: 200);                          // 60Hz
+    final multiplier = currentDeviceSettings['animation_multiplier'] as double;
+    final baseMs = _currentFPS >= 115 ? 150 : (_currentFPS >= 85 ? 180 : 200);
+    return Duration(milliseconds: (baseMs * multiplier).round());
   }
   
   static Duration get slowAnimation {
-    if (_currentFPS >= 115) return const Duration(milliseconds: 250);  // 120Hz
-    if (_currentFPS >= 85) return const Duration(milliseconds: 280);   // 90Hz
-    return const Duration(milliseconds: 300);                          // 60Hz
+    final multiplier = currentDeviceSettings['animation_multiplier'] as double;
+    final baseMs = _currentFPS >= 115 ? 250 : (_currentFPS >= 85 ? 280 : 300);
+    return Duration(milliseconds: (baseMs * multiplier).round());
   }
   
-  // 🚀 PERFORMANCE MOD: FPS'e göre optimize edilmiş cache ayarları
+  // 🚀 PERFORMANCE MOD: Adaptif cache ayarları
   static double get defaultCacheExtent {
-    if (_currentFPS >= 115) return 1500.0;  // 120Hz - daha büyük cache
-    if (_currentFPS >= 85) return 1200.0;   // 90Hz - orta cache
-    return 1000.0;                          // 60Hz - standart cache
+    return currentDeviceSettings['cache_extent'] as double;
   }
   
   static int get maxCacheItems {
-    if (_currentFPS >= 115) return 75;      // 120Hz - daha fazla item
-    if (_currentFPS >= 85) return 60;       // 90Hz - orta item
-    return 50;                              // 60Hz - standart item
+    return currentDeviceSettings['max_cache_items'] as int;
   }
   
-  // Debounce süreleri
-  static const Duration searchDebounce = Duration(milliseconds: 300);
-  static const Duration inputDebounce = Duration(milliseconds: 200);
+  static int get preloadItems {
+    return currentDeviceSettings['preload_items'] as int;
+  }
+  
+  static bool get useCacheImages {
+    return currentDeviceSettings['use_cache_images'] as bool;
+  }
+  
+  // Getters
+  static bool get isLowEndDevice => _isLowEndDevice;
+  static String get deviceCategory => _deviceCategory;
+  
+  // Debounce süreleri - cihaza göre adaptif
+  static Duration get searchDebounce {
+    return Duration(milliseconds: _isLowEndDevice ? 500 : 300);
+  }
+  
+  static Duration get inputDebounce {
+    return Duration(milliseconds: _isLowEndDevice ? 300 : 200);
+  }
   
   // 🚀 PERFORMANCE MOD: Optimize edilmiş widget builder
   static Widget optimizedBuilder({
@@ -123,7 +285,8 @@ class PerformanceUtils {
     bool shouldRepaint = true,
     String? debugLabel,
   }) {
-    if (shouldRepaint) {
+    // Düşük performanslı cihazlarda RepaintBoundary kullanımını azalt
+    if (shouldRepaint && !_isLowEndDevice) {
       return RepaintBoundary(
         key: debugLabel != null ? ValueKey('repaint_$debugLabel') : null,
         child: builder(),
@@ -161,7 +324,7 @@ class PerformanceUtils {
     required String label,
     bool enableProfiling = false,
   }) {
-    if (!enableProfiling) return child;
+    if (!enableProfiling || _isLowEndDevice) return child;
     
     return Builder(
       builder: (context) {
@@ -195,12 +358,18 @@ class OptimizedSliverChildDelegate extends SliverChildBuilderDelegate {
     required int childCount,
     String? debugLabel,
   }) : super(
-          (context, index) => RepaintBoundary(
-            key: ValueKey('${debugLabel ?? 'optimized'}_item_$index'),
-            child: builder(context, index),
-          ),
+          (context, index) {
+            // Düşük performanslı cihazlarda RepaintBoundary kullanmayın
+            if (PerformanceUtils.isLowEndDevice) {
+              return builder(context, index);
+            }
+            return RepaintBoundary(
+              key: ValueKey('${debugLabel ?? 'optimized'}_item_$index'),
+              child: builder(context, index),
+            );
+          },
           childCount: childCount,
-          addAutomaticKeepAlives: true,
+          addAutomaticKeepAlives: !PerformanceUtils.isLowEndDevice, // Düşük performansta kapalı
           addRepaintBoundaries: false, // Manuel olarak ekliyoruz
           addSemanticIndexes: false,
         );

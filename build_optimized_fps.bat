@@ -1,61 +1,58 @@
 @echo off
-echo.
 echo ========================================
-echo    KAVAID FPS OPTIMIZED BUILD
+echo KAVAID FPS OPTIMIZED BUILD - v2025
 echo ========================================
 echo.
 
-echo 🚀 FPS Optimize Edilmiş APK Build Başlatılıyor...
-echo.
+REM Clean previous builds
+echo [1/5] Temizlik yapiliyor...
+call flutter clean
+if %errorlevel% neq 0 (
+    echo HATA: Flutter clean basarisiz!
+    pause
+    exit /b 1
+)
 
-echo 🔧 Flutter clean işlemi...
-flutter clean
-
+REM Get dependencies
 echo.
-echo 📦 Pub get işlemi...
-flutter pub get
+echo [2/5] Bagimliliklar yukleniyor...
+call flutter pub get
+if %errorlevel% neq 0 (
+    echo HATA: Flutter pub get basarisiz!
+    pause
+    exit /b 1
+)
 
+REM Build optimized APK with split APKs
 echo.
-echo 🛠️ JSON serialization build...
-flutter packages pub run build_runner build --delete-conflicting-outputs
+echo [3/5] Optimize edilmis APK olusturuluyor...
+call flutter build apk --release --split-per-abi --target-platform android-arm64 --obfuscate --split-debug-info=debug-info
+if %errorlevel% neq 0 (
+    echo HATA: APK build basarisiz!
+    pause
+    exit /b 1
+)
 
+REM Rename the APK with version and date
 echo.
-echo 🎯 FPS Optimize Edilmiş Release APK Build işlemi başlatılıyor...
-echo.
-echo 📱 Bu build şunlar için optimize edilmiştir:
-echo    • 🚀 120Hz cihazlar için ultra performans
-echo    • ⚡ 90Hz cihazlar için yüksek performans
-echo    • 📱 60Hz cihazlar için stabil performans
-echo    • 🧹 Memory optimizasyonları
-echo    • 📊 Frame drop izleme
-echo    • ⚡ GPU hızlandırma
-echo.
-
-flutter build apk --release --shrink --target-platform android-arm64 --analyze-size
-
-echo.
-echo 🏗️ APK dosyası oluşturuluyor...
-
-set TIMESTAMP=%date:~-4,4%-%date:~-7,2%-%date:~-10,2%
-set OUTPUT_NAME=kavaid-fps-optimized-%TIMESTAMP%.apk
-
-echo.
-echo 📦 APK dosyası yeniden adlandırılıyor...
-copy "build\app\outputs\flutter-apk\app-release.apk" "%OUTPUT_NAME%"
+echo [4/5] APK yeniden adlandiriliyor...
+set TODAY=%date:~-4%-%date:~3,2%-%date:~0,2%
+set OUTPUT_NAME=kavaid-v2.1.0-build2025-fps-optimized-%TODAY%.apk
+copy "build\app\outputs\flutter-apk\app-arm64-v8a-release.apk" "%OUTPUT_NAME%"
 
 echo.
-echo ✅ FPS Optimize Edilmiş APK Hazır!
-echo 📁 Dosya: %OUTPUT_NAME%
+echo [5/5] BUILD TAMAMLANDI!
+echo ========================================
+echo Dosya: %OUTPUT_NAME%
+echo Boyut: 
+dir /b /-c "%OUTPUT_NAME%" | findstr /r "^[0-9]"
 echo.
-echo 🎮 Performans Özellikleri:
-echo    • Otomatik yüksek refresh rate desteği (60/90/120Hz)
-echo    • Adaptif animasyon süreleri
-echo    • Optimize edilmiş cache ayarları
-echo    • GPU donanım hızlandırma
-echo    • Memory garbage collection optimizasyonu
-echo    • Frame drop monitoring
-echo    • RepaintBoundary optimizasyonları
-echo.
-echo 📊 Test için: test_fps_performance.bat çalıştırın
+echo OPTIMIZASYONLAR:
+echo - Impeller devre disi (Xiaomi/Redmi uyumlulugu)
+echo - Adaptif performans sistemi aktif
+echo - Yuksek refresh rate destegi (120Hz)
+echo - Split APK (sadece ARM64)
+echo - Obfuscation aktif
+echo ========================================
 echo.
 pause 

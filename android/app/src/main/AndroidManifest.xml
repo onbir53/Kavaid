@@ -39,6 +39,16 @@
             android:name="com.google.android.gms.ads.DELAY_APP_MEASUREMENT_INIT"
             android:value="true"/>
             
+        <!-- 🚀 PERFORMANCE FIX: Impeller'ı düşük performanslı cihazlarda devre dışı bırak -->
+        <meta-data
+            android:name="io.flutter.embedding.android.EnableImpeller"
+            android:value="false" />
+        
+        <!-- Yüksek performans modu -->
+        <meta-data
+            android:name="io.flutter.embedding.android.EnableSustainedPerformanceMode"
+            android:value="true" />
+            
         <activity
             android:name=".MainActivity"
             android:exported="true"
