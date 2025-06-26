@@ -38,6 +38,8 @@ class CreditsService extends ChangeNotifier {
   bool get isPremium => _isPremium && (_premiumExpiry?.isAfter(DateTime.now()) ?? false);
   DateTime? get premiumExpiry => _premiumExpiry;
   bool get hasInitialCredits => !_initialCreditsUsed;
+  bool get initialCreditsUsed => _initialCreditsUsed;
+  DateTime? get lastResetDate => _lastResetDate;
   
   Future<void> initialize() async {
     debugPrint('🚀 [CreditsService] Initialize başlıyor...');
@@ -130,10 +132,21 @@ class CreditsService extends ChangeNotifier {
         await prefs.setBool(deviceFirstLaunchKey, false);
         await prefs.setBool(deviceInitialCreditsUsedKey, false);
         
-        // İlk açılışta bugünün tarihini kaydet
-        final now = DateTime.now();
-        final turkeyTime = now.toUtc().add(const Duration(hours: 3));
-        _lastResetDate = DateTime(turkeyTime.year, turkeyTime.month, turkeyTime.day);
+        // İlk açılışta server saatini kullanarak tarih kaydet (güvenlik için)
+        final deviceDataService = DeviceDataService();
+        final serverTime = await deviceDataService.getTurkeyServerTime();
+        
+        DateTime currentTime;
+        if (serverTime != null) {
+          currentTime = serverTime;
+          debugPrint('✅ [CreditsService] İlk açılış server saati kullanıldı: $currentTime');
+        } else {
+          final now = DateTime.now();
+          currentTime = now.toUtc().add(const Duration(hours: 3));
+          debugPrint('⚠️ [CreditsService] İlk açılış yerel saat kullanıldı: $currentTime');
+        }
+        
+        _lastResetDate = DateTime(currentTime.year, currentTime.month, currentTime.day);
         await prefs.setString(deviceLastResetDateKey, _lastResetDate!.toIso8601String());
         
         _credits = _initialCredits;
@@ -189,32 +202,84 @@ class CreditsService extends ChangeNotifier {
     }
   }
   
-  // Günlük sıfırlama kontrolü (Türkiye saatine göre)
+  // Günlük sıfırlama kontrolü (Firebase server saatine göre - GÜVENLİ)
   Future<void> _checkDailyReset(SharedPreferences prefs) async {
     if (!_initialCreditsUsed) return; // İlk krediler hala varsa günlük sistemi çalıştırma
     
-    final now = DateTime.now();
-    // Türkiye saati için UTC+3 ekleme
-    final turkeyTime = now.toUtc().add(const Duration(hours: 3));
-    final todayMidnight = DateTime(turkeyTime.year, turkeyTime.month, turkeyTime.day);
+    debugPrint('🕐 [CreditsService] Günlük sıfırlama kontrolü başlıyor...');
+    debugPrint('📊 [CreditsService] Mevcut durum: Kredi=$_credits, SonSıfırlama=$_lastResetDate');
+    
+    // Firebase server saatini al (güvenlik için)
+    final deviceDataService = DeviceDataService();
+    final serverTime = await deviceDataService.getTurkeyServerTime();
+    
+    DateTime currentTurkeyTime;
+    bool usingServerTime = false;
+    
+    if (serverTime != null) {
+      currentTurkeyTime = serverTime;
+      usingServerTime = true;
+      debugPrint('✅ [CreditsService] Server Türkiye saati kullanılıyor: $currentTurkeyTime');
+    } else {
+      // İnternet yoksa yerel Türkiye saatini kullan
+      currentTurkeyTime = deviceDataService.getCurrentTurkeyTime();
+      debugPrint('⚠️ [CreditsService] İnternet yok, yerel Türkiye saati kullanılıyor: $currentTurkeyTime');
+    }
+    
+    // Türkiye saatine göre bugünün gece yarısını hesapla (00:00:00)
+    final todayMidnight = deviceDataService.getTurkeyMidnight(currentTurkeyTime);
+    debugPrint('🌙 [CreditsService] Türkiye gece yarısı hedefi: $todayMidnight');
     
     // Cihaz bazlı key'ler
     final deviceCreditsKey = '${_creditsKey}_$_deviceId';
     final deviceLastResetDateKey = '${_lastResetDateKey}_$_deviceId';
     final deviceSessionWordsKey = '${_sessionWordsKey}_$_deviceId';
+    final deviceLastServerCheckKey = '${_lastResetDateKey}_server_check_$_deviceId';
     
     // Eğer _lastResetDate null ise (beklenmedik durum), bugünün tarihini kaydet ama kredi verme
     if (_lastResetDate == null) {
       _lastResetDate = todayMidnight;
       await prefs.setString(deviceLastResetDateKey, todayMidnight.toIso8601String());
-      // Kredi vermiyoruz, sadece tarihi kaydediyoruz
-      await _saveToFirebase(); // Firebase'e de kaydet
+      
+      // Server saati kontrol tarihini de kaydet
+      if (usingServerTime) {
+        await prefs.setString(deviceLastServerCheckKey, currentTurkeyTime.toIso8601String());
+      }
+      
+      await _saveToFirebase();
+      debugPrint('📅 [CreditsService] İlk Türkiye tarih kaydedildi: $todayMidnight');
       return;
     }
     
-    // Yeni gün kontrolü - sadece gerçekten yeni gün başlamışsa kredi ver
+    // Güvenlik kontrolü: Eğer server saati kullanıyorsak ve son kontrol tarihimiz varsa
+    if (usingServerTime) {
+      final lastServerCheckStr = prefs.getString(deviceLastServerCheckKey);
+      if (lastServerCheckStr != null) {
+        final lastServerCheck = DateTime.parse(lastServerCheckStr);
+        final timeDifference = currentTurkeyTime.difference(lastServerCheck).inHours;
+        
+        debugPrint('🔍 [CreditsService] Son server kontrol: $lastServerCheck, Şimdi: $currentTurkeyTime, Fark: $timeDifference saat');
+        
+        // Eğer server saati geriye gitmiş gibi görünüyorsa şüpheli
+        if (timeDifference < -1) {
+          debugPrint('🚨 [CreditsService] Şüpheli zaman değişikliği tespit edildi! Server Türkiye saati geriye gitti.');
+          return; // Kredi verme
+        }
+      }
+      
+      // Server kontrol tarihini güncelle
+      await prefs.setString(deviceLastServerCheckKey, currentTurkeyTime.toIso8601String());
+    }
+    
+    // Yeni gün kontrolü - Türkiye saatine göre sadece gerçekten yeni gün başlamışsa kredi ver
+    debugPrint('🔍 [CreditsService] Tarih karşılaştırması: Son=${_lastResetDate}, Bugün=$todayMidnight');
+    debugPrint('🔍 [CreditsService] Yeni gün mı? ${_lastResetDate!.isBefore(todayMidnight)}');
+    
     if (_lastResetDate!.isBefore(todayMidnight)) {
+      debugPrint('🌅 [CreditsService] Yeni Türkiye günü tespit edildi! ${_lastResetDate} → $todayMidnight');
+      
       // Yeni gün başlamış, kredileri yenile
+      debugPrint('✨ [CreditsService] Günlük haklar yenileniyor...');
       _credits = _dailyCredits;
       _lastResetDate = todayMidnight;
       
@@ -227,8 +292,13 @@ class CreditsService extends ChangeNotifier {
       
       // Firebase'e de kaydet
       await _saveToFirebase();
+      
+      debugPrint('✅ [CreditsService] Günlük haklar yenilendi: $_credits hak verildi (Türkiye Server: $usingServerTime)');
+      debugPrint('📅 [CreditsService] Yeni sıfırlama tarihi kaydedildi: $todayMidnight');
+    } else {
+      debugPrint('📅 [CreditsService] Aynı Türkiye günü, kredi yenilenmedi. Son sıfırlama: $_lastResetDate');
+      debugPrint('⏰ [CreditsService] Gece yarısına kalan süre: ${todayMidnight.add(const Duration(days: 1)).difference(currentTurkeyTime)}');
     }
-    // Eğer aynı gündeyse, mevcut krediler korunur (birikme yok)
   }
   
   Future<void> _initializeSession(SharedPreferences prefs) async {
@@ -298,11 +368,24 @@ class CreditsService extends ChangeNotifier {
       _initialCreditsUsed = true;
       await prefs.setBool(deviceInitialCreditsUsedKey, true);
       
-      // Türkiye saatine göre bugünün gece yarısını ayarla
-      final now = DateTime.now();
-      final turkeyTime = now.toUtc().add(const Duration(hours: 3));
-      _lastResetDate = DateTime(turkeyTime.year, turkeyTime.month, turkeyTime.day);
+      // Server saatini kullanarak günlük sisteme geçiş (güvenlik için)
+      final deviceDataService = DeviceDataService();
+      final serverTime = await deviceDataService.getTurkeyServerTime();
+      
+      DateTime currentTime;
+      if (serverTime != null) {
+        currentTime = serverTime;
+        debugPrint('✅ [CreditsService] Günlük sisteme geçiş server saati kullanıldı: $currentTime');
+      } else {
+        final now = DateTime.now();
+        currentTime = now.toUtc().add(const Duration(hours: 3));
+        debugPrint('⚠️ [CreditsService] Günlük sisteme geçiş yerel saat kullanıldı: $currentTime');
+      }
+      
+      _lastResetDate = DateTime(currentTime.year, currentTime.month, currentTime.day);
       await prefs.setString(deviceLastResetDateKey, _lastResetDate!.toIso8601String());
+      
+      debugPrint('🔄 [CreditsService] İlk 100 hak bitti, günlük 5 hak sistemine geçildi');
     }
     
     // Firebase'e de kaydet
@@ -461,6 +544,94 @@ class CreditsService extends ChangeNotifier {
     // Firebase'e de kaydet
     await _saveToFirebase();
     
+    notifyListeners();
+  }
+  
+  // Test için: İlk 100 hak sistemine geri dön
+  Future<void> resetToInitialCreditsForTesting() async {
+    debugPrint('🧪 [Test] İlk 100 hak sistemine geri dönülüyor...');
+    
+    _credits = _initialCredits;
+    _initialCreditsUsed = false;
+    _lastResetDate = null;
+    _sessionOpenedWords.clear();
+    
+    final prefs = await SharedPreferences.getInstance();
+    
+    // Cihaz bazlı key'ler
+    final deviceCreditsKey = '${_creditsKey}_$_deviceId';
+    final deviceInitialCreditsUsedKey = '${_initialCreditsUsedKey}_$_deviceId';
+    final deviceLastResetDateKey = '${_lastResetDateKey}_$_deviceId';
+    final deviceSessionWordsKey = '${_sessionWordsKey}_$_deviceId';
+    
+    await prefs.setInt(deviceCreditsKey, _credits);
+    await prefs.setBool(deviceInitialCreditsUsedKey, false);
+    await prefs.remove(deviceLastResetDateKey);
+    await prefs.setStringList(deviceSessionWordsKey, []);
+    
+    // Firebase'e de kaydet
+    await _saveToFirebase();
+    
+    debugPrint('✅ [Test] İlk 100 hak sistemi geri yüklendi');
+    notifyListeners();
+  }
+  
+  // Test için: Gece yarısı simülasyonu (günlük hakları yenile)
+  Future<void> simulateMidnightResetForTesting() async {
+    debugPrint('🧪 [Test] Gece yarısı simülasyonu başlıyor...');
+    
+    if (!_initialCreditsUsed) {
+      debugPrint('⚠️ [Test] Henüz günlük sisteme geçilmemiş, önce 100 hakkı bitirin');
+      return;
+    }
+    
+    // Günlük kredileri yenile
+    _credits = _dailyCredits;
+    _sessionOpenedWords.clear();
+    
+    // Yarın için tarih ayarla
+    final now = DateTime.now();
+    final turkeyTime = now.toUtc().add(const Duration(hours: 3));
+    _lastResetDate = DateTime(turkeyTime.year, turkeyTime.month, turkeyTime.day);
+    
+    final prefs = await SharedPreferences.getInstance();
+    
+    // Cihaz bazlı key'ler
+    final deviceCreditsKey = '${_creditsKey}_$_deviceId';
+    final deviceLastResetDateKey = '${_lastResetDateKey}_$_deviceId';
+    final deviceSessionWordsKey = '${_sessionWordsKey}_$_deviceId';
+    
+    await prefs.setInt(deviceCreditsKey, _credits);
+    await prefs.setString(deviceLastResetDateKey, _lastResetDate!.toIso8601String());
+    await prefs.setStringList(deviceSessionWordsKey, []);
+    
+    // Firebase'e de kaydet
+    await _saveToFirebase();
+    
+    debugPrint('✅ [Test] Gece yarısı geçti, günlük haklar yenilendi: $_credits');
+    notifyListeners();
+  }
+  
+  // Test için: Günlük 5 hakkı bitir
+  Future<void> useAllDailyCreditsForTesting() async {
+    debugPrint('🧪 [Test] Günlük 5 hakkı bitiriliyor...');
+    
+    if (!_initialCreditsUsed) {
+      debugPrint('⚠️ [Test] Henüz günlük sisteme geçilmemiş, önce 100 hakkı bitirin');
+      return;
+    }
+    
+    _credits = 0;
+    
+    final prefs = await SharedPreferences.getInstance();
+    final deviceCreditsKey = '${_creditsKey}_$_deviceId';
+    
+    await prefs.setInt(deviceCreditsKey, _credits);
+    
+    // Firebase'e de kaydet
+    await _saveToFirebase();
+    
+    debugPrint('✅ [Test] Günlük 5 hak bitti');
     notifyListeners();
   }
   

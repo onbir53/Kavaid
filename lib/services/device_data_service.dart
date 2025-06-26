@@ -2,6 +2,8 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/foundation.dart';
 import 'dart:io';
+import 'package:timezone/timezone.dart' as tz;
+import 'package:timezone/data/latest.dart' as tz;
 
 class DeviceDataService {
   static final FirebaseDatabase _database = FirebaseDatabase.instance;
@@ -10,9 +12,21 @@ class DeviceDataService {
   // Singleton instance
   static final DeviceDataService _instance = DeviceDataService._internal();
   factory DeviceDataService() => _instance;
-  DeviceDataService._internal();
+  DeviceDataService._internal() {
+    _initializeTimezone();
+  }
   
   String? _deviceId;
+  bool _timezoneInitialized = false;
+  
+  // Timezone'ı initialize et
+  void _initializeTimezone() {
+    if (!_timezoneInitialized) {
+      tz.initializeTimeZones();
+      _timezoneInitialized = true;
+      debugPrint('🌍 [DeviceData] Timezone data yüklendi');
+    }
+  }
   
   // Cihaz ID'sini al veya oluştur
   Future<String> getDeviceId() async {
@@ -157,5 +171,100 @@ class DeviceDataService {
     } catch (e) {
       debugPrint('❌ [DeviceData] İlk açılış işaretleme hatası: $e');
     }
+  }
+  
+  // Firebase server timestamp al (güvenlik için)
+  Future<DateTime?> getServerTimestamp() async {
+    try {
+      debugPrint('🕐 [DeviceData] Firebase server timestamp alınıyor...');
+      
+      // Temporary bir key ile server timestamp oluştur
+      final tempRef = _database.ref().child('server_time_check').push();
+      await tempRef.set({
+        'timestamp': ServerValue.timestamp,
+      });
+      
+      // Oluşturulan veriyi oku
+      final snapshot = await tempRef.get();
+      
+      if (snapshot.exists) {
+        final data = snapshot.value as Map<dynamic, dynamic>;
+        final serverTimestamp = data['timestamp'] as int;
+        
+        // Temporary veriyi sil
+        await tempRef.remove();
+        
+        final serverTime = DateTime.fromMillisecondsSinceEpoch(serverTimestamp);
+        debugPrint('✅ [DeviceData] Server timestamp alındı: $serverTime');
+        
+        return serverTime;
+      }
+      
+      debugPrint('❌ [DeviceData] Server timestamp alınamadı');
+      return null;
+    } catch (e) {
+      debugPrint('❌ [DeviceData] Server timestamp hatası: $e');
+      return null;
+    }
+  }
+  
+  // Türkiye saati için server timestamp al (timezone ile doğru hesaplama)
+  Future<DateTime?> getTurkeyServerTime() async {
+    final serverTime = await getServerTimestamp();
+    if (serverTime != null) {
+      try {
+        // Server saatini UTC olarak al
+        final utcTime = tz.TZDateTime.from(serverTime, tz.UTC);
+        
+        // Türkiye timezone'ını al (Europe/Istanbul)
+        final turkeyLocation = tz.getLocation('Europe/Istanbul');
+        
+        // UTC'den Türkiye saatine çevir
+        final turkeyTime = tz.TZDateTime.from(utcTime, turkeyLocation);
+        
+        debugPrint('🇹🇷 [DeviceData] Türkiye server saati (timezone): $turkeyTime');
+        debugPrint('📍 [DeviceData] Timezone: ${turkeyLocation.name}, Offset: ${turkeyTime.timeZoneOffset}');
+        
+        // Normal DateTime'a çevir
+        return turkeyTime.toLocal();
+      } catch (e) {
+        debugPrint('❌ [DeviceData] Timezone çevirme hatası: $e');
+        // Fallback: Manuel UTC+3 ekleme
+        final turkeyTime = serverTime.add(const Duration(hours: 3));
+        debugPrint('🇹🇷 [DeviceData] Türkiye server saati (fallback): $turkeyTime');
+        return turkeyTime;
+      }
+    }
+    return null;
+  }
+  
+  // Mevcut Türkiye saatini al (server saati yoksa yerel saat)
+  DateTime getCurrentTurkeyTime() {
+    try {
+      final now = DateTime.now();
+      final utcTime = tz.TZDateTime.from(now.toUtc(), tz.UTC);
+      
+      // Türkiye timezone'ını al
+      final turkeyLocation = tz.getLocation('Europe/Istanbul');
+      
+      // UTC'den Türkiye saatine çevir
+      final turkeyTime = tz.TZDateTime.from(utcTime, turkeyLocation);
+      
+      debugPrint('🇹🇷 [DeviceData] Mevcut Türkiye saati (timezone): $turkeyTime');
+      
+      return turkeyTime.toLocal();
+    } catch (e) {
+      debugPrint('❌ [DeviceData] Yerel timezone çevirme hatası: $e');
+      // Fallback: Manuel UTC+3 ekleme
+      final now = DateTime.now();
+      final turkeyTime = now.toUtc().add(const Duration(hours: 3));
+      debugPrint('🇹🇷 [DeviceData] Mevcut Türkiye saati (fallback): $turkeyTime');
+      return turkeyTime;
+    }
+  }
+  
+  // Türkiye saatine göre gece yarısı hesapla (00:00:00)
+  DateTime getTurkeyMidnight(DateTime turkeyTime) {
+    return DateTime(turkeyTime.year, turkeyTime.month, turkeyTime.day);
   }
 } 

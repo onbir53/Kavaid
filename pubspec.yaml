@@ -71,6 +71,9 @@ dependencies:
   flutter_launcher_icons: ^0.14.1
   file_picker: ^8.1.6
   flutter_displaymode: ^0.6.0
+  
+  # Timezone support for Turkey time
+  timezone: ^0.9.4
 
 dev_dependencies:
   flutter_test:

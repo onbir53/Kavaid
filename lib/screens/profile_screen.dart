@@ -512,7 +512,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Firebase Test',
+                    'Hak Sistemi Test',
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
@@ -520,51 +520,256 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                   ),
                   const SizedBox(height: 12),
+                  
+                  // İlk 100 hak sistemi testleri
+                  Text(
+                    '100 Hak Sistemi:',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      color: isDarkMode ? Colors.white.withOpacity(0.8) : Colors.black.withOpacity(0.8),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: _testUseAllInitialCredits,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.red,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 10),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          child: const Text('100 Hakkı Bitir', style: TextStyle(fontSize: 12)),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: _testResetToInitial,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.green,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 10),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          child: const Text('100 Hakka Sıfırla', style: TextStyle(fontSize: 12)),
+                        ),
+                      ),
+                    ],
+                  ),
+                  
+                  const SizedBox(height: 16),
+                  
+                  // Günlük 5 hak sistemi testleri
+                  Text(
+                    'Günlük 5 Hak Sistemi:',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      color: isDarkMode ? Colors.white.withOpacity(0.8) : Colors.black.withOpacity(0.8),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: _testDailyReset,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.blue,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 10),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          child: const Text('Gece Yarısı Sim.', style: TextStyle(fontSize: 12)),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: _testUseDailyCredits,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.orange,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 10),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          child: const Text('5 Hakkı Bitir', style: TextStyle(fontSize: 12)),
+                        ),
+                      ),
+                    ],
+                  ),
+                  
+                  const SizedBox(height: 16),
+                  
+                  // Firebase testleri
+                  Text(
+                    'Firebase Test:',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      color: isDarkMode ? Colors.white.withOpacity(0.8) : Colors.black.withOpacity(0.8),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
                   Row(
                     children: [
                       Expanded(
                         child: ElevatedButton(
                           onPressed: _testFirebaseSave,
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.green,
+                            backgroundColor: Colors.purple,
                             foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            padding: const EdgeInsets.symmetric(vertical: 10),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(8),
                             ),
                           ),
-                          child: const Text('Firebase\'e Kaydet'),
+                          child: const Text('Firebase\'e Kaydet', style: TextStyle(fontSize: 12)),
                         ),
                       ),
-                      const SizedBox(width: 12),
+                      const SizedBox(width: 8),
                       Expanded(
                         child: ElevatedButton(
                           onPressed: _testFirebaseLoad,
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.blue,
+                            backgroundColor: Colors.teal,
                             foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            padding: const EdgeInsets.symmetric(vertical: 10),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(8),
                             ),
                           ),
-                          child: const Text('Firebase\'den Yükle'),
+                          child: const Text('Firebase\'den Yükle', style: TextStyle(fontSize: 12)),
                         ),
                       ),
                     ],
                   ),
+                  
+                  const SizedBox(height: 16),
+                  
+                  // Güvenlik testi
+                  Text(
+                    'Güvenlik Test:',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      color: isDarkMode ? Colors.white.withOpacity(0.8) : Colors.black.withOpacity(0.8),
+                    ),
+                  ),
                   const SizedBox(height: 8),
                   ElevatedButton(
-                    onPressed: _testCreditsReset,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.orange,
                       foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
                     ),
-                    child: const Text('Kredileri Sıfırla (Test)'),
+                    onPressed: () async {
+                      final deviceDataService = DeviceDataService();
+                      final serverTime = await deviceDataService.getTurkeyServerTime();
+                      final localTime = deviceDataService.getCurrentTurkeyTime();
+                      
+                      final message = serverTime != null 
+                        ? 'Türkiye Server Saati (timezone): $serverTime\nYerel Türkiye Saati (timezone): $localTime'
+                        : 'Server saati alınamadı\nYerel Türkiye Saati (timezone): $localTime';
+                      
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text(message, style: const TextStyle(fontSize: 12))),
+                        );
+                      }
+                    },
+                    child: const Text('🇹🇷 Türkiye Saat Test'),
+                  ),
+                  
+                  const SizedBox(height: 8),
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.purple,
+                      foregroundColor: Colors.white,
+                    ),
+                    onPressed: () async {
+                      // Günlük hak sistemi durumunu kontrol et
+                      final creditsService = CreditsService();
+                      await creditsService.initialize();
+                      
+                      final deviceDataService = DeviceDataService();
+                      final serverTime = await deviceDataService.getTurkeyServerTime();
+                      final localTime = deviceDataService.getCurrentTurkeyTime();
+                      
+                      final currentTime = serverTime ?? localTime;
+                      final todayMidnight = deviceDataService.getTurkeyMidnight(currentTime);
+                      final tomorrowMidnight = todayMidnight.add(const Duration(days: 1));
+                      final timeToMidnight = tomorrowMidnight.difference(currentTime);
+                      
+                      final message = '''
+📊 HAK SİSTEMİ DURUMU:
+💰 Mevcut hak: ${creditsService.credits}
+👑 Premium: ${creditsService.isPremium}
+🔄 İlk 100 bitti: ${creditsService.initialCreditsUsed}
+
+⏰ ZAMAN BİLGİSİ:
+🇹🇷 Türkiye saati: ${currentTime.hour.toString().padLeft(2, '0')}:${currentTime.minute.toString().padLeft(2, '0')}:${currentTime.second.toString().padLeft(2, '0')}
+🌙 Son sıfırlama: ${creditsService.lastResetDate}
+⏳ Gece yarısına: ${timeToMidnight.inHours}s ${timeToMidnight.inMinutes % 60}d ${timeToMidnight.inSeconds % 60}sn''';
+                      
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(message, style: const TextStyle(fontSize: 10)),
+                            duration: const Duration(seconds: 8),
+                          ),
+                        );
+                      }
+                    },
+                    child: const Text('📊 Günlük Hak Durumu'),
+                  ),
+                  
+                  const SizedBox(height: 8),
+                  
+                  // Mevcut durum bilgisi
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: isDarkMode 
+                          ? Colors.white.withOpacity(0.05) 
+                          : Colors.black.withOpacity(0.05),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Mevcut Durum:',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: isDarkMode ? Colors.white.withOpacity(0.8) : Colors.black.withOpacity(0.8),
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Kredi: ${_creditsService.credits}\n'
+                          'Sistem: ${_creditsService.hasInitialCredits ? "100 Hak (İlk)" : "5 Hak (Günlük)"}\n'
+                          'Premium: ${_creditsService.isPremium ? "Aktif" : "Pasif"}\n'
+                          '🔒 Güvenlik: Server Saati Korumalı',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: isDarkMode ? Colors.white.withOpacity(0.6) : Colors.black.withOpacity(0.6),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
@@ -705,17 +910,68 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-  void _testCreditsReset() async {
-    print('🧪 [Test] Kredi sıfırlama testi başlıyor...');
+  void _testUseAllInitialCredits() async {
+    print('🧪 [Test] İlk 100 hakkı bitirme testi başlıyor...');
     try {
-      await _creditsService.resetCreditsForTesting();
-      print('✅ [Test] Krediler sıfırlandı');
+      await _creditsService.useAllInitialCreditsForTesting();
+      print('✅ [Test] İlk 100 hak bitti, günlük sisteme geçildi');
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('✅ Krediler sıfırlandı!')),
+        const SnackBar(content: Text('✅ İlk 100 hak bitti! Artık günlük 5 hak sistemindesiniz.')),
       );
       setState(() {}); // UI güncelle
     } catch (e) {
-      print('❌ [Test] Kredi sıfırlama hatası: $e');
+      print('❌ [Test] İlk hak bitirme hatası: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('❌ Hata: $e')),
+      );
+    }
+  }
+
+  void _testResetToInitial() async {
+    print('🧪 [Test] 100 hakka sıfırlama testi başlıyor...');
+    try {
+      await _creditsService.resetToInitialCreditsForTesting();
+      print('✅ [Test] 100 hak sistemi geri yüklendi');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('✅ 100 hak sistemi geri yüklendi!')),
+      );
+      setState(() {}); // UI güncelle
+    } catch (e) {
+      print('❌ [Test] 100 hak sıfırlama hatası: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('❌ Hata: $e')),
+      );
+    }
+  }
+
+  void _testDailyReset() async {
+    print('🧪 [Test] Gece yarısı simülasyonu başlıyor...');
+    try {
+      await _creditsService.simulateMidnightResetForTesting();
+      print('✅ [Test] Gece yarısı geçti, günlük haklar yenilendi');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('🌙 Gece yarısı geçti! 5 yeni hakkınız var.')),
+      );
+      setState(() {}); // UI güncelle
+    } catch (e) {
+      print('❌ [Test] Gece yarısı simülasyon hatası: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('❌ Hata: $e')),
+      );
+    }
+  }
+
+  void _testUseDailyCredits() async {
+    print('🧪 [Test] Günlük 5 hakkı bitirme testi başlıyor...');
+    try {
+      await _creditsService.useAllDailyCreditsForTesting();
+      print('✅ [Test] Günlük 5 hak bitti');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('✅ Günlük 5 hak bitti! Yarın saat 00:00\'da yenilenecek.')),
+      );
+      setState(() {}); // UI güncelle
+    } catch (e) {
+      print('❌ [Test] Günlük hak bitirme hatası: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('❌ Hata: $e')),
       );
