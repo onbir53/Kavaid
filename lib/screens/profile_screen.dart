@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/credits_service.dart';
 import '../services/subscription_service.dart';
+import '../services/device_data_service.dart';
 
 class ProfileScreen extends StatefulWidget {
   final double bottomPadding;
@@ -491,6 +492,84 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
             ],
 
+            // Debug Test Butonu (sadece debug modda)
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: isDarkMode 
+                    ? const Color(0xFF1C1C1E) 
+                    : Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: isDarkMode 
+                      ? const Color(0xFF3A3A3C)
+                      : const Color(0xFFE5E5EA),
+                  width: 1,
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Firebase Test',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: isDarkMode ? Colors.white : Colors.black,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: _testFirebaseSave,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.green,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          child: const Text('Firebase\'e Kaydet'),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: _testFirebaseLoad,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.blue,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          child: const Text('Firebase\'den Yükle'),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  ElevatedButton(
+                    onPressed: _testCreditsReset,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.orange,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    child: const Text('Kredileri Sıfırla (Test)'),
+                  ),
+                ],
+              ),
+            ),
+
           ],
         ),
       ),
@@ -571,5 +650,75 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  void _testFirebaseSave() async {
+    print('🧪 [Test] Firebase kaydetme testi başlıyor...');
+    try {
+      final deviceDataService = DeviceDataService();
+      final success = await deviceDataService.saveCreditsData(
+        credits: 123,
+        isPremium: false,
+        initialCreditsUsed: false,
+        sessionOpenedWords: ['test1', 'test2'],
+      );
+      
+      if (success) {
+        print('✅ [Test] Firebase kaydetme başarılı!');
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('✅ Firebase\'e test verisi kaydedildi!')),
+        );
+      } else {
+        print('❌ [Test] Firebase kaydetme başarısız!');
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('❌ Firebase kaydetme başarısız!')),
+        );
+      }
+    } catch (e) {
+      print('❌ [Test] Firebase kaydetme hatası: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('❌ Hata: $e')),
+      );
+    }
+  }
 
+  void _testFirebaseLoad() async {
+    print('🧪 [Test] Firebase yükleme testi başlıyor...');
+    try {
+      final deviceDataService = DeviceDataService();
+      final data = await deviceDataService.getDeviceData();
+      
+      if (data != null) {
+        print('✅ [Test] Firebase\'den veri yüklendi: $data');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('✅ Veri yüklendi: ${data['krediler']} kredi')),
+        );
+      } else {
+        print('⚠️ [Test] Firebase\'de veri bulunamadı');
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('⚠️ Firebase\'de veri bulunamadı')),
+        );
+      }
+    } catch (e) {
+      print('❌ [Test] Firebase yükleme hatası: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('❌ Hata: $e')),
+      );
+    }
+  }
+
+  void _testCreditsReset() async {
+    print('🧪 [Test] Kredi sıfırlama testi başlıyor...');
+    try {
+      await _creditsService.resetCreditsForTesting();
+      print('✅ [Test] Krediler sıfırlandı');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('✅ Krediler sıfırlandı!')),
+      );
+      setState(() {}); // UI güncelle
+    } catch (e) {
+      print('❌ [Test] Kredi sıfırlama hatası: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('❌ Hata: $e')),
+      );
+    }
+  }
 } 

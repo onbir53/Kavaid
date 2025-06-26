@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'dart:io';
+import 'device_data_service.dart';
 
 class CreditsService extends ChangeNotifier {
   static const String _creditsKey = 'user_credits';
@@ -39,65 +40,125 @@ class CreditsService extends ChangeNotifier {
   bool get hasInitialCredits => !_initialCreditsUsed;
   
   Future<void> initialize() async {
+    debugPrint('🚀 [CreditsService] Initialize başlıyor...');
     final prefs = await SharedPreferences.getInstance();
     
     // Cihaz ID'sini al veya oluştur
     await _initializeDeviceId(prefs);
+    debugPrint('📱 [CreditsService] Cihaz ID: $_deviceId');
     
-    // Cihaz bazlı key'ler oluştur
-    final deviceCreditsKey = '${_creditsKey}_$_deviceId';
-    final devicePremiumKey = '${_premiumKey}_$_deviceId';
-    final devicePremiumExpiryKey = '${_premiumExpiryKey}_$_deviceId';
-    final deviceInitialCreditsUsedKey = '${_initialCreditsUsedKey}_$_deviceId';
-    final deviceLastResetDateKey = '${_lastResetDateKey}_$_deviceId';
-    final deviceSessionWordsKey = '${_sessionWordsKey}_$_deviceId';
+    // Önce Firebase'den verileri almayı dene
+    debugPrint('🔥 [CreditsService] Firebase\'den veriler alınmaya çalışılıyor...');
+    final deviceDataService = DeviceDataService();
+    final firebaseData = await deviceDataService.getDeviceData();
     
-    // Premium durumunu yükle
-    _isPremium = prefs.getBool(devicePremiumKey) ?? false;
-    
-    final expiryMillis = prefs.getInt(devicePremiumExpiryKey);
-    if (expiryMillis != null) {
-      _premiumExpiry = DateTime.fromMillisecondsSinceEpoch(expiryMillis);
-    }
-    
-    // Son sıfırlama tarihini yükle - ÖNEMLİ: _checkDailyReset'ten önce!
-    final lastResetStr = prefs.getString(deviceLastResetDateKey);
-    if (lastResetStr != null) {
-      _lastResetDate = DateTime.parse(lastResetStr);
-    }
-    
-    // Bu cihaz için ilk açılış kontrolü
-    final deviceFirstLaunchKey = '$_deviceFirstLaunchKey$_deviceId';
-    final isDeviceFirstLaunch = prefs.getBool(deviceFirstLaunchKey) ?? true;
-    
-    if (isDeviceFirstLaunch) {
-      // Bu cihazda ilk açılış - 100 kredi ver
-      await prefs.setInt(deviceCreditsKey, _initialCredits);
-      await prefs.setBool(deviceFirstLaunchKey, false);
-      await prefs.setBool(deviceInitialCreditsUsedKey, false);
+    if (firebaseData != null) {
+      debugPrint('✅ [CreditsService] Firebase\'de veri bulundu: $firebaseData');
+      // Firebase'de veri varsa, onları kullan
+      _credits = firebaseData['krediler'] ?? 0;
+      _isPremium = firebaseData['premiumDurumu'] ?? false;
+      _initialCreditsUsed = firebaseData['ilkKredilerKullanildi'] ?? false;
       
-      // İlk açılışta bugünün tarihini kaydet
-      final now = DateTime.now();
-      final turkeyTime = now.toUtc().add(const Duration(hours: 3));
-      _lastResetDate = DateTime(turkeyTime.year, turkeyTime.month, turkeyTime.day);
-      await prefs.setString(deviceLastResetDateKey, _lastResetDate!.toIso8601String());
+      if (firebaseData['premiumBitisTarihi'] != null) {
+        _premiumExpiry = DateTime.fromMillisecondsSinceEpoch(firebaseData['premiumBitisTarihi']);
+      }
       
-      _credits = _initialCredits;
-      _initialCreditsUsed = false;
+      if (firebaseData['sonSifirlamaTarihi'] != null) {
+        _lastResetDate = DateTime.parse(firebaseData['sonSifirlamaTarihi']);
+      }
+      
+      if (firebaseData['oturumAcilanKelimeler'] != null) {
+        _sessionOpenedWords = Set<String>.from(firebaseData['oturumAcilanKelimeler']);
+      }
+      
+      // Firebase'den alınan verileri SharedPreferences'a da kaydet (cache için)
+      final deviceCreditsKey = '${_creditsKey}_$_deviceId';
+      final devicePremiumKey = '${_premiumKey}_$_deviceId';
+      final devicePremiumExpiryKey = '${_premiumExpiryKey}_$_deviceId';
+      final deviceInitialCreditsUsedKey = '${_initialCreditsUsedKey}_$_deviceId';
+      final deviceLastResetDateKey = '${_lastResetDateKey}_$_deviceId';
+      final deviceSessionWordsKey = '${_sessionWordsKey}_$_deviceId';
+      
+      await prefs.setInt(deviceCreditsKey, _credits);
+      await prefs.setBool(devicePremiumKey, _isPremium);
+      await prefs.setBool(deviceInitialCreditsUsedKey, _initialCreditsUsed);
+      
+      if (_premiumExpiry != null) {
+        await prefs.setInt(devicePremiumExpiryKey, _premiumExpiry!.millisecondsSinceEpoch);
+      }
+      
+      if (_lastResetDate != null) {
+        await prefs.setString(deviceLastResetDateKey, _lastResetDate!.toIso8601String());
+      }
+      
+      await prefs.setStringList(deviceSessionWordsKey, _sessionOpenedWords.toList());
+      
+      debugPrint('✅ [CreditsService] Firebase\'den veriler yüklendi: Kredi: $_credits, Premium: $_isPremium');
     } else {
-      // Bu cihazda daha önce açılmış
-      _initialCreditsUsed = prefs.getBool(deviceInitialCreditsUsedKey) ?? false;
-      _credits = prefs.getInt(deviceCreditsKey) ?? 0;
+      debugPrint('⚠️ [CreditsService] Firebase\'de veri yok, SharedPreferences kullanılıyor');
+      // Firebase'de veri yoksa, SharedPreferences'tan yükle (mevcut kod)
+      // Cihaz bazlı key'ler oluştur
+      final deviceCreditsKey = '${_creditsKey}_$_deviceId';
+      final devicePremiumKey = '${_premiumKey}_$_deviceId';
+      final devicePremiumExpiryKey = '${_premiumExpiryKey}_$_deviceId';
+      final deviceInitialCreditsUsedKey = '${_initialCreditsUsedKey}_$_deviceId';
+      final deviceLastResetDateKey = '${_lastResetDateKey}_$_deviceId';
+      final deviceSessionWordsKey = '${_sessionWordsKey}_$_deviceId';
       
-      // Eğer ilk krediler bitmiş ve günlük sistem aktifse günlük kontrolü yap
-      if (_initialCreditsUsed) {
-        await _checkDailyReset(prefs);
+      // Premium durumunu yükle
+      _isPremium = prefs.getBool(devicePremiumKey) ?? false;
+      
+      final expiryMillis = prefs.getInt(devicePremiumExpiryKey);
+      if (expiryMillis != null) {
+        _premiumExpiry = DateTime.fromMillisecondsSinceEpoch(expiryMillis);
+      }
+      
+      // Son sıfırlama tarihini yükle - ÖNEMLİ: _checkDailyReset'ten önce!
+      final lastResetStr = prefs.getString(deviceLastResetDateKey);
+      if (lastResetStr != null) {
+        _lastResetDate = DateTime.parse(lastResetStr);
+      }
+      
+      // Bu cihaz için ilk açılış kontrolü
+      final deviceFirstLaunchKey = '$_deviceFirstLaunchKey$_deviceId';
+      final isDeviceFirstLaunch = prefs.getBool(deviceFirstLaunchKey) ?? true;
+      
+      if (isDeviceFirstLaunch) {
+        debugPrint('🆕 [CreditsService] İlk açılış - 100 kredi veriliyor');
+        // Bu cihazda ilk açılış - 100 kredi ver
+        await prefs.setInt(deviceCreditsKey, _initialCredits);
+        await prefs.setBool(deviceFirstLaunchKey, false);
+        await prefs.setBool(deviceInitialCreditsUsedKey, false);
+        
+        // İlk açılışta bugünün tarihini kaydet
+        final now = DateTime.now();
+        final turkeyTime = now.toUtc().add(const Duration(hours: 3));
+        _lastResetDate = DateTime(turkeyTime.year, turkeyTime.month, turkeyTime.day);
+        await prefs.setString(deviceLastResetDateKey, _lastResetDate!.toIso8601String());
+        
+        _credits = _initialCredits;
+        _initialCreditsUsed = false;
+        
+        // İlk açılışta Firebase'e kaydet
+        debugPrint('💾 [CreditsService] İlk açılış verileri Firebase\'e kaydediliyor...');
+        await _saveToFirebase();
+      } else {
+        debugPrint('📱 [CreditsService] Daha önce açılmış cihaz, mevcut veriler yükleniyor');
+        // Bu cihazda daha önce açılmış
+        _initialCreditsUsed = prefs.getBool(deviceInitialCreditsUsedKey) ?? false;
+        _credits = prefs.getInt(deviceCreditsKey) ?? 0;
+        
+        // Eğer ilk krediler bitmiş ve günlük sistem aktifse günlük kontrolü yap
+        if (_initialCreditsUsed) {
+          await _checkDailyReset(prefs);
+        }
       }
     }
     
     // Session yönetimi
     await _initializeSession(prefs);
     
+    debugPrint('🎯 [CreditsService] Initialize tamamlandı - Kredi: $_credits, Premium: $_isPremium');
     notifyListeners();
   }
   
@@ -147,6 +208,7 @@ class CreditsService extends ChangeNotifier {
       _lastResetDate = todayMidnight;
       await prefs.setString(deviceLastResetDateKey, todayMidnight.toIso8601String());
       // Kredi vermiyoruz, sadece tarihi kaydediyoruz
+      await _saveToFirebase(); // Firebase'e de kaydet
       return;
     }
     
@@ -162,6 +224,9 @@ class CreditsService extends ChangeNotifier {
       // Günlük kelime setini temizle
       _sessionOpenedWords.clear();
       await prefs.setStringList(deviceSessionWordsKey, []);
+      
+      // Firebase'e de kaydet
+      await _saveToFirebase();
     }
     // Eğer aynı gündeyse, mevcut krediler korunur (birikme yok)
   }
@@ -240,6 +305,9 @@ class CreditsService extends ChangeNotifier {
       await prefs.setString(deviceLastResetDateKey, _lastResetDate!.toIso8601String());
     }
     
+    // Firebase'e de kaydet
+    await _saveToFirebase();
+    
     notifyListeners();
     return true;
   }
@@ -256,6 +324,9 @@ class CreditsService extends ChangeNotifier {
     await prefs.setBool(devicePremiumKey, true);
     await prefs.setInt(devicePremiumExpiryKey, _premiumExpiry!.millisecondsSinceEpoch);
     
+    // Firebase'e de kaydet
+    await _saveToFirebase();
+    
     notifyListeners();
   }
   
@@ -270,6 +341,9 @@ class CreditsService extends ChangeNotifier {
     
     await prefs.setBool(devicePremiumKey, true);
     await prefs.setInt(devicePremiumExpiryKey, _premiumExpiry!.millisecondsSinceEpoch);
+    
+    // Firebase'e de kaydet
+    await _saveToFirebase();
     
     notifyListeners();
   }
@@ -286,6 +360,9 @@ class CreditsService extends ChangeNotifier {
     
     await prefs.setBool(devicePremiumKey, true);
     await prefs.setInt(devicePremiumExpiryKey, _premiumExpiry!.millisecondsSinceEpoch);
+    
+    // Firebase'e de kaydet
+    await _saveToFirebase();
     
     notifyListeners();
   }
@@ -381,6 +458,35 @@ class CreditsService extends ChangeNotifier {
     await prefs.setBool(devicePremiumKey, false);
     await prefs.remove(devicePremiumExpiryKey);
     
+    // Firebase'e de kaydet
+    await _saveToFirebase();
+    
     notifyListeners();
+  }
+  
+  // Firebase'e verileri kaydet
+  Future<void> _saveToFirebase() async {
+    try {
+      debugPrint('💾 [CreditsService] Firebase\'e kaydetme başlıyor...');
+      debugPrint('📊 [CreditsService] Kaydedilecek veriler: Kredi: $_credits, Premium: $_isPremium, İlkKredilerBitti: $_initialCreditsUsed');
+      
+      final deviceDataService = DeviceDataService();
+      final success = await deviceDataService.saveCreditsData(
+        credits: _credits,
+        isPremium: _isPremium,
+        premiumExpiry: _premiumExpiry,
+        initialCreditsUsed: _initialCreditsUsed,
+        lastResetDate: _lastResetDate,
+        sessionOpenedWords: _sessionOpenedWords.toList(),
+      );
+      
+      if (success) {
+        debugPrint('✅ [CreditsService] Firebase\'e veriler başarıyla kaydedildi');
+      } else {
+        debugPrint('❌ [CreditsService] Firebase\'e veri kaydetme başarısız');
+      }
+    } catch (e) {
+      debugPrint('❌ [CreditsService] Firebase\'e veri kaydetme hatası: $e');
+    }
   }
 } 

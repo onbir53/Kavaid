@@ -13,7 +13,6 @@ import 'services/firebase_options.dart';
 import 'services/saved_words_service.dart';
 import 'services/admob_service.dart';
 import 'widgets/banner_ad_widget.dart';
-import 'widgets/fps_counter.dart';
 import 'services/credits_service.dart';
 import 'services/subscription_service.dart';
 
@@ -614,9 +613,6 @@ class _MainScreenState extends State<MainScreen> {
               ),
             ),
           ),
-          
-          // 4. FPS Sayacı - En üstte olacak
-          const FPSCounter(),
         ],
       ),
     );
