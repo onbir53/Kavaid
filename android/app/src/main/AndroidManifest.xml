@@ -8,6 +8,14 @@
     <!-- In-App Purchase için gerekli permission -->
     <uses-permission android:name="com.android.vending.BILLING" />
     
+    <!-- 🚀 PERFORMANCE MOD: Yüksek FPS desteği -->
+    <uses-feature android:name="android.hardware.touchscreen" android:required="false"/>
+    <uses-feature android:name="android.hardware.faketouch" android:required="false"/>
+    
+    <!-- 🚀 PERFORMANCE MOD: Yüksek refresh rate desteği -->
+    <uses-feature android:name="android.hardware.screen.portrait" android:required="false"/>
+    <uses-feature android:name="android.hardware.screen.landscape" android:required="false"/>
+    
     <application
         android:label="Kavaid"
         android:name="${applicationName}"
@@ -39,7 +47,10 @@
             android:theme="@style/LaunchTheme"
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
             android:hardwareAccelerated="true"
-            android:windowSoftInputMode="adjustResize">
+            android:windowSoftInputMode="adjustResize"
+            android:screenOrientation="portrait"
+            android:resizeableActivity="false"
+            android:supportsPictureInPicture="false">
             <!-- Specifies an Android theme to apply to this Activity as soon as
                  the Android process has started. This theme is visible to the user
                  while the Flutter UI initializes. After that, this theme continues

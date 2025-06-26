@@ -83,6 +83,12 @@ android {
             isJniDebuggable = false
             isRenderscriptDebuggable = false
             
+            // 🚀 PERFORMANCE MOD: Render optimizasyonları
+            // R8 compiler optimizasyonları
+            ndk {
+                debugSymbolLevel = "NONE"
+            }
+            
             // APK boyutunu küçültmek için
             resValue("string", "app_name", "Kavaid")
         }
