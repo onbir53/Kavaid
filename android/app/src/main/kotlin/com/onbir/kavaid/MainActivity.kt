@@ -12,6 +12,7 @@ import android.util.Log
 import android.content.pm.ConfigurationInfo
 import android.hardware.display.DisplayManager
 import android.view.Display
+import android.os.PowerManager
 
 class MainActivity : FlutterActivity() {
     private val CHANNEL = "device_info"
@@ -52,10 +53,16 @@ class MainActivity : FlutterActivity() {
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL).setMethodCallHandler { call, result ->
             when (call.method) {
                 "getDeviceInfo" -> {
-                    val deviceInfo = getDevicePerformanceInfo()
-                    result.success(deviceInfo)
+                    result.success(getDetailedDeviceInfo())
                 }
-                else -> result.notImplemented()
+                "setHighPerformanceMode" -> {
+                    val enabled = call.argument<Boolean>("enabled") ?: true
+                    setHighPerformanceMode(enabled)
+                    result.success(true)
+                }
+                else -> {
+                    result.notImplemented()
+                }
             }
         }
     }
@@ -108,7 +115,15 @@ class MainActivity : FlutterActivity() {
             Log.d(TAG, "Low Memory: ${memoryInfo.lowMemory}")
             
             // Performans kategorisi belirle
-            val performanceCategory = determinePerformanceCategory(memoryInfo, configurationInfo)
+            val totalRamMB = (memoryInfo.totalMem / (1024 * 1024)).toInt()
+            val glEsVersion = getOpenGLVersion()
+            val cpuCores = Runtime.getRuntime().availableProcessors()
+            val refreshRate = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                window.context.display?.refreshRate ?: 60f
+            } else {
+                windowManager.defaultDisplay?.refreshRate ?: 60f
+            }
+            val performanceCategory = determinePerformanceCategoryDetailed(totalRamMB, glEsVersion, cpuCores, refreshRate, Build.VERSION.SDK_INT)
             Log.d(TAG, "Performans Kategorisi: $performanceCategory")
             
             // Özel optimizasyonları uygula
@@ -119,23 +134,7 @@ class MainActivity : FlutterActivity() {
         }
     }
     
-    // 🚀 PERFORMANCE MOD: Performans kategorisi belirleme
-    private fun determinePerformanceCategory(memoryInfo: ActivityManager.MemoryInfo, configInfo: ConfigurationInfo): String {
-        val totalRamMB = memoryInfo.totalMem / (1024 * 1024)
-        val glEsVersion = configInfo.glEsVersion.toDoubleOrNull() ?: 0.0
-        val apiLevel = Build.VERSION.SDK_INT
-        
-        return when {
-            // Yüksek performans: 8GB+ RAM, OpenGL ES 3.2+, API 29+
-            totalRamMB >= 8192 && glEsVersion >= 3.2 && apiLevel >= 29 -> "high_end"
-            
-            // Orta performans: 4-8GB RAM, OpenGL ES 3.0+, API 26+
-            totalRamMB >= 4096 && glEsVersion >= 3.0 && apiLevel >= 26 -> "mid_range"
-            
-            // Düşük performans: <4GB RAM veya eski API
-            else -> "low_end"
-        }
-    }
+
     
     // 🚀 PERFORMANCE MOD: Performans optimizasyonlarını uygula
     private fun applyPerformanceOptimizations(category: String) {
@@ -217,28 +216,191 @@ class MainActivity : FlutterActivity() {
     }
     
     // 🚀 PERFORMANCE MOD: Flutter'a gönderilecek cihaz bilgileri
-    private fun getDevicePerformanceInfo(): Map<String, Any> {
+    private fun getDetailedDeviceInfo(): Map<String, Any> {
         val activityManager = getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
         val configurationInfo = activityManager.deviceConfigurationInfo
         val memoryInfo = ActivityManager.MemoryInfo()
         activityManager.getMemoryInfo(memoryInfo)
         
+        // RAM bilgisi
+        val totalRamMB = (memoryInfo.totalMem / (1024 * 1024)).toInt()
+        val availableRamMB = (memoryInfo.availMem / (1024 * 1024)).toInt()
+        
+        // OpenGL ES versiyonu
+        val glEsVersion = getOpenGLVersion()
+        
+        // CPU çekirdek sayısı
+        val cpuCores = Runtime.getRuntime().availableProcessors()
+        
+        // Refresh rate
+        val refreshRate = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            window.context.display?.refreshRate ?: 60f
+        } else {
+            val display = windowManager.defaultDisplay
+            display?.refreshRate ?: 60f
+        }
+        
+        // Cihaz markası ve modeli tespit et
+        val manufacturer = Build.MANUFACTURER.lowercase()
+        val model = Build.MODEL.lowercase()
+        val device = Build.DEVICE.lowercase()
+        
+        // 🚀 PERFORMANCE MOD: Özel cihaz tespiti
+        val isXiaomiDevice = manufacturer.contains("xiaomi") || 
+                            manufacturer.contains("redmi") ||
+                            model.contains("redmi") ||
+                            model.contains("xiaomi")
+        
+        val isSamsungDevice = manufacturer.contains("samsung")
+        val isOnePlusDevice = manufacturer.contains("oneplus")
+        val isOppoDevice = manufacturer.contains("oppo")
+        val isVivoDevice = manufacturer.contains("vivo")
+        val isRealmeDevice = manufacturer.contains("realme")
+        
+        // MIUI versiyonu tespit et
+        val miuiVersion = if (isXiaomiDevice) {
+            getMiuiVersion()
+        } else ""
+        
+        // Performans kategorisi belirleme
+        val performanceCategory = determinePerformanceCategoryDetailed(
+            totalRamMB, 
+            glEsVersion, 
+            cpuCores,
+            refreshRate,
+            Build.VERSION.SDK_INT
+        )
+        
+        // Thermal durum kontrolü
+        val thermalStatus = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            val powerManager = getSystemService(Context.POWER_SERVICE) as PowerManager
+            powerManager.currentThermalStatus
+        } else 0
+        
         return mapOf(
+            "totalRamMB" to totalRamMB,
+            "availableRamMB" to availableRamMB,
+            "glEsVersion" to glEsVersion,
+            "cpuCores" to cpuCores,
+            "apiLevel" to Build.VERSION.SDK_INT,
             "manufacturer" to Build.MANUFACTURER,
             "model" to Build.MODEL,
-            "brand" to Build.BRAND,
             "device" to Build.DEVICE,
-            "androidVersion" to Build.VERSION.RELEASE,
-            "apiLevel" to Build.VERSION.SDK_INT,
-            "architecture" to Build.SUPPORTED_ABIS[0],
-            "glEsVersion" to configurationInfo.glEsVersion,
-            "totalRamMB" to (memoryInfo.totalMem / (1024 * 1024)),
-            "availableRamMB" to (memoryInfo.availMem / (1024 * 1024)),
-            "isLowMemory" to memoryInfo.lowMemory,
-            "performanceCategory" to determinePerformanceCategory(memoryInfo, configurationInfo)
+            "isXiaomiDevice" to isXiaomiDevice,
+            "isSamsungDevice" to isSamsungDevice,
+            "miuiVersion" to miuiVersion,
+            "refreshRate" to refreshRate,
+            "performanceCategory" to performanceCategory,
+            "thermalStatus" to thermalStatus,
+            "board" to Build.BOARD,
+            "hardware" to Build.HARDWARE,
+            "isEmulator" to isEmulator()
         )
     }
     
+    private fun getOpenGLVersion(): Double {
+        return try {
+            val activityManager = getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+            val configurationInfo = activityManager.deviceConfigurationInfo
+            val glEsVersion = configurationInfo.glEsVersion
+            
+            // Version string'ini double'a çevir (örn: "3.0" -> 3.0)
+            glEsVersion.toDoubleOrNull() ?: 2.0
+        } catch (e: Exception) {
+            2.0 // Hata durumunda varsayılan
+        }
+    }
+    
+    private fun getMiuiVersion(): String {
+        return try {
+            val property = Class.forName("android.os.SystemProperties")
+                .getMethod("get", String::class.java)
+            
+            val miuiVersionName = property.invoke(null, "ro.miui.ui.version.name") as? String ?: ""
+            val miuiVersionCode = property.invoke(null, "ro.miui.ui.version.code") as? String ?: ""
+            
+            if (miuiVersionName.isNotEmpty()) {
+                "$miuiVersionName (Code: $miuiVersionCode)"
+            } else ""
+        } catch (e: Exception) {
+            ""
+        }
+    }
+    
+    private fun isEmulator(): Boolean {
+        return (Build.FINGERPRINT.startsWith("generic")
+                || Build.FINGERPRINT.startsWith("unknown")
+                || Build.MODEL.contains("google_sdk")
+                || Build.MODEL.contains("Emulator")
+                || Build.MODEL.contains("Android SDK built for x86")
+                || Build.BOARD == "QC_Reference_Phone"
+                || Build.MANUFACTURER.contains("Genymotion")
+                || Build.HOST.startsWith("Build")
+                || (Build.BRAND.startsWith("generic") && Build.DEVICE.startsWith("generic"))
+                || Build.PRODUCT == "google_sdk"
+                || Build.HARDWARE.contains("goldfish")
+                || Build.HARDWARE.contains("ranchu"))
+    }
+    
+    private fun setHighPerformanceMode(enabled: Boolean) {
+        if (enabled) {
+            // 🚀 PERFORMANCE MOD: Yüksek performans modu
+            runOnUiThread {
+                // Hardware acceleration
+                window.setFlags(
+                    WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED,
+                    WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED
+                )
+                
+                // Keep screen on
+                window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                
+                // Sustained performance mode
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                    window.setSustainedPerformanceMode(true)
+                }
+            }
+        } else {
+            runOnUiThread {
+                // Normal mod
+                window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                    window.setSustainedPerformanceMode(false)
+                }
+            }
+        }
+    }
+    
+    // 🚀 PERFORMANCE MOD: Detaylı performans kategorisi belirleme
+    private fun determinePerformanceCategoryDetailed(
+        ramMB: Int, 
+        glVersion: Double, 
+        cores: Int,
+        refreshRate: Float,
+        apiLevel: Int
+    ): String {
+        // Gelişmiş kategori belirleme
+        return when {
+            // Ultra high-end cihazlar (Flagship 2024-2025)
+            ramMB >= 12288 && cores >= 8 && glVersion >= 3.2 && apiLevel >= 31 && refreshRate >= 120f -> {
+                "ultra_high_end"
+            }
+            // High-end cihazlar (Flagship 2022-2023)
+            ramMB >= 8192 && cores >= 8 && glVersion >= 3.2 && apiLevel >= 29 -> {
+                "high_end"
+            }
+            // Mid-range cihazlar (Orta segment)
+            ramMB >= 4096 && cores >= 4 && glVersion >= 3.0 && apiLevel >= 26 -> {
+                "mid_range"
+            }
+            // Low-end cihazlar (Giriş seviyesi)
+            else -> {
+                "low_end"
+            }
+        }
+    }
+
     override fun onResume() {
         super.onResume()
         // 🚀 PERFORMANCE MOD: Resume'da performans ayarlarını yenile

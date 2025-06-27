@@ -347,16 +347,30 @@ class SubscriptionService extends ChangeNotifier {
     }
   }
   
-  // Aylık fiyat bilgisi
+  // Aylık fiyat bilgisi - Play Console'dan dinamik çeker
   String _getMonthlyPrice() {
     if (_products.isEmpty) {
-      debugPrint('⚠️ [SUBSCRIPTION] Ürün listesi boş, varsayılan fiyat döndürülüyor');
-      return '50 TL';
+      debugPrint('⚠️ [SUBSCRIPTION] Ürün listesi boş, Play Console bağlantısı kontrol ediliyor...');
+      // Products boşsa yeniden yüklemeyi dene
+      loadProducts();
+      return '₺59,90'; // Yüklenene kadar varsayılan
     }
     
-    final price = _products[0].price;
-    debugPrint('💰 [SUBSCRIPTION] Fiyat bilgisi: $price');
-    return price;
+    final product = _products[0];
+    final price = product.price;
+    debugPrint('💰 [SUBSCRIPTION] Play Console fiyatı: $price (ID: ${product.id})');
+    
+    // Fiyat formatını Türkçe locale'e uygun hale getir
+    String formattedPrice = price;
+    
+    // Eğer TL işareti yoksa ekle
+    if (!price.contains('TL') && !price.contains('₺')) {
+      // Google Play genellikle "59,90 TL" formatında döner
+      formattedPrice = price.contains(',') ? price : '₺$price';
+    }
+    
+    debugPrint('💰 [SUBSCRIPTION] Formatlanmış fiyat: $formattedPrice');
+    return formattedPrice;
   }
   
   // Hata temizle

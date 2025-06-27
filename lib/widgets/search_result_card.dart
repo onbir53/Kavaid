@@ -4,6 +4,7 @@ import 'dart:ui' as ui;
 import '../models/word_model.dart';
 import '../services/saved_words_service.dart';
 import '../services/credits_service.dart';
+import '../utils/performance_utils.dart';
 
 // Global expanded card controller
 class ExpandedCardController {

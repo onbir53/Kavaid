@@ -19,7 +19,7 @@
     <application
         android:label="Kavaid"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher"
+        android:icon="@mipmap/launcher_icon"
         android:largeHeap="true"
         android:hardwareAccelerated="true"
         android:usesCleartextTraffic="false"

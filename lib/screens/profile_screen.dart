@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../services/credits_service.dart';
 import '../services/subscription_service.dart';
@@ -27,6 +28,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
     super.initState();
     _creditsService.addListener(_updateState);
     _subscriptionService.addListener(_updateState);
+    
+    // Play Console'dan fiyat bilgilerini yükle
+    _loadSubscriptionData();
+  }
+  
+  Future<void> _loadSubscriptionData() async {
+    // SubscriptionService henüz başlatılmamışsa başlat
+    try {
+      if (_subscriptionService.products.isEmpty) {
+        debugPrint('📦 [PROFILE] Subscription service ürünleri yükleniyor...');
+        await _subscriptionService.initialize();
+        debugPrint('✅ [PROFILE] Subscription service başlatıldı, ürün sayısı: ${_subscriptionService.products.length}');
+      }
+      
+      // Fiyat güncellemesi için UI'ı yenile
+      if (mounted) {
+        setState(() {});
+        debugPrint('🔄 [PROFILE] UI güncellendi, fiyat: ${_subscriptionService.monthlyPrice}');
+      }
+    } catch (e) {
+      debugPrint('❌ [PROFILE] Subscription data yükleme hatası: $e');
+    }
   }
 
   @override
@@ -389,7 +412,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Text(
-                          '₺50/Ay',
+                          '${_subscriptionService.monthlyPrice}/Ay',
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.bold,
@@ -527,7 +550,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     style: TextStyle(fontSize: 16),
                   ),
                   Text(
-                    '50 TL',
+                    _subscriptionService.monthlyPrice,
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,

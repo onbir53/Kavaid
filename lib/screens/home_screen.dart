@@ -10,6 +10,7 @@ import '../widgets/search_result_card.dart';
 import '../widgets/arabic_keyboard.dart';
 import '../widgets/banner_ad_widget.dart';
 import '../widgets/native_ad_widget.dart';
+import '../utils/performance_utils.dart';
 
 
 class HomeScreen extends StatefulWidget {
@@ -703,6 +704,7 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
                   if (actualIndex < _searchResults.length) {
                     return RepaintBoundary(
                       child: SearchResultCard(
+                        key: ValueKey('result_${_searchResults[actualIndex].kelime}_$actualIndex'),
                         word: _searchResults[actualIndex],
                         onTap: () => _selectWord(_searchResults[actualIndex]),
                         onExpand: () {

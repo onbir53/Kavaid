@@ -10,15 +10,36 @@ class PerformanceUtils {
   static bool _isMonitoring = false;
   static String _deviceCategory = 'unknown';
   static bool _isLowEndDevice = false;
+  static bool _isXiaomiDevice = false;
+  static bool _isSamsungDevice = false;
+  static String _miuiVersion = '';
+  static double _refreshRate = 60.0;
+  static int _thermalStatus = 0;
+  static bool _isHighPerformanceModeEnabled = false;
   
-  // 🚀 PERFORMANCE MOD: Cihaz kategorileri
+  // 🚀 PERFORMANCE MOD: Genişletilmiş cihaz kategorileri
   static const Map<String, Map<String, dynamic>> deviceCategories = {
+    'ultra_high_end': {
+      'cache_extent': 2000.0,
+      'max_cache_items': 100,
+      'animation_multiplier': 0.7,
+      'preload_items': 8,
+      'use_cache_images': true,
+      'enable_shadows': true,
+      'enable_gradients': true,
+      'enable_complex_animations': true,
+      'list_cache_extent': 2500.0,
+    },
     'high_end': {
       'cache_extent': 1500.0,
       'max_cache_items': 75,
       'animation_multiplier': 0.8,
       'preload_items': 5,
       'use_cache_images': true,
+      'enable_shadows': true,
+      'enable_gradients': true,
+      'enable_complex_animations': true,
+      'list_cache_extent': 2000.0,
     },
     'mid_range': {
       'cache_extent': 1000.0,
@@ -26,6 +47,10 @@ class PerformanceUtils {
       'animation_multiplier': 1.0,
       'preload_items': 3,
       'use_cache_images': true,
+      'enable_shadows': true,
+      'enable_gradients': false,
+      'enable_complex_animations': false,
+      'list_cache_extent': 1500.0,
     },
     'low_end': {
       'cache_extent': 600.0,
@@ -33,18 +58,22 @@ class PerformanceUtils {
       'animation_multiplier': 1.2,
       'preload_items': 1,
       'use_cache_images': false,
+      'enable_shadows': false,
+      'enable_gradients': false,
+      'enable_complex_animations': false,
+      'list_cache_extent': 800.0,
     },
   };
   
-  // 🚀 PERFORMANCE MOD: Cihaz tespiti
+  // 🚀 PERFORMANCE MOD: Gelişmiş cihaz tespiti
   static Future<void> detectDevicePerformance() async {
     if (!Platform.isAndroid) return;
     
     try {
-      // Cihaz bilgilerini al
-      final channel = MethodChannel('device_info');
+      // Native channel üzerinden cihaz bilgilerini al
+      const channel = MethodChannel('device_info');
       final deviceInfo = await channel.invokeMethod('getDeviceInfo').timeout(
-        const Duration(seconds: 2),
+        const Duration(seconds: 3),
         onTimeout: () {
           debugPrint('⏱️ Device info timeout, fallback kullanılıyor');
           return null;
@@ -52,64 +81,186 @@ class PerformanceUtils {
       );
       
       if (deviceInfo != null) {
-        debugPrint('📱 Cihaz Bilgileri: $deviceInfo');
+        debugPrint('📱 Cihaz Bilgileri Alındı: $deviceInfo');
         
-        // Cihaz bilgilerine göre kategori belirle
+        // Cihaz bilgilerini parse et
         final totalRamMB = deviceInfo['totalRamMB'] as int? ?? 0;
+        final availableRamMB = deviceInfo['availableRamMB'] as int? ?? 0;
         final glEsVersion = deviceInfo['glEsVersion'] as double? ?? 0.0;
         final apiLevel = deviceInfo['apiLevel'] as int? ?? 0;
+        final cpuCores = deviceInfo['cpuCores'] as int? ?? 0;
         final performanceCategory = deviceInfo['performanceCategory'] as String? ?? 'unknown';
+        final manufacturer = deviceInfo['manufacturer'] as String? ?? '';
+        final model = deviceInfo['model'] as String? ?? '';
+        final device = deviceInfo['device'] as String? ?? '';
         
-        // Native taraftan gelen kategoriyi kullan
+        // Özel cihaz bilgileri
+        _isXiaomiDevice = deviceInfo['isXiaomiDevice'] as bool? ?? false;
+        _isSamsungDevice = deviceInfo['isSamsungDevice'] as bool? ?? false;
+        _miuiVersion = deviceInfo['miuiVersion'] as String? ?? '';
+        _refreshRate = (deviceInfo['refreshRate'] as num?)?.toDouble() ?? 60.0;
+        _thermalStatus = deviceInfo['thermalStatus'] as int? ?? 0;
+        final isEmulator = deviceInfo['isEmulator'] as bool? ?? false;
+        
+        // Performans kategorisini ayarla
         if (performanceCategory != 'unknown') {
           _deviceCategory = performanceCategory;
           _isLowEndDevice = performanceCategory == 'low_end';
-          debugPrint('🎯 Native kategori kullanılıyor: $_deviceCategory');
-        } else {
-          // Fallback kategorilendirme
-          _categorizeDeviceBySpecs(totalRamMB, glEsVersion, apiLevel);
+          debugPrint('🎯 Cihaz Kategorisi: $_deviceCategory');
         }
+        
+        // Detaylı cihaz raporu
+        debugPrint('📊 === KAVAID PERFORMANS RAPORU ===');
+        debugPrint('📱 Cihaz: $manufacturer $model ($device)');
+        debugPrint('🧠 RAM: $totalRamMB MB (Kullanılabilir: $availableRamMB MB)');
+        debugPrint('🎮 GPU: OpenGL ES $glEsVersion');
+        debugPrint('💻 CPU: $cpuCores çekirdek');
+        debugPrint('📱 API Level: $apiLevel');
+        debugPrint('🖥️ Refresh Rate: ${_refreshRate}Hz');
+        debugPrint('🏷️ Kategori: $_deviceCategory');
+        
+        if (_isXiaomiDevice) {
+          debugPrint('📱 XIAOMI/REDMI cihaz tespit edildi');
+          if (_miuiVersion.isNotEmpty) {
+            debugPrint('📱 MIUI Version: $_miuiVersion');
+          }
+          // MIUI için özel optimizasyonlar
+          _applyMiuiOptimizations();
+        }
+        
+        if (_isSamsungDevice) {
+          debugPrint('📱 SAMSUNG cihaz tespit edildi');
+          // Samsung için özel optimizasyonlar
+          _applySamsungOptimizations();
+        }
+        
+        if (isEmulator) {
+          debugPrint('⚠️ EMULATOR tespit edildi - performans testi güvenilir olmayabilir');
+        }
+        
+        // Thermal durum kontrolü
+        if (_thermalStatus > 0) {
+          debugPrint('🌡️ Thermal Durum: $_thermalStatus');
+          if (_thermalStatus >= 3) {
+            debugPrint('⚠️ Cihaz ısınmış durumda, performans düşebilir');
+          }
+        }
+        
+        // Yüksek refresh rate cihazlar için özel ayarlar
+        if (_refreshRate > 60) {
+          debugPrint('🚀 Yüksek refresh rate tespit edildi: ${_refreshRate}Hz');
+          _applyHighRefreshRateOptimizations();
+        }
+        
+        // Düşük RAM uyarısı
+        if (availableRamMB < 1024) {
+          debugPrint('⚠️ Düşük RAM uyarısı! Kullanılabilir: $availableRamMB MB');
+          _activateLowMemoryMode();
+        }
+        
+        // Yüksek performans modunu etkinleştir (mid-range ve üzeri için)
+        if (_deviceCategory == 'high_end' || _deviceCategory == 'ultra_high_end') {
+          await enableHighPerformanceMode();
+        }
+        
       } else {
         // Native channel başarısız, FPS bazlı tespit
         debugPrint('⚠️ Native device info alınamadı, FPS bazlı tespit kullanılacak');
-        _categorizeDevice();
+        _categorizeDeviceByFPS();
       }
     } catch (e) {
-      debugPrint('⚠️ Cihaz tespiti başarısız, varsayılan ayarlar kullanılacak: $e');
-      _categorizeDevice(); // Fallback kategorilendirme
+      debugPrint('⚠️ Cihaz tespiti başarısız: $e');
+      _categorizeDeviceByFPS();
     }
   }
   
-  // 🚀 PERFORMANCE MOD: Cihaz özelliklerine göre kategorilendirme
-  static void _categorizeDeviceBySpecs(int totalRamMB, double glEsVersion, int apiLevel) {
-    if (totalRamMB >= 8192 && glEsVersion >= 3.2 && apiLevel >= 29) {
-      _deviceCategory = 'high_end';
-      _isLowEndDevice = false;
-      debugPrint('🚀 Cihaz Kategorisi: Yüksek Performans (8GB+ RAM, OpenGL ES 3.2+)');
-    } else if (totalRamMB >= 4096 && glEsVersion >= 3.0 && apiLevel >= 26) {
-      _deviceCategory = 'mid_range';
-      _isLowEndDevice = false;
-      debugPrint('⚡ Cihaz Kategorisi: Orta Performans (4GB+ RAM, OpenGL ES 3.0+)');
-    } else {
-      _deviceCategory = 'low_end';
-      _isLowEndDevice = true;
-      debugPrint('📱 Cihaz Kategorisi: Düşük Performans (optimizasyonlar devrede)');
+  // 🚀 PERFORMANCE MOD: Yüksek performans modunu etkinleştir
+  static Future<void> enableHighPerformanceMode() async {
+    if (!Platform.isAndroid) return;
+    
+    try {
+      const channel = MethodChannel('device_info');
+      await channel.invokeMethod('setHighPerformanceMode', {'enabled': true});
+      _isHighPerformanceModeEnabled = true;
+      debugPrint('⚡ Yüksek performans modu ETKİN');
+    } catch (e) {
+      debugPrint('⚠️ Yüksek performans modu etkinleştirilemedi: $e');
     }
   }
   
-  // 🚀 PERFORMANCE MOD: Basit cihaz kategorilendirme
-  static void _categorizeDevice() {
-    // FPS'e göre kategori belirleme
+  // 🚀 PERFORMANCE MOD: MIUI optimizasyonları
+  static void _applyMiuiOptimizations() {
+    debugPrint('🔧 MIUI optimizasyonları uygulanıyor...');
+    
+    // MIUI'da animasyon sürelerini uzat
+    if (currentDeviceSettings['animation_multiplier'] != null) {
+      currentDeviceSettings['animation_multiplier'] = 
+        (currentDeviceSettings['animation_multiplier'] as double) * 1.2;
+    }
+    
+    // MIUI'da cache boyutunu azalt (agresif memory management nedeniyle)
+    if (currentDeviceSettings['max_cache_items'] != null) {
+      currentDeviceSettings['max_cache_items'] = 
+        ((currentDeviceSettings['max_cache_items'] as int) * 0.8).round();
+    }
+    
+    debugPrint('✅ MIUI optimizasyonları tamamlandı');
+  }
+  
+  // 🚀 PERFORMANCE MOD: Samsung optimizasyonları
+  static void _applySamsungOptimizations() {
+    debugPrint('🔧 Samsung One UI optimizasyonları uygulanıyor...');
+    
+    // Samsung cihazlarda genelde iyi performans var, default ayarları koru
+    debugPrint('✅ Samsung optimizasyonları tamamlandı');
+  }
+  
+  // 🚀 PERFORMANCE MOD: Yüksek refresh rate optimizasyonları
+  static void _applyHighRefreshRateOptimizations() {
+    debugPrint('🔧 Yüksek refresh rate optimizasyonları uygulanıyor...');
+    
+    // Animasyon sürelerini refresh rate'e göre ayarla
+    final refreshMultiplier = 60.0 / _refreshRate;
+    if (currentDeviceSettings['animation_multiplier'] != null) {
+      currentDeviceSettings['animation_multiplier'] = 
+        (currentDeviceSettings['animation_multiplier'] as double) * refreshMultiplier;
+    }
+    
+    debugPrint('✅ Yüksek refresh rate optimizasyonları tamamlandı');
+  }
+  
+  // 🚀 PERFORMANCE MOD: Düşük bellek modu
+  static void _activateLowMemoryMode() {
+    debugPrint('🔧 Düşük bellek modu aktif ediliyor...');
+    
+    // Cache boyutlarını minimize et
+    currentDeviceSettings['max_cache_items'] = 15;
+    currentDeviceSettings['cache_extent'] = 400.0;
+    currentDeviceSettings['list_cache_extent'] = 600.0;
+    currentDeviceSettings['preload_items'] = 1;
+    currentDeviceSettings['use_cache_images'] = false;
+    
+    // Görsel efektleri kapat
+    currentDeviceSettings['enable_shadows'] = false;
+    currentDeviceSettings['enable_gradients'] = false;
+    currentDeviceSettings['enable_complex_animations'] = false;
+    
+    debugPrint('✅ Düşük bellek modu aktif');
+  }
+  
+  // 🚀 PERFORMANCE MOD: FPS bazlı cihaz kategorilendirme
+  static void _categorizeDeviceByFPS() {
+    // Mevcut FPS'e göre kategori belirleme
     if (_currentFPS >= 115) {
       _deviceCategory = 'high_end';
       _isLowEndDevice = false;
-      debugPrint('🚀 Cihaz Kategorisi: Yüksek Performans (120Hz+)');
+      debugPrint('🚀 Cihaz Kategorisi: Yüksek Performans (120Hz+ FPS)');
     } else if (_currentFPS >= 85) {
       _deviceCategory = 'mid_range';
       _isLowEndDevice = false;
-      debugPrint('⚡ Cihaz Kategorisi: Orta Performans (90Hz+)');
+      debugPrint('⚡ Cihaz Kategorisi: Orta Performans (90Hz+ FPS)');
     } else {
-      // Düşük FPS oranına göre low-end kontrolü
+      // Düşük FPS veya yüksek drop rate kontrolü
       if (dropRate > 10.0 || _currentFPS < 45) {
         _deviceCategory = 'low_end';
         _isLowEndDevice = true;
@@ -124,7 +275,9 @@ class PerformanceUtils {
   
   // 🚀 PERFORMANCE MOD: Adaptif ayar getters
   static Map<String, dynamic> get currentDeviceSettings {
-    return deviceCategories[_deviceCategory] ?? deviceCategories['mid_range']!;
+    return Map<String, dynamic>.from(
+      deviceCategories[_deviceCategory] ?? deviceCategories['mid_range']!
+    );
   }
   
   // 🚀 PERFORMANCE MOD: Gelişmiş FPS izleme
@@ -148,25 +301,12 @@ class PerformanceUtils {
           _currentFPS = 1000.0 / totalTime;
         }
         
-        // Frame drop kontrolü
+        // Frame drop kontrolü - refresh rate'e göre dinamik
         bool frameDropped = false;
+        final frameTimeLimit = 1000.0 / _refreshRate;
         
-        // 120Hz için 8.33ms, 90Hz için 11.11ms, 60Hz için 16.67ms
-        if (_currentFPS >= 115) {
-          // 120Hz mod
-          if (totalTime > 8.5) {
-            frameDropped = true;
-          }
-        } else if (_currentFPS >= 85) {
-          // 90Hz mod
-          if (totalTime > 11.5) {
-            frameDropped = true;
-          }
-        } else {
-          // 60Hz mod
-          if (totalTime > 17.0) {
-            frameDropped = true;
-          }
+        if (totalTime > frameTimeLimit * 1.1) {
+          frameDropped = true;
         }
         
         if (frameDropped) {
@@ -174,21 +314,27 @@ class PerformanceUtils {
           debugPrint('⚠️ Frame Drop: ${_currentFPS.toStringAsFixed(1)} FPS | Build: ${buildTime.toStringAsFixed(1)}ms | Raster: ${rasterTime.toStringAsFixed(1)}ms');
         }
         
-        // Her 60 frame'de bir rapor ve cihaz kategorisi güncelle
+        // Her 60 frame'de bir rapor
         if (_frameCount % 60 == 0) {
           final dropRate = (_droppedFrames / _frameCount) * 100;
           debugPrint('📊 FPS Raporu: ${_currentFPS.toStringAsFixed(1)} FPS | Drop Rate: ${dropRate.toStringAsFixed(1)}% | Total Frames: $_frameCount');
           
-          // Cihaz kategorisini güncelle
-          _categorizeDevice();
-          
           // Drop rate %5'ten fazlaysa uyarı ver
           if (dropRate > 5.0) {
             debugPrint('🔴 PERFORMANS UYARISI: Yüksek frame drop oranı!');
-            debugPrint('🔧 Önerilen çözümler:');
-            debugPrint('   • Diğer uygulamaları kapatın');
-            debugPrint('   • Cihazın soğumasını bekleyin');
-            debugPrint('   • Geliştirici seçeneklerinde GPU rendering aktif edin');
+            
+            // Termal durum kontrolü
+            if (_thermalStatus >= 3) {
+              debugPrint('🌡️ Cihaz ısınmış durumda, performans düşüşü normal');
+            } else {
+              debugPrint('🔧 Önerilen çözümler:');
+              debugPrint('   • Diğer uygulamaları kapatın');
+              debugPrint('   • Cihazın soğumasını bekleyin');
+              if (_isXiaomiDevice) {
+                debugPrint('   • MIUI optimizasyonlarını kapatın');
+                debugPrint('   • Geliştirici seçeneklerinde GPU rendering aktif edin');
+              }
+            }
           }
         }
         
@@ -206,6 +352,9 @@ class PerformanceUtils {
   static void _activateEmergencyMode() {
     _deviceCategory = 'low_end';
     _isLowEndDevice = true;
+    
+    // Acil optimizasyonlar
+    _activateLowMemoryMode();
     
     // Acil cache temizleme
     optimizeMemory();
@@ -225,6 +374,12 @@ class PerformanceUtils {
     debugPrint('   • Drop Rate: ${(_droppedFrames / _frameCount * 100).toStringAsFixed(1)}%');
     debugPrint('   • Device Category: $_deviceCategory');
     debugPrint('   • Low End Device: $_isLowEndDevice');
+    debugPrint('   • Refresh Rate: ${_refreshRate}Hz');
+    debugPrint('   • Thermal Status: $_thermalStatus');
+    if (_isXiaomiDevice) {
+      debugPrint('   • MIUI Version: $_miuiVersion');
+    }
+    debugPrint('   • High Performance Mode: $_isHighPerformanceModeEnabled');
   }
   
   // Performans modu
@@ -233,19 +388,19 @@ class PerformanceUtils {
   // 🚀 PERFORMANCE MOD: Adaptif animasyon süreleri
   static Duration get fastAnimation {
     final multiplier = currentDeviceSettings['animation_multiplier'] as double;
-    final baseMs = _currentFPS >= 115 ? 80 : (_currentFPS >= 85 ? 100 : 120);
+    final baseMs = _refreshRate >= 115 ? 80 : (_refreshRate >= 85 ? 100 : 120);
     return Duration(milliseconds: (baseMs * multiplier).round());
   }
   
   static Duration get normalAnimation {
     final multiplier = currentDeviceSettings['animation_multiplier'] as double;
-    final baseMs = _currentFPS >= 115 ? 150 : (_currentFPS >= 85 ? 180 : 200);
+    final baseMs = _refreshRate >= 115 ? 150 : (_refreshRate >= 85 ? 180 : 200);
     return Duration(milliseconds: (baseMs * multiplier).round());
   }
   
   static Duration get slowAnimation {
     final multiplier = currentDeviceSettings['animation_multiplier'] as double;
-    final baseMs = _currentFPS >= 115 ? 250 : (_currentFPS >= 85 ? 280 : 300);
+    final baseMs = _refreshRate >= 115 ? 250 : (_refreshRate >= 85 ? 280 : 300);
     return Duration(milliseconds: (baseMs * multiplier).round());
   }
   
@@ -266,9 +421,28 @@ class PerformanceUtils {
     return currentDeviceSettings['use_cache_images'] as bool;
   }
   
+  static bool get enableShadows {
+    return currentDeviceSettings['enable_shadows'] as bool? ?? false;
+  }
+  
+  static bool get enableGradients {
+    return currentDeviceSettings['enable_gradients'] as bool? ?? false;
+  }
+  
+  static bool get enableComplexAnimations {
+    return currentDeviceSettings['enable_complex_animations'] as bool? ?? false;
+  }
+  
+  static double get listCacheExtent {
+    return currentDeviceSettings['list_cache_extent'] as double? ?? defaultCacheExtent;
+  }
+  
   // Getters
   static bool get isLowEndDevice => _isLowEndDevice;
   static String get deviceCategory => _deviceCategory;
+  static bool get isXiaomiDevice => _isXiaomiDevice;
+  static bool get isSamsungDevice => _isSamsungDevice;
+  static double get refreshRate => _refreshRate;
   
   // Debounce süreleri - cihaza göre adaptif
   static Duration get searchDebounce {
@@ -303,13 +477,8 @@ class PerformanceUtils {
     
     final elapsed = stopwatch.elapsedMicroseconds / 1000.0; // milisaniye
     
-    // Frame budget'a göre uyarı seviyesi
-    double warningThreshold = 16.67; // 60Hz için
-    if (_currentFPS >= 115) {
-      warningThreshold = 8.33;  // 120Hz için
-    } else if (_currentFPS >= 85) {
-      warningThreshold = 11.11; // 90Hz için
-    }
+    // Frame budget'a göre uyarı seviyesi - refresh rate'e göre dinamik
+    final warningThreshold = 1000.0 / _refreshRate;
     
     if (elapsed > warningThreshold) {
       debugPrint('🔴 PERFORMANS UYARISI - $tag: ${elapsed.toStringAsFixed(2)}ms (Budget: ${warningThreshold.toStringAsFixed(2)}ms)');

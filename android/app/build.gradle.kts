@@ -38,25 +38,32 @@ android {
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = 21
         targetSdk = 34
-        versionCode = 2027
+        versionCode = 2043
         versionName = "2.1.0"
         
         // Multidex desteği
         multiDexEnabled = true
         
-        // Native kod optimizasyonu
-        // NOT: split-per-abi kullanırken bu satır yorum olmalı
-        // ndk {
-        //     abiFilters.addAll(listOf("armeabi-v7a", "arm64-v8a", "x86_64"))
-        // }
+        // 🚀 PERFORMANCE MOD: Native optimizasyonlar
+        ndk {
+            // Sadece gerekli ABI'ları ekle (daha küçük APK)
+            abiFilters += listOf("armeabi-v7a", "arm64-v8a")
+        }
+        
+        // 🚀 PERFORMANCE MOD: Render optimizasyonları
+        renderscriptTargetApi = 19
+        renderscriptSupportModeEnabled = true
+        
+        // 🚀 PERFORMANCE MOD: Vector drawable desteği
+        vectorDrawables.useSupportLibrary = true
     }
 
     signingConfigs {
         create("release") {
-            keyAlias = keystoreProperties.getProperty("keyAlias")
-            keyPassword = keystoreProperties.getProperty("keyPassword")
-            storeFile = file(keystoreProperties.getProperty("storeFile"))
-            storePassword = keystoreProperties.getProperty("storePassword")
+            keyAlias = keystoreProperties["keyAlias"] as String
+            keyPassword = keystoreProperties["keyPassword"] as String
+            storeFile = keystoreProperties["storeFile"]?.let { file(it) }
+            storePassword = keystoreProperties["storePassword"] as String
         }
     }
 
@@ -84,10 +91,21 @@ android {
             isJniDebuggable = false
             isRenderscriptDebuggable = false
             
-            // 🚀 PERFORMANCE MOD: Render optimizasyonları
-            // R8 compiler optimizasyonları
+            // 🚀 PERFORMANCE MOD: Release optimizasyonları
             ndk {
-                debugSymbolLevel = "NONE"
+                debugSymbolLevel = "FULL"
+            }
+            
+            // 🚀 PERFORMANCE MOD: Optimize edilmiş build flags
+            packagingOptions {
+                // Gereksiz dosyaları çıkar
+                resources.excludes += listOf(
+                    "META-INF/DEPENDENCIES",
+                    "META-INF/LICENSE",
+                    "META-INF/LICENSE.txt",
+                    "META-INF/NOTICE",
+                    "META-INF/NOTICE.txt"
+                )
             }
             
             // APK boyutunu küçültmek için
@@ -96,24 +114,46 @@ android {
         
         debug {
             // Debug için suffix kaldırıldı - google-services.json uyumu için
-            // applicationIdSuffix = ".debug"
+            versionNameSuffix = "-debug"
             isDebuggable = true
+            
+            // 🚀 PERFORMANCE MOD: Debug'da da performans testleri için optimizasyonlar
+            ndk {
+                debugSymbolLevel = "SYMBOL_TABLE"
+            }
+            
             resValue("string", "app_name", "Kavaid Debug")
+        }
+        
+        // 🚀 PERFORMANCE MOD: Mevcut profile build type'ını optimize et
+        getByName("profile") {
+            initWith(getByName("release"))
+            versionNameSuffix = "-profile"
+            // Profiling için debug bilgileri koru
+            isDebuggable = false
+            isProfileable = true
+            
+            // 🚀 PERFORMANCE MOD: Profile için özel optimizasyonlar
+            ndk {
+                debugSymbolLevel = "SYMBOL_TABLE"
+            }
         }
     }
     
-    // Bundle optimizasyonları
+
+    
+    // 🚀 PERFORMANCE MOD: Bundle optimizasyonları
     bundle {
         language {
-            // Sadece kullanılan dilleri dahil et
+            // Sadece gerekli dilleri ekle
             enableSplit = true
         }
         density {
-            // Ekran yoğunluklarını optimize et
+            // Ekran yoğunluğu bazlı split
             enableSplit = true
         }
         abi {
-            // ABI'leri optimize et
+            // ABI bazlı split
             enableSplit = true
         }
     }
@@ -135,3 +175,14 @@ dependencies {
 
 // Google Services plugin'i apply et
 apply(plugin = "com.google.gms.google-services")
+
+// 🚀 PERFORMANCE MOD: Build optimizasyonları
+tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
+    kotlinOptions {
+        freeCompilerArgs += listOf(
+            "-opt-in=kotlin.RequiresOptIn",
+            "-Xjvm-default=all",
+            "-Xlambdas=indy"
+        )
+    }
+}

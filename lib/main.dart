@@ -20,6 +20,9 @@ import 'services/subscription_service.dart';
 import 'utils/performance_utils.dart';
 import 'utils/image_cache_manager.dart';
 import 'widgets/fps_counter_widget.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'services/firebase_service.dart';
+import 'models/word_model.dart';
 
 // Custom ScrollBehavior - overscroll glow efektini kaldırmak için
 class NoGlowScrollBehavior extends ScrollBehavior {
