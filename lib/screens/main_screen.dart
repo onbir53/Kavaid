@@ -38,14 +38,40 @@ class _MainScreenState extends State<MainScreen> {
     // CreditsService'i dinle
     _creditsService.addListener(_updateCredits);
     
-    // Widget build edildikten sonra otomatik olarak klavyeyi aç
+    // Klavyeyi açmak için birden fazla yöntem dene
+    // Yöntem 1: Post frame callback ile
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      // Kısa bir gecikme ekleyerek klavyenin açılmasını garanti altına al
-      Future.delayed(const Duration(milliseconds: 100), () {
-        if (mounted) {
-          _searchFocusNode.requestFocus();
-        }
-      });
+      _requestKeyboardFocus();
+    });
+    
+    // Yöntem 2: Biraz daha uzun gecikme ile (failsafe)
+    Future.delayed(const Duration(milliseconds: 300), () {
+      if (mounted && !_searchFocusNode.hasFocus) {
+        _requestKeyboardFocus();
+      }
+    });
+    
+    // Yöntem 3: Daha da uzun gecikme ile (son çare)
+    Future.delayed(const Duration(milliseconds: 600), () {
+      if (mounted && !_searchFocusNode.hasFocus) {
+        debugPrint('🔤 Klavye hala açılmadı, son deneme...');
+        _requestKeyboardFocus();
+      }
+    });
+  }
+  
+  void _requestKeyboardFocus() {
+    if (!mounted) return;
+    
+    // Focus'u kaldır ve tekrar ver (bazen çalışması için gerekli)
+    _searchFocusNode.unfocus();
+    
+    // Kısa bir gecikme ile focus'u tekrar ver
+    Future.delayed(const Duration(milliseconds: 50), () {
+      if (mounted) {
+        _searchFocusNode.requestFocus();
+        debugPrint('🔤 Klavye focus isteği gönderildi');
+      }
     });
   }
   

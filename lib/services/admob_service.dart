@@ -27,9 +27,12 @@ class AdMobService {
   bool _wasActuallyInBackground = false;
   AppLifecycleState? _previousState;
   bool _creditsServiceInitialized = false;
+  int _backgroundToForegroundCount = 0; // Arka plandan öne geçiş sayacı
   
-  // Reklam frekans kontrolü için sabitler
-  static const Duration _minTimeBetweenAppOpenAds = Duration(minutes: 5); // App Open reklamlar arası minimum süre
+  // Reklam frekans kontrolü için sabitler - 5 dakika minimum aralık
+  static Duration get _minTimeBetweenAppOpenAds => kDebugMode 
+      ? const Duration(minutes: 5) // Debug modda da 5 dakika minimum
+      : const Duration(minutes: 5); // Production'da da 5 dakika minimum
   static const Duration _appOpenAdExpiration = Duration(hours: 4); // App Open reklam geçerlilik süresi
   static const int _maxAdLoadRetries = 3; // Maksimum reklam yükleme deneme sayısı
   int _currentRetryCount = 0;
@@ -152,15 +155,27 @@ class AdMobService {
   }
   
   void _onPremiumStatusChanged() {
+    debugPrint('🔄 Premium durumu değişti: isPremium=${_creditsService.isPremium}');
+    
     if (_creditsService.isPremium) {
       // Premium olduysa mevcut reklamı temizle
       debugPrint('👑 [AdMob] Premium aktif - App Open reklamı temizleniyor');
       _appOpenAd?.dispose();
       _appOpenAd = null;
+      _isShowingAppOpenAd = false;
+      _isLoadingAppOpenAd = false;
     } else if (!_creditsService.isPremium && _appOpenAd == null && !_isLoadingAppOpenAd) {
       // Premium değilse ve reklam yoksa yükle
-      debugPrint('📱 [AdMob] Premium değil - App Open reklamı yükleniyor');
-      loadAppOpenAd();
+      debugPrint('📱 [AdMob] Premium değil - App Open reklamı yüklenmeye başlıyor...');
+      // Biraz gecikme ile yükle ki servisi stable olsun
+      Future.delayed(const Duration(milliseconds: 500), () {
+        if (!_creditsService.isPremium) { // Double check
+          debugPrint('🚀 [AdMob] App Open reklamı yükleme komutu veriliyor...');
+          loadAppOpenAd();
+        }
+      });
+    } else {
+      debugPrint('📊 [AdMob] Reklam yükleme durumu: reklam mevcut=${_appOpenAd != null}, yükleniyor=$_isLoadingAppOpenAd');
     }
   }
 
@@ -217,8 +232,10 @@ class AdMobService {
     );
   }
 
-  // App Open reklamını göster
+  // App Open reklamını göster - iyileştirilmiş versiyon
   void showAppOpenAd() {
+    debugPrint('🎯 showAppOpenAd() çağırıldı - detaylı kontroller başlıyor...');
+    
     // Credits service başlatılmadıysa bekle
     if (!_creditsServiceInitialized) {
       debugPrint('⏳ Credits service henüz başlatılmadı, reklam gösterilmeyecek');
@@ -231,46 +248,78 @@ class AdMobService {
       return;
     }
     
-    if (!isAppOpenAdAvailable || _isShowingAppOpenAd) {
-      debugPrint('⚠️ App Open reklamı gösterilemiyor - Mevcut değil veya zaten gösteriliyor');
-      loadAppOpenAd(); // Yeni reklam yükle
+    // Reklam durumu kontrolü
+    debugPrint('📊 Reklam durumu: mevcut=${_appOpenAd != null}, gösteriliyor=$_isShowingAppOpenAd, yükleniyor=$_isLoadingAppOpenAd');
+    
+    if (_appOpenAd == null) {
+      debugPrint('⚠️ App Open reklamı mevcut değil, yeni reklam yükleniyor...');
+      loadAppOpenAd();
       return;
     }
     
-    // Frekans kontrolü
+    if (_isShowingAppOpenAd) {
+      debugPrint('⚠️ App Open reklamı zaten gösteriliyor, atlanıyor');
+      return;
+    }
+    
+    if (!isAppOpenAdAvailable) {
+      debugPrint('⚠️ App Open reklamı kullanılamaz durumda, yeni reklam yükleniyor...');
+      loadAppOpenAd();
+      return;
+    }
+    
+    // Frekans kontrolü - daha detaylı loglama
     if (_lastAppOpenShowTime != null) {
       final timeSinceLastShow = DateTime.now().difference(_lastAppOpenShowTime!);
+      debugPrint('⏱️ Son reklam gösteriminden bu yana geçen süre: ${timeSinceLastShow.inMinutes} dakika');
       if (timeSinceLastShow < _minTimeBetweenAppOpenAds) {
-        debugPrint('⏱️ App Open reklamı çok yakın zamanda gösterildi. Bekleniyor...');
+        debugPrint('⏱️ App Open reklamı çok yakın zamanda gösterildi. ${_minTimeBetweenAppOpenAds.inMinutes - timeSinceLastShow.inMinutes} dakika daha beklenecek');
         return;
       }
+    } else {
+      debugPrint('⏱️ İlk reklam gösterimi - frekans kontrolü yok');
     }
 
     _isShowingAppOpenAd = true;
-    debugPrint('📱 App Open reklamı gösteriliyor');
+    debugPrint('🚀 App Open reklamı gösteriliyor - tüm kontroller geçildi!');
 
     _appOpenAd!.fullScreenContentCallback = FullScreenContentCallback(
       onAdShowedFullScreenContent: (AppOpenAd ad) {
-        debugPrint('📱 App Open reklamı tam ekran gösterildi');
+        debugPrint('✅ App Open reklamı tam ekran başarıyla gösterildi');
         _lastAppOpenShowTime = DateTime.now();
       },
       onAdDismissedFullScreenContent: (AppOpenAd ad) {
-        debugPrint('📱 App Open reklamı kapatıldı');
+        debugPrint('👋 App Open reklamı kullanıcı tarafından kapatıldı');
         _isShowingAppOpenAd = false;
         ad.dispose();
         _appOpenAd = null;
-        loadAppOpenAd(); // Yeni reklam yükle
+        // Bir sonraki gösterim için yeni reklam yükle
+        Future.delayed(const Duration(seconds: 1), () {
+          loadAppOpenAd();
+        });
       },
       onAdFailedToShowFullScreenContent: (AppOpenAd ad, AdError error) {
-        debugPrint('❌ App Open reklamı gösterilemedi: ${error.message}');
+        debugPrint('❌ App Open reklamı gösterim hatası: ${error.code} - ${error.message}');
         _isShowingAppOpenAd = false;
         ad.dispose();
         _appOpenAd = null;
-        loadAppOpenAd(); // Yeni reklam yükle
+        // Hata durumunda yeni reklam yükle
+        Future.delayed(const Duration(seconds: 2), () {
+          loadAppOpenAd();
+        });
       },
     );
 
-    _appOpenAd!.show();
+    try {
+      _appOpenAd!.show();
+      debugPrint('📱 App Open reklamı show() komutu çalıştırıldı');
+    } catch (e) {
+      debugPrint('💥 App Open reklamı gösterim exception: $e');
+      _isShowingAppOpenAd = false;
+      _appOpenAd?.dispose();
+      _appOpenAd = null;
+      loadAppOpenAd();
+    }
   }
 
   // App Open reklamının kullanılabilir olup olmadığını kontrol et
@@ -289,49 +338,103 @@ class AdMobService {
     return true;
   }
 
-  // App lifecycle için - basit durum kontrolü
+  // App lifecycle için - BASIT VE GÜVENİLİR ÇÖZÜM
   void onAppStateChanged(AppLifecycleState state) {
-    debugPrint('🔄 AppLifecycleState değişti: $_previousState -> $state');
+    debugPrint('🔄 [LIFECYCLE] $_previousState -> $state (firstLaunch: $_isFirstLaunch, wasBackground: $_wasActuallyInBackground, count: $_backgroundToForegroundCount)');
+    
+    // Debug durumu her state değişikliğinde göster
+    debugAdStatus();
     
     switch (state) {
       case AppLifecycleState.resumed:
-        // İlk açılış kontrolü - sadece uygulama tamamen kapalıyken açıldığında
         if (_isFirstLaunch) {
-          debugPrint('🚀 İlk açılış (uygulama kapalıyken açıldı) - Reklam gösterilmeyecek');
+          // İlk açılış - reklam gösterme
+          debugPrint('🚀 [LIFECYCLE] İlk açılış - reklam gösterilmeyecek');
           _isFirstLaunch = false;
-          return;
-        }
-        
-        // Uygulama arka plandan geri döndüğünde reklam göster
-        if (_wasActuallyInBackground) {
-          debugPrint('✅ Uygulama arka plandan geri döndü, reklam gösterilebilir');
-          showAppOpenAd();
+        } else if (_wasActuallyInBackground) {
+          // Arka plandan dönüş - reklam göster
+          _backgroundToForegroundCount++;
+          debugPrint('✅ [LIFECYCLE] Arka plandan dönüş #$_backgroundToForegroundCount - REKLAM GÖSTERİLECEK!');
+          
+          // 100ms gecikme ile reklam göster (UI stable olsun)
+          Future.delayed(const Duration(milliseconds: 100), () {
+            showAppOpenAd();
+          });
+          
           _wasActuallyInBackground = false;
-          _lastPausedTime = null;
+        } else {
+          debugPrint('⚠️ [LIFECYCLE] Resume ama arka plandan gelmiyor');
         }
         break;
         
       case AppLifecycleState.paused:
-        // Paused durumunda arka plana düştüğünü işaretle
-        debugPrint('⏸️ Uygulama paused durumda - arka plana düştü');
-        _lastPausedTime = DateTime.now();
+        // Pause = arka plana geçti
+        debugPrint('⏸️ [LIFECYCLE] Pause - arka plana geçti');
         _wasActuallyInBackground = true;
+        _lastPausedTime = DateTime.now();
         break;
         
       case AppLifecycleState.inactive:
-        // inactive durumu bildirim paneli, dialog vb. için tetiklenir
-        // Ama aynı zamanda arka plana geçiş öncesi de tetiklenir
-        debugPrint('⚡ Uygulama inactive durumda');
-        break;
-        
       case AppLifecycleState.detached:
       case AppLifecycleState.hidden:
-        // Bu durumlar için özel işlem yapma
-        debugPrint('📵 Uygulama detached/hidden durumda');
+        // Bu durumlar da arka plan demektir
+        debugPrint('📵 [LIFECYCLE] $state - arka plan durumu');
+        _wasActuallyInBackground = true;
         break;
     }
     
     _previousState = state;
+    debugPrint('🔍 [LIFECYCLE] Güncellendi: firstLaunch=$_isFirstLaunch, wasBackground=$_wasActuallyInBackground');
+  }
+  
+  // Mounted kontrolü için helper
+  bool get mounted => _creditsServiceInitialized;
+  
+  // TEST FONKSIYONU: Zorla app open reklam göster (debug için)
+  void forceShowAppOpenAd() {
+    debugPrint('🧪 [TEST] ForceShowAppOpenAd çağırıldı');
+    debugPrint('🧪 [TEST] Credits initialized: $_creditsServiceInitialized');
+    debugPrint('🧪 [TEST] Premium durumu: ${_creditsService.isPremium}');
+    debugPrint('🧪 [TEST] App Open Ad mevcut: ${_appOpenAd != null}');
+    debugPrint('🧪 [TEST] App Open Ad yükleniyor: $_isLoadingAppOpenAd');
+    debugPrint('🧪 [TEST] App Open Ad gösteriliyor: $_isShowingAppOpenAd');
+    
+    if (!_creditsServiceInitialized) {
+      debugPrint('🧪 [TEST] Credits service başlatılmamış, başlatılıyor...');
+      _initializeCreditsListener();
+      return;
+    }
+    
+    if (_creditsService.isPremium) {
+      debugPrint('🧪 [TEST] Premium kullanıcı - reklam gösterilmeyecek');
+      return;
+    }
+    
+    if (_appOpenAd == null) {
+      debugPrint('🧪 [TEST] Reklam mevcut değil, yükleniyor...');
+      loadAppOpenAd();
+      return;
+    }
+    
+    debugPrint('🧪 [TEST] Tüm kontroller geçildi, reklam gösterilecek!');
+    showAppOpenAd();
+  }
+  
+  // Reklam durumunu detaylı göster (debug için)
+  void debugAdStatus() {
+    debugPrint('🔍 === APP OPEN AD DEBUG STATUS ===');
+    debugPrint('🔍 _isFirstLaunch: $_isFirstLaunch');
+    debugPrint('🔍 _wasActuallyInBackground: $_wasActuallyInBackground');
+    debugPrint('🔍 _backgroundToForegroundCount: $_backgroundToForegroundCount');
+    debugPrint('🔍 _creditsServiceInitialized: $_creditsServiceInitialized');
+    debugPrint('🔍 isPremium: ${_creditsService.isPremium}');
+    debugPrint('🔍 _appOpenAd != null: ${_appOpenAd != null}');
+    debugPrint('🔍 _isLoadingAppOpenAd: $_isLoadingAppOpenAd');
+    debugPrint('🔍 _isShowingAppOpenAd: $_isShowingAppOpenAd');
+    debugPrint('🔍 isAppOpenAdAvailable: $isAppOpenAdAvailable');
+    debugPrint('🔍 _lastAppOpenShowTime: $_lastAppOpenShowTime');
+    debugPrint('🔍 _previousState: $_previousState');
+    debugPrint('🔍 ================================');
   }
   
   // Tüm reklamları dispose et (uygulama kapanırken kullan)

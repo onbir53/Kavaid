@@ -295,14 +295,27 @@ class _KavaidAppState extends State<KavaidApp> with WidgetsBindingObserver {
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
     
+    debugPrint('🔄 [MAIN] App lifecycle state değişti: $state');
+    
     // AdMobService'e lifecycle state'i gönder
-    AdMobService().onAppStateChanged(state);
+    try {
+      AdMobService().onAppStateChanged(state);
+      debugPrint('✅ [MAIN] AdMobService.onAppStateChanged() başarıyla çağırıldı');
+    } catch (e) {
+      debugPrint('❌ [MAIN] AdMobService.onAppStateChanged() hatası: $e');
+    }
     
     // 🚀 PERFORMANCE MOD: Lifecycle'a göre cache optimizasyonu
     switch (state) {
       case AppLifecycleState.resumed:
         _isAppInForeground = true;
         ImageCacheManager.restoreForForeground();
+        
+        // TEST: 2 saniye sonra debug durumunu göster
+        Future.delayed(const Duration(seconds: 2), () {
+          debugPrint('🧪 [TEST] 2 saniye sonra debug durumu:');
+          AdMobService().debugAdStatus();
+        });
         break;
       case AppLifecycleState.paused:
         _isAppInForeground = false;
