@@ -38,7 +38,7 @@ android {
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = 21
         targetSdk = 34
-        versionCode = 2043
+        versionCode = 2046
         versionName = "2.1.0"
         
         // Multidex desteği
