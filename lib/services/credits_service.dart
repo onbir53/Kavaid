@@ -171,6 +171,12 @@ class CreditsService extends ChangeNotifier {
     // Session yönetimi
     await _initializeSession(prefs);
     
+    // Günlük reset kontrolü yap (UI güncellemesi için)
+    if (_initialCreditsUsed) {
+      debugPrint('🕐 [CreditsService] Initialize sırasında günlük reset kontrolü yapılıyor...');
+      await _checkDailyReset(prefs);
+    }
+    
     debugPrint('🎯 [CreditsService] Initialize tamamlandı - Kredi: $_credits, Premium: $_isPremium');
     notifyListeners();
   }
@@ -295,6 +301,9 @@ class CreditsService extends ChangeNotifier {
       
       debugPrint('✅ [CreditsService] Günlük haklar yenilendi: $_credits hak verildi (Türkiye Server: $usingServerTime)');
       debugPrint('📅 [CreditsService] Yeni sıfırlama tarihi kaydedildi: $todayMidnight');
+      
+      // UI güncellemesi için notify ekle
+      notifyListeners();
     } else {
       debugPrint('📅 [CreditsService] Aynı Türkiye günü, kredi yenilenmedi. Son sıfırlama: $_lastResetDate');
       debugPrint('⏰ [CreditsService] Gece yarısına kalan süre: ${todayMidnight.add(const Duration(days: 1)).difference(currentTurkeyTime)}');
@@ -653,6 +662,21 @@ class CreditsService extends ChangeNotifier {
     
     debugPrint('✅ [Test] Günlük 5 hak bitti');
     notifyListeners();
+  }
+  
+  // Test için: Manuel günlük reset kontrolü
+  Future<void> checkDailyResetManually() async {
+    debugPrint('🧪 [Test] Manuel günlük reset kontrolü başlatılıyor...');
+    
+    if (!_initialCreditsUsed) {
+      debugPrint('⚠️ [Test] Henüz günlük sisteme geçilmemiş. İlk 100 hak sisteminde.');
+      return;
+    }
+    
+    final prefs = await SharedPreferences.getInstance();
+    await _checkDailyReset(prefs);
+    
+    debugPrint('🧪 [Test] Manuel reset kontrolü tamamlandı. Mevcut kredi: $_credits');
   }
   
   // Firebase'e verileri kaydet

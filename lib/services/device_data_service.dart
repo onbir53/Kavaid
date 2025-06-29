@@ -225,8 +225,10 @@ class DeviceDataService {
         debugPrint('🇹🇷 [DeviceData] Türkiye server saati (timezone): $turkeyTime');
         debugPrint('📍 [DeviceData] Timezone: ${turkeyLocation.name}, Offset: ${turkeyTime.timeZoneOffset}');
         
-        // Normal DateTime'a çevir
-        return turkeyTime.toLocal();
+        // Türkiye saatini DateTime'a çevir (timezone bilgisini koru)
+        return DateTime(turkeyTime.year, turkeyTime.month, turkeyTime.day, 
+                       turkeyTime.hour, turkeyTime.minute, turkeyTime.second, 
+                       turkeyTime.millisecond);
       } catch (e) {
         debugPrint('❌ [DeviceData] Timezone çevirme hatası: $e');
         // Fallback: Manuel UTC+3 ekleme
@@ -252,7 +254,10 @@ class DeviceDataService {
       
       debugPrint('🇹🇷 [DeviceData] Mevcut Türkiye saati (timezone): $turkeyTime');
       
-      return turkeyTime.toLocal();
+      // Türkiye saatini DateTime'a çevir (timezone bilgisini koru)
+      return DateTime(turkeyTime.year, turkeyTime.month, turkeyTime.day, 
+                     turkeyTime.hour, turkeyTime.minute, turkeyTime.second, 
+                     turkeyTime.millisecond);
     } catch (e) {
       debugPrint('❌ [DeviceData] Yerel timezone çevirme hatası: $e');
       // Fallback: Manuel UTC+3 ekleme
