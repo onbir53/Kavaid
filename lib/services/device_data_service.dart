@@ -115,7 +115,7 @@ class DeviceDataService {
     }
   }
   
-  // Kredi bilgilerini kaydet
+  // Premium bilgilerini kaydet (Artık sadece premium bilgisi kaydediliyor)
   Future<bool> saveCreditsData({
     required int credits,
     required bool isPremium,
@@ -125,30 +125,27 @@ class DeviceDataService {
     List<String>? sessionOpenedWords,
   }) async {
     try {
-      debugPrint('💳 [DeviceData] Kredi verisi kaydetme başlıyor...');
+      debugPrint('💳 [DeviceData] Premium verisi kaydetme başlıyor...');
       
+      // Artık sadece premium bilgisi kaydediliyor
       final data = {
-        'krediler': credits,
         'premiumDurumu': isPremium,
         'premiumBitisTarihi': premiumExpiry?.millisecondsSinceEpoch,
-        'ilkKredilerKullanildi': initialCreditsUsed,
-        'sonSifirlamaTarihi': lastResetDate?.toIso8601String(),
-        'oturumAcilanKelimeler': sessionOpenedWords ?? [],
       };
       
-      debugPrint('💳 [DeviceData] Hazırlanan kredi verisi: $data');
+      debugPrint('💳 [DeviceData] Hazırlanan premium verisi: $data');
       
       final success = await saveDeviceData(data);
       
       if (success) {
-        debugPrint('✅ [DeviceData] Kredi verisi başarıyla kaydedildi');
+        debugPrint('✅ [DeviceData] Premium verisi başarıyla kaydedildi');
       } else {
-        debugPrint('❌ [DeviceData] Kredi verisi kaydetme başarısız');
+        debugPrint('❌ [DeviceData] Premium verisi kaydetme başarısız');
       }
       
       return success;
     } catch (e) {
-      debugPrint('❌ [DeviceData] Kredi verisi kaydetme hatası: $e');
+      debugPrint('❌ [DeviceData] Premium verisi kaydetme hatası: $e');
       return false;
     }
   }

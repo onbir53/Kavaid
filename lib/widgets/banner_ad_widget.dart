@@ -1,9 +1,11 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'dart:io';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import '../services/admob_service.dart';
 import '../services/credits_service.dart';
+import '../services/subscription_service.dart';
 
 class BannerAdWidget extends StatefulWidget {
   final Function(double) onAdHeightChanged;
@@ -28,6 +30,7 @@ class BannerAdWidgetState extends State<BannerAdWidget>
   static const int _maxRetries = 5; // Arttırılmış deneme
   static const Duration _retryDelay = Duration(seconds: 5);
   final CreditsService _creditsService = CreditsService();
+  final SubscriptionService _subscriptionService = SubscriptionService();
   bool _isVisible = true;
 
   @override
@@ -218,14 +221,144 @@ class BannerAdWidgetState extends State<BannerAdWidget>
     }
 
     if (_isAdLoaded && _bannerAd != null && _adSize != null) {
-      return Container(
-        width: _adSize!.width.toDouble(),
-        height: _adSize!.height.toDouble(),
-        color: Theme.of(context).scaffoldBackgroundColor,
-        child: AdWidget(ad: _bannerAd!),
+      return Stack(
+        clipBehavior: Clip.none, // İkonun banner dışında olması için
+        children: [
+          Container(
+            width: _adSize!.width.toDouble(),
+            height: _adSize!.height.toDouble(),
+            color: Theme.of(context).scaffoldBackgroundColor,
+            child: AdWidget(ad: _bannerAd!),
+          ),
+          // Çarpı ikonu - banner tamamen dışında
+          Positioned(
+            top: -12,
+            right: -12,
+            child: Opacity(
+              opacity: 0.95, // Hafif şeffaf
+              child: GestureDetector(
+                onTap: _showPremiumDialog,
+                child: Container(
+                  width: 24,
+                  height: 24,
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.85),
+                    borderRadius: BorderRadius.circular(4), // Kare şekil
+                    border: Border.all(
+                      color: Colors.white,
+                      width: 1.5,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.4),
+                        blurRadius: 4,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: const Icon(
+                    Icons.close,
+                    color: Colors.white,
+                    size: 16,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
       );
     }
     
     return const SizedBox.shrink();
   }
+  
+  void _showPremiumDialog() {
+    // Güçlü klavye kapatma - dialog açılmadan önce
+    FocusManager.instance.primaryFocus?.unfocus();
+    SystemChannels.textInput.invokeMethod('TextInput.hide');
+    
+    showDialog(
+      context: context,
+      barrierDismissible: false, // Dışarı tıklayarak kapatmayı engelle
+      builder: (context) => WillPopScope(
+        onWillPop: () async {
+          // Güçlü klavye kapatma - geri tuşu
+          FocusManager.instance.primaryFocus?.unfocus();
+          SystemChannels.textInput.invokeMethod('TextInput.hide');
+          return true;
+        },
+        child: AlertDialog(
+          title: const Text('Premium'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Premium ile reklamları kaldırın.'),
+              const SizedBox(height: 16),
+              Container(
+                padding: EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Color(0xFF007AFF).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      'Aylık ',
+                      style: TextStyle(fontSize: 16),
+                    ),
+                    Text(
+                      _subscriptionService.monthlyPrice,
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF007AFF),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                // Güçlü klavye kapatma
+                FocusManager.instance.primaryFocus?.unfocus();
+                SystemChannels.textInput.invokeMethod('TextInput.hide');
+                Navigator.of(context).pop();
+                // Çoklu kontrol
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  FocusManager.instance.primaryFocus?.unfocus();
+                  SystemChannels.textInput.invokeMethod('TextInput.hide');
+                });
+              },
+              child: const Text('İptal'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                // Güçlü klavye kapatma
+                FocusManager.instance.primaryFocus?.unfocus();
+                SystemChannels.textInput.invokeMethod('TextInput.hide');
+                Navigator.of(context).pop();
+                // Çoklu kontrol
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  FocusManager.instance.primaryFocus?.unfocus();
+                  SystemChannels.textInput.invokeMethod('TextInput.hide');
+                });
+                await _subscriptionService.buySubscription();
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF007AFF),
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Abone Ol'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
 } 

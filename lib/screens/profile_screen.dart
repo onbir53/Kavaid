@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../services/credits_service.dart';
 import '../services/subscription_service.dart';
 
@@ -206,145 +207,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
             
             const SizedBox(height: 16),
             
-            // Kullanım hakları
+            // Premium önerisi veya durumu
             if (!_creditsService.isPremium) ...[
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: isDarkMode 
-                      ? const Color(0xFF1C1C1E) 
-                      : Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: isDarkMode 
-                        ? const Color(0xFF3A3A3C)
-                        : const Color(0xFFE5E5EA),
-                    width: 1,
-                  ),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.star,
-                          color: const Color(0xFF007AFF),
-                          size: 16,
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          _creditsService.hasInitialCredits 
-                              ? 'Ücretsiz Hak' 
-                              : 'Günlük Haklar',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: isDarkMode ? Colors.white : Colors.black,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        Text(
-                          '${_creditsService.credits}',
-                          style: TextStyle(
-                            fontSize: 32,
-                            fontWeight: FontWeight.bold,
-                            color: _creditsService.credits == 0
-                                ? Colors.red
-                                : const Color(0xFF007AFF),
-                          ),
-                        ),
-                        Text(
-                          _creditsService.hasInitialCredits ? ' / 100' : ' / 5',
-                          style: TextStyle(
-                            fontSize: 20,
-                            color: isDarkMode 
-                                ? Colors.white.withOpacity(0.4)
-                                : Colors.black.withOpacity(0.4),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    // Progress bar
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(6),
-                      child: LinearProgressIndicator(
-                        value: _creditsService.hasInitialCredits 
-                            ? _creditsService.credits / 100 
-                            : _creditsService.credits / 5,
-                        minHeight: 6,
-                        backgroundColor: isDarkMode
-                            ? Colors.white.withOpacity(0.1)
-                            : Colors.black.withOpacity(0.1),
-                        valueColor: AlwaysStoppedAnimation<Color>(
-                          _creditsService.credits == 0
-                              ? Colors.red
-                              : const Color(0xFF007AFF),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    // Sistem açıklaması
-                    Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: isDarkMode
-                            ? Colors.white.withOpacity(0.05)
-                            : Colors.black.withOpacity(0.05),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Icon(
-                                Icons.info_outline,
-                                size: 14,
-                                color: isDarkMode 
-                                    ? Colors.white.withOpacity(0.6)
-                                    : Colors.black.withOpacity(0.6),
-                              ),
-                              const SizedBox(width: 6),
-                              Text(
-                                'Nasıl Çalışır?',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                  color: isDarkMode 
-                                      ? Colors.white.withOpacity(0.8)
-                                      : Colors.black.withOpacity(0.8),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 6),
-                          Text(
-                            _creditsService.hasInitialCredits
-                                ? '• İlk açılışta 100 ücretsiz hak kazanırsınız\n• Her kelime detayı 1 hak harcar\n• 100 ücretsiz hak bitince günlük yenilenen 5 hakkınız olur\n• Her gün saat 00:00\'da yenilenir'
-                                : '• Her gün saat 00:00\'da 5 hakkınız yenilenir',
-                            style: TextStyle(
-                              fontSize: 11,
-                              height: 1.4,
-                              color: isDarkMode 
-                                  ? Colors.white.withOpacity(0.6)
-                                  : Colors.black.withOpacity(0.6),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 16),
-              
-              // Premium önerisi - daha küçük
+              // Premium önerisi
               GestureDetector(
                 onTap: () {
                   FocusScope.of(context).unfocus();
@@ -396,7 +261,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              'Sınırsız kelime detayları\nReklamsız deneyim',
+                              'Reklamları kaldır',
                               style: TextStyle(
                                 fontSize: 12,
                                 height: 1.3,
@@ -524,65 +389,90 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   void _showPremiumDialog() {
-    FocusScope.of(context).unfocus();
+    // Güçlü klavye kapatma - dialog açılmadan önce
+    FocusManager.instance.primaryFocus?.unfocus();
+    SystemChannels.textInput.invokeMethod('TextInput.hide');
     
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Premium Üyelik'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('Premium üyelik avantajları:'),
-            const SizedBox(height: 12),
-            _buildFeatureRow(Icons.all_inclusive, 'Sınırsız kelime detayları'),
-            _buildFeatureRow(Icons.block, 'Reklamsız deneyim'),
-            const SizedBox(height: 16),
-            Container(
-              padding: EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Color(0xFF007AFF).withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    'Aylık ',
-                    style: TextStyle(fontSize: 16),
-                  ),
-                  Text(
-                    _subscriptionService.monthlyPrice,
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF007AFF),
+      barrierDismissible: false, // Dışarı tıklayarak kapatmayı engelle
+      builder: (context) => WillPopScope(
+        onWillPop: () async {
+          // Güçlü klavye kapatma - geri tuşu
+          FocusManager.instance.primaryFocus?.unfocus();
+          SystemChannels.textInput.invokeMethod('TextInput.hide');
+          return true;
+        },
+        child: AlertDialog(
+          title: const Text('Premium'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Premium ile reklamları kaldırın.'),
+              const SizedBox(height: 16),
+              Container(
+                padding: EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Color(0xFF007AFF).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      'Aylık ',
+                      style: TextStyle(fontSize: 16),
                     ),
-                  ),
-                ],
+                    Text(
+                      _subscriptionService.monthlyPrice,
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF007AFF),
+                      ),
+                    ),
+                  ],
+                ),
               ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                // Güçlü klavye kapatma
+                FocusManager.instance.primaryFocus?.unfocus();
+                SystemChannels.textInput.invokeMethod('TextInput.hide');
+                Navigator.of(context).pop();
+                // Çoklu kontrol
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  FocusManager.instance.primaryFocus?.unfocus();
+                  SystemChannels.textInput.invokeMethod('TextInput.hide');
+                });
+              },
+              child: const Text('İptal'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                // Güçlü klavye kapatma
+                FocusManager.instance.primaryFocus?.unfocus();
+                SystemChannels.textInput.invokeMethod('TextInput.hide');
+                Navigator.of(context).pop();
+                // Çoklu kontrol
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  FocusManager.instance.primaryFocus?.unfocus();
+                  SystemChannels.textInput.invokeMethod('TextInput.hide');
+                });
+                await _subscriptionService.buySubscription();
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF007AFF),
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Abone Ol'),
             ),
           ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('İptal'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              Navigator.pop(context);
-              FocusScope.of(context).unfocus();
-              await _subscriptionService.buySubscription();
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF007AFF),
-              foregroundColor: Colors.white,
-            ),
-            child: const Text('Abone Ol'),
-          ),
-        ],
       ),
     );
   }
