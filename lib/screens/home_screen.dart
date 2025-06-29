@@ -118,9 +118,10 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
     });
 
     try {
-      final results = await _firebaseService.searchWords(query);
+      // Tüm sonuçları al, limit yok
+      final results = await _firebaseService.searchWords(query, limit: 999); // Limit ekledim
       setState(() {
-        _searchResults = results;
+        _searchResults = results; // Tüm sonuçlar gösterilecek
         _isLoading = false;
         _selectedWord = null;
         _showAIButton = results.isEmpty; // Sonuç yoksa AI butonunu göster
@@ -677,9 +678,26 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
 
     if (_isSearching && _searchResults.isNotEmpty) {
       // Native reklam gösterme mantığı
-      final int adFrequency = 7; // Her 7 sonuçtan sonra 1 reklam
-      final int totalAds = _searchResults.length >= 5 ? (_searchResults.length ~/ adFrequency).clamp(0, 2) : 0; // En fazla 2 reklam, en az 5 sonuç varsa göster
-      final int totalItems = _searchResults.length + totalAds;
+      final int minCardsBeforeAd = 5; // En az 5 kart geçildikten sonra reklam göster
+      final int adFrequency = 8; // Her 8 sonuçtan sonra 1 reklam
+      final int maxAds = 2; // Maksimum 2 reklam
+      
+      // Reklam sayısını hesapla
+      int totalAds = 0;
+      if (_searchResults.length >= minCardsBeforeAd) {
+        // İlk reklam 5. karttan sonra gösterilecek
+        totalAds = ((_searchResults.length - minCardsBeforeAd) ~/ adFrequency + 1).clamp(0, maxAds);
+      }
+      
+      // İlk reklam pozisyonu: 5. karttan sonra (index 5)
+      // İkinci reklam pozisyonu: İlkinden 8 kart sonra (index 14)
+      final List<int> adPositions = [];
+      if (totalAds > 0) {
+        adPositions.add(minCardsBeforeAd); // İlk reklam 5. pozisyonda
+        if (totalAds > 1 && _searchResults.length > minCardsBeforeAd + adFrequency) {
+          adPositions.add(minCardsBeforeAd + adFrequency + 1); // İkinci reklam
+        }
+      }
       
       slivers.add(
         SliverPadding(
@@ -687,42 +705,40 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
           sliver: SliverList(
             delegate: SliverChildBuilderDelegate(
               (context, index) {
-                // Reklam pozisyonlarını hesapla
-                final int adsBefore = totalAds > 0 ? (index / (adFrequency + 1)).floor() : 0;
-                final bool isAdPosition = totalAds > 0 && 
-                    adsBefore < totalAds && 
-                    (index + 1) % (adFrequency + 1) == 0;
+                // Mevcut pozisyonda kaç reklam gösterilmiş
+                int adsShown = adPositions.where((pos) => pos <= index).length;
+                int actualIndex = index - adsShown;
                 
-                if (isAdPosition) {
-                  // Native reklam göster
+                // Bu pozisyonda reklam gösterilmeli mi?
+                if (adPositions.contains(index)) {
                   return RepaintBoundary(
+                    key: ValueKey('ad_$index'),
                     child: const NativeAdWidget(),
                   );
-                } else {
-                  // Normal arama sonucu
-                  final int actualIndex = index - adsBefore;
-                  if (actualIndex < _searchResults.length) {
-                    return RepaintBoundary(
-                      child: SearchResultCard(
-                        key: ValueKey('result_${_searchResults[actualIndex].kelime}_$actualIndex'),
-                        word: _searchResults[actualIndex],
-                        onTap: () => _selectWord(_searchResults[actualIndex]),
-                        onExpand: () {
-                          // Arapça klavye açıksa kapat
-                          if (_showArabicKeyboard) {
-                            setState(() {
-                              _showArabicKeyboard = false;
-                            });
-                            widget.onArabicKeyboardStateChanged?.call(false);
-                          }
-                        },
-                      ),
-                    );
-                  }
                 }
-                return null;
+                
+                // Normal arama sonucu
+                if (actualIndex < _searchResults.length) {
+                  return RepaintBoundary(
+                    child: SearchResultCard(
+                      key: ValueKey('result_${_searchResults[actualIndex].kelime}_$actualIndex'),
+                      word: _searchResults[actualIndex],
+                      onTap: () => _selectWord(_searchResults[actualIndex]),
+                      onExpand: () {
+                        // Arapça klavye açıksa kapat
+                        if (_showArabicKeyboard) {
+                          setState(() {
+                            _showArabicKeyboard = false;
+                          });
+                          widget.onArabicKeyboardStateChanged?.call(false);
+                        }
+                      },
+                    ),
+                  );
+                }
+                return const SizedBox.shrink();
               },
-              childCount: totalItems,
+              childCount: _searchResults.length + totalAds,
             ),
           ),
         ),

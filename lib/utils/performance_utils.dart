@@ -192,17 +192,29 @@ class PerformanceUtils {
   static void _applyMiuiOptimizations() {
     debugPrint('🔧 MIUI optimizasyonları uygulanıyor...');
     
-    // MIUI'da animasyon sürelerini uzat
+    // MIUI'da animasyon sürelerini AZALT (daha hızlı tepki için)
     if (currentDeviceSettings['animation_multiplier'] != null) {
       currentDeviceSettings['animation_multiplier'] = 
-        (currentDeviceSettings['animation_multiplier'] as double) * 1.2;
+        (currentDeviceSettings['animation_multiplier'] as double) * 0.5; // 1.2 yerine 0.5
     }
     
-    // MIUI'da cache boyutunu azalt (agresif memory management nedeniyle)
+    // MIUI'da cache boyutunu ARTIR
     if (currentDeviceSettings['max_cache_items'] != null) {
       currentDeviceSettings['max_cache_items'] = 
-        ((currentDeviceSettings['max_cache_items'] as int) * 0.8).round();
+        ((currentDeviceSettings['max_cache_items'] as int) * 1.2).round(); // 0.8 yerine 1.2
     }
+    
+    // List cache'i artır
+    currentDeviceSettings['list_cache_extent'] = 
+        (currentDeviceSettings['list_cache_extent'] as double) * 1.5;
+    
+    // Preload item sayısını artır
+    currentDeviceSettings['preload_items'] = 
+        ((currentDeviceSettings['preload_items'] as int) * 2).clamp(2, 10);
+    
+    // Kompleks animasyonları kapat
+    currentDeviceSettings['enable_complex_animations'] = false;
+    currentDeviceSettings['enable_shadows'] = false;
     
     debugPrint('✅ MIUI optimizasyonları tamamlandı');
   }

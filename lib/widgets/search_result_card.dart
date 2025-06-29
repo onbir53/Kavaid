@@ -57,13 +57,13 @@ class _SearchResultCardState extends State<SearchResultCard> with TickerProvider
     
     // Animasyon controller'ı başlat - daha hızlı ve smooth
     _animationController = AnimationController(
-      duration: const Duration(milliseconds: 200),
+      duration: const Duration(milliseconds: 100),
       vsync: this,
     );
     
     _expandAnimation = CurvedAnimation(
       parent: _animationController,
-      curve: Curves.easeInOut,
+      curve: Curves.fastOutSlowIn,
       reverseCurve: Curves.easeInOut,
     );
     
@@ -128,9 +128,21 @@ class _SearchResultCardState extends State<SearchResultCard> with TickerProvider
     widget.onExpand?.call();
     
     if (!_isExpanded) {
+      // Önce animasyonu başlat, sonra hak kontrolü yap (daha hızlı görsel tepki)
+      setState(() {
+        _isExpanded = true;
+      });
+      _animationController.forward();
+      
       // Hak kontrolü yap
       final canOpen = await _creditsService.canOpenWord(widget.word.kelime);
       if (!canOpen) {
+        // Hak yoksa animasyonu geri al
+        _animationController.reverse();
+        setState(() {
+          _isExpanded = false;
+        });
+        
         if (mounted) {
           // Hak bitti uyarısı göster
           ScaffoldMessenger.of(context).showSnackBar(
@@ -157,17 +169,16 @@ class _SearchResultCardState extends State<SearchResultCard> with TickerProvider
       // Hak tüket
       final consumed = await _creditsService.consumeCredit(widget.word.kelime);
       if (!consumed) {
+        // Hak tüketilemezse animasyonu geri al
+        _animationController.reverse();
+        setState(() {
+          _isExpanded = false;
+        });
         return;
       }
       
       // Diğer açık kartları kapat
       ExpandedCardController.setExpanded(this);
-      if (mounted) {
-        setState(() {
-          _isExpanded = true;
-        });
-        _animationController.forward();
-      }
     } else {
       _collapseCard();
     }
@@ -351,8 +362,8 @@ class _SearchResultCardState extends State<SearchResultCard> with TickerProvider
                             padding: const EdgeInsets.all(4),
                             child: AnimatedRotation(
                               turns: _isExpanded ? 0.5 : 0,
-                              duration: const Duration(milliseconds: 200),
-                              curve: Curves.easeInOut,
+                              duration: const Duration(milliseconds: 100),
+                              curve: Curves.fastOutSlowIn,
                               child: Icon(
                                 Icons.expand_more,
                                 color: isDarkMode 

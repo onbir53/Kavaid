@@ -347,6 +347,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               // Premium önerisi - daha küçük
               GestureDetector(
                 onTap: () {
+                  FocusScope.of(context).unfocus();
                   _showPremiumDialog();
                 },
                 child: Container(
@@ -523,6 +524,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   void _showPremiumDialog() {
+    FocusScope.of(context).unfocus();
+    
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -570,6 +573,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ElevatedButton(
             onPressed: () async {
               Navigator.pop(context);
+              FocusScope.of(context).unfocus();
               await _subscriptionService.buySubscription();
             },
             style: ElevatedButton.styleFrom(

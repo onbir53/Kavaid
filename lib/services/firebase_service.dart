@@ -49,12 +49,12 @@ class FirebaseService {
   }
 
   // Kelime arama - HomeScreen için (hızlandırılmış)
-  Future<List<WordModel>> searchWords(String query) async {
-    return await searchWordsInDatabase(query);
+  Future<List<WordModel>> searchWords(String query, {int limit = 999}) async {
+    return await searchWordsInDatabase(query, limit: limit);
   }
 
   // Hızlandırılmış kelime arama
-  Future<List<WordModel>> searchWordsInDatabase(String query) async {
+  Future<List<WordModel>> searchWordsInDatabase(String query, {int limit = 999}) async {
     if (query.isEmpty) return [];
 
     try {
@@ -64,7 +64,7 @@ class FirebaseService {
           _lastCacheTime != null && 
           now.difference(_lastCacheTime!).compareTo(_cacheTimeout) < 0) {
         debugPrint('📦 Cache\'den arama yapılıyor');
-        return _searchInCache(query);
+        return _searchInCache(query, limit: limit);
       }
       
       debugPrint('🔍 Firebase\'den fresh arama yapılıyor');
@@ -121,8 +121,8 @@ class FirebaseService {
                 _checkMeaningStartsWith(lowerAnlam, lowerQuery)) { // Tüm anlamları kontrol et
               results.add(word);
               
-              // Erken çıkış - 15 sonuç bulunca dur
-              if (results.length >= 15) break;
+              // Limit kontrolü
+              if (results.length >= limit) break;
             }
           }
         } catch (e) {
@@ -148,7 +148,7 @@ class FirebaseService {
   }
 
   // Cache'de arama
-  List<WordModel> _searchInCache(String query) {
+  List<WordModel> _searchInCache(String query, {int limit = 999}) {
     if (_cachedData == null) return [];
     
     final allWords = _cachedData!['all'] ?? [];
@@ -165,7 +165,7 @@ class FirebaseService {
           _checkMeaningStartsWith(lowerAnlam, lowerQuery)) { // Tüm anlamları kontrol et
         results.add(word);
         
-        if (results.length >= 15) break;
+        if (results.length >= limit) break;
       }
     }
 
