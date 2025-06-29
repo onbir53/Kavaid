@@ -60,24 +60,22 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
     super.initState();
     _searchController.addListener(_onSearchChanged);
     
-    // İlk açılışta klavyeyi aç - daha güçlü yöntem
-    if (widget.isFirstOpen) {
-      // Hem immediate hem delayed focus
-      _searchFocusNode.requestFocus();
-      
-      // Multiple attempts with increasing delays
-      for (int i = 1; i <= 5; i++) {
-        Future.delayed(Duration(milliseconds: i * 200), () {
-          if (mounted && widget.isFirstOpen && !_searchFocusNode.hasFocus) {
-            FocusScope.of(context).requestFocus(_searchFocusNode);
-            _searchFocusNode.requestFocus();
-            if (i == 5) {
-              // Son denemede callback'i çağır
-              widget.onKeyboardOpened?.call();
-            }
+    // Uygulama açıldığında klavyeyi aç
+    // Hem immediate hem delayed focus
+    _searchFocusNode.requestFocus();
+    
+    // Multiple attempts with increasing delays
+    for (int i = 1; i <= 5; i++) {
+      Future.delayed(Duration(milliseconds: i * 200), () {
+        if (mounted && !_searchFocusNode.hasFocus) {
+          FocusScope.of(context).requestFocus(_searchFocusNode);
+          _searchFocusNode.requestFocus();
+          if (i == 5) {
+            // Son denemede callback'i çağır
+            widget.onKeyboardOpened?.call();
           }
-        });
-      }
+        }
+      });
     }
   }
 
@@ -679,25 +677,20 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
     if (_isSearching && _searchResults.isNotEmpty) {
       // Native reklam gösterme mantığı
       final int minCardsBeforeAd = 5; // En az 5 kart geçildikten sonra reklam göster
-      final int adFrequency = 8; // Her 8 sonuçtan sonra 1 reklam
-      final int maxAds = 2; // Maksimum 2 reklam
+      final int adFrequency = 10; // Her 10 sonuçtan sonra 1 reklam
       
-      // Reklam sayısını hesapla
-      int totalAds = 0;
-      if (_searchResults.length >= minCardsBeforeAd) {
-        // İlk reklam 5. karttan sonra gösterilecek
-        totalAds = ((_searchResults.length - minCardsBeforeAd) ~/ adFrequency + 1).clamp(0, maxAds);
-      }
-      
-      // İlk reklam pozisyonu: 5. karttan sonra (index 5)
-      // İkinci reklam pozisyonu: İlkinden 8 kart sonra (index 14)
+      // Reklam pozisyonlarını hesapla
       final List<int> adPositions = [];
-      if (totalAds > 0) {
-        adPositions.add(minCardsBeforeAd); // İlk reklam 5. pozisyonda
-        if (totalAds > 1 && _searchResults.length > minCardsBeforeAd + adFrequency) {
-          adPositions.add(minCardsBeforeAd + adFrequency + 1); // İkinci reklam
+      if (_searchResults.length > minCardsBeforeAd) {
+        // İlk reklam 5. pozisyonda (5 kart sonra)
+        int nextAdPosition = minCardsBeforeAd;
+        while (nextAdPosition < _searchResults.length) {
+          adPositions.add(nextAdPosition);
+          nextAdPosition += adFrequency + 1; // 10 kart + 1 reklam
         }
       }
+      
+      final int totalAds = adPositions.length;
       
       slivers.add(
         SliverPadding(

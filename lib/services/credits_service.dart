@@ -348,51 +348,71 @@ class CreditsService extends ChangeNotifier {
     // Hak kontrolü
     if (_credits <= 0) return false;
     
-    // Hak düşür ve kaydet
+    // Hak düşür ve hemen bildir (UI anında güncellenir)
     _credits--;
     _sessionOpenedWords.add(wordId);
+    notifyListeners(); // Hemen bildir ki UI güncellenmesi gecikmesin
     
-    final prefs = await SharedPreferences.getInstance();
+    // Yerel kaydetme işlemini asenkron yap
+    _saveLocalAsync(wordId);
     
-    // Cihaz bazlı key'ler
-    final deviceCreditsKey = '${_creditsKey}_$_deviceId';
-    final deviceSessionWordsKey = '${_sessionWordsKey}_$_deviceId';
-    final deviceInitialCreditsUsedKey = '${_initialCreditsUsedKey}_$_deviceId';
-    final deviceLastResetDateKey = '${_lastResetDateKey}_$_deviceId';
-    
-    await prefs.setInt(deviceCreditsKey, _credits);
-    await prefs.setStringList(deviceSessionWordsKey, _sessionOpenedWords.toList());
-    
-    // Eğer ilk krediler bittiyse, günlük sisteme geç
-    if (!_initialCreditsUsed && _credits == 0) {
-      _initialCreditsUsed = true;
-      await prefs.setBool(deviceInitialCreditsUsedKey, true);
+    return true;
+  }
+  
+  // Yerel kaydetme işlemini arka planda yap
+  Future<void> _saveLocalAsync(String wordId) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
       
-      // Server saatini kullanarak günlük sisteme geçiş (güvenlik için)
-      final deviceDataService = DeviceDataService();
-      final serverTime = await deviceDataService.getTurkeyServerTime();
+      // Cihaz bazlı key'ler
+      final deviceCreditsKey = '${_creditsKey}_$_deviceId';
+      final deviceSessionWordsKey = '${_sessionWordsKey}_$_deviceId';
+      final deviceInitialCreditsUsedKey = '${_initialCreditsUsedKey}_$_deviceId';
+      final deviceLastResetDateKey = '${_lastResetDateKey}_$_deviceId';
       
-      DateTime currentTime;
-      if (serverTime != null) {
-        currentTime = serverTime;
-        debugPrint('✅ [CreditsService] Günlük sisteme geçiş server saati kullanıldı: $currentTime');
-      } else {
-        final now = DateTime.now();
-        currentTime = now.toUtc().add(const Duration(hours: 3));
-        debugPrint('⚠️ [CreditsService] Günlük sisteme geçiş yerel saat kullanıldı: $currentTime');
+      await prefs.setInt(deviceCreditsKey, _credits);
+      await prefs.setStringList(deviceSessionWordsKey, _sessionOpenedWords.toList());
+      
+      // Eğer ilk krediler bittiyse, günlük sisteme geç
+      if (!_initialCreditsUsed && _credits == 0) {
+        _initialCreditsUsed = true;
+        await prefs.setBool(deviceInitialCreditsUsedKey, true);
+        
+        // Server saatini kullanarak günlük sisteme geçiş (güvenlik için)
+        final deviceDataService = DeviceDataService();
+        final serverTime = await deviceDataService.getTurkeyServerTime();
+        
+        DateTime currentTime;
+        if (serverTime != null) {
+          currentTime = serverTime;
+          debugPrint('✅ [CreditsService] Günlük sisteme geçiş server saati kullanıldı: $currentTime');
+        } else {
+          final now = DateTime.now();
+          currentTime = now.toUtc().add(const Duration(hours: 3));
+          debugPrint('⚠️ [CreditsService] Günlük sisteme geçiş yerel saat kullanıldı: $currentTime');
+        }
+        
+        _lastResetDate = DateTime(currentTime.year, currentTime.month, currentTime.day);
+        await prefs.setString(deviceLastResetDateKey, _lastResetDate!.toIso8601String());
+        
+        debugPrint('🔄 [CreditsService] İlk 100 hak bitti, günlük 5 hak sistemine geçildi');
       }
       
-      _lastResetDate = DateTime(currentTime.year, currentTime.month, currentTime.day);
-      await prefs.setString(deviceLastResetDateKey, _lastResetDate!.toIso8601String());
-      
-      debugPrint('🔄 [CreditsService] İlk 100 hak bitti, günlük 5 hak sistemine geçildi');
+      // Firebase'e kaydetmeyi arka planda yap (UI'yi bloklamaz)
+      _saveToFirebaseAsync();
+    } catch (e) {
+      debugPrint('❌ [CreditsService] Yerel kaydetme hatası: $e');
     }
-    
-    // Firebase'e de kaydet
-    await _saveToFirebase();
-    
-    notifyListeners();
-    return true;
+  }
+  
+  // Firebase'e kaydetmeyi arka planda yap
+  Future<void> _saveToFirebaseAsync() async {
+    try {
+      await _saveToFirebase();
+    } catch (e) {
+      debugPrint('❌ [CreditsService] Firebase kaydetme hatası (arka plan): $e');
+      // Hata olsa bile uygulama çalışmaya devam eder
+    }
   }
   
   // Premium üyelik aktifleştir (60 ay)

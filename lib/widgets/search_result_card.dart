@@ -128,21 +128,10 @@ class _SearchResultCardState extends State<SearchResultCard> with TickerProvider
     widget.onExpand?.call();
     
     if (!_isExpanded) {
-      // Önce animasyonu başlat, sonra hak kontrolü yap (daha hızlı görsel tepki)
-      setState(() {
-        _isExpanded = true;
-      });
-      _animationController.forward();
-      
-      // Hak kontrolü yap
+      // Önce hak kontrolü yap - animasyon başlatmadan önce
       final canOpen = await _creditsService.canOpenWord(widget.word.kelime);
       if (!canOpen) {
-        // Hak yoksa animasyonu geri al
-        _animationController.reverse();
-        setState(() {
-          _isExpanded = false;
-        });
-        
+        // Hak yoksa hiç açılmasın
         if (mounted) {
           // Hak bitti uyarısı göster
           ScaffoldMessenger.of(context).showSnackBar(
@@ -163,19 +152,21 @@ class _SearchResultCardState extends State<SearchResultCard> with TickerProvider
             ),
           );
         }
-        return;
+        return; // Kartı açma
       }
       
       // Hak tüket
       final consumed = await _creditsService.consumeCredit(widget.word.kelime);
       if (!consumed) {
-        // Hak tüketilemezse animasyonu geri al
-        _animationController.reverse();
-        setState(() {
-          _isExpanded = false;
-        });
+        // Hak tüketilemezse kartı açma
         return;
       }
+      
+      // Hak var ve tüketildi, şimdi animasyonu başlat
+      setState(() {
+        _isExpanded = true;
+      });
+      _animationController.forward();
       
       // Diğer açık kartları kapat
       ExpandedCardController.setExpanded(this);

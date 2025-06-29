@@ -139,6 +139,7 @@ class SubscriptionService extends ChangeNotifier {
   // Satın alma işlemi
   Future<bool> buySubscription() async {
     debugPrint('🛒 [SUBSCRIPTION] Satın alma işlemi başlatılıyor...');
+    debugPrint('🛒 [SUBSCRIPTION] Mevcut pending durumu: $_purchasePending');
     
     try {
       // Hata temizle
@@ -162,10 +163,11 @@ class SubscriptionService extends ChangeNotifier {
       }
       
       if (_purchasePending) {
-        _lastError = 'Zaten bir satın alma işlemi devam ediyor';
-        debugPrint('⏳ [SUBSCRIPTION] $_lastError');
+        debugPrint('⏳ [SUBSCRIPTION] Bekleyen işlem var, temizleniyor...');
+        // Pending durumunu sıfırla ve 1 saniye bekle
+        _purchasePending = false;
         notifyListeners();
-        return false;
+        await Future.delayed(const Duration(seconds: 1));
       }
       
       final ProductDetails productDetails = _products[0];
@@ -190,6 +192,15 @@ class SubscriptionService extends ChangeNotifier {
       
       if (success) {
         debugPrint('✅ [SUBSCRIPTION] Satın alma komutu gönderildi');
+        // 10 saniye sonra pending durumunu temizle (kullanıcı iptal ederse)
+        Future.delayed(const Duration(seconds: 10), () {
+          if (_purchasePending) {
+            debugPrint('⏰ [SUBSCRIPTION] Timeout - pending durumu temizleniyor');
+            _purchasePending = false;
+            _lastError = '';
+            notifyListeners();
+          }
+        });
         return true;
       } else {
         debugPrint('❌ [SUBSCRIPTION] Satın alma komutu gönderilemedi');
@@ -228,7 +239,10 @@ class SubscriptionService extends ChangeNotifier {
         if (purchaseDetails.error != null) {
           switch (purchaseDetails.error!.code) {
             case 'user_canceled':
+            case 'BillingResponse.USER_CANCELED':
+            case '1':  // iOS user canceled code
               _lastError = 'Satın alma iptal edildi';
+              debugPrint('🔴 [SUBSCRIPTION] Kullanıcı iptal etti');
               break;
             case 'payment_invalid':
               _lastError = 'Ödeme bilgileri geçersiz';
@@ -247,9 +261,15 @@ class SubscriptionService extends ChangeNotifier {
       } else if (purchaseDetails.status == PurchaseStatus.purchased ||
                  purchaseDetails.status == PurchaseStatus.restored) {
         debugPrint('✅ [SUBSCRIPTION] Satın alma başarılı!');
+        _purchasePending = false;
         
         // Satın almayı doğrula
         _verifyAndDeliverPurchase(purchaseDetails);
+      } else if (purchaseDetails.status == PurchaseStatus.canceled) {
+        debugPrint('🔴 [SUBSCRIPTION] Satın alma iptal edildi');
+        _purchasePending = false;
+        _lastError = 'Satın alma iptal edildi';
+        notifyListeners();
       }
       
       // Satın alma işlemini tamamla

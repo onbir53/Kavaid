@@ -160,6 +160,13 @@ class _NativeAdWidgetState extends State<NativeAdWidget> with AutomaticKeepAlive
       return const SizedBox.shrink();
     }
     
+    // RepaintBoundary ile performans optimizasyonu
+    return RepaintBoundary(
+      child: _buildAdContent(isDarkMode),
+    );
+  }
+  
+  Widget _buildAdContent(bool isDarkMode) {
     // Reklam yükleniyorsa veya retry devam ediyorsa placeholder göster
     if (!_nativeAdIsLoaded || _nativeAd == null) {
       return Padding(
@@ -194,42 +201,14 @@ class _NativeAdWidgetState extends State<NativeAdWidget> with AutomaticKeepAlive
       padding: const EdgeInsets.only(bottom: 6),
       child: Container(
         decoration: BoxDecoration(
-          gradient: isDarkMode 
-              ? null
-              : const LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    Colors.white,
-                    Color(0xFFFAFAFA),
-                  ],
-                ),
-          color: isDarkMode ? const Color(0xFF1C1C1E) : null,
+          color: isDarkMode ? const Color(0xFF1C1C1E) : Colors.white,
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
             color: isDarkMode 
-                ? const Color(0xFF48484A)
-                : const Color(0xFFE5E5EA),
+                ? const Color(0xFF48484A).withOpacity(0.3)
+                : const Color(0xFFE5E5EA).withOpacity(0.5),
             width: 0.5,
           ),
-          boxShadow: [
-            BoxShadow(
-              color: isDarkMode 
-                  ? Colors.black.withOpacity(0.4)
-                  : const Color(0xFF007AFF).withOpacity(0.12),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-              spreadRadius: 1,
-            ),
-            if (!isDarkMode) ...[
-              BoxShadow(
-                color: Colors.white.withOpacity(0.8),
-                blurRadius: 1,
-                offset: const Offset(0, -1),
-                spreadRadius: 0,
-              ),
-            ],
-          ],
         ),
         child: Stack(
           children: [
