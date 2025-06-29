@@ -221,51 +221,11 @@ class BannerAdWidgetState extends State<BannerAdWidget>
     }
 
     if (_isAdLoaded && _bannerAd != null && _adSize != null) {
-      return Stack(
-        clipBehavior: Clip.none, // İkonun banner dışında olması için
-        children: [
-          Container(
-            width: _adSize!.width.toDouble(),
-            height: _adSize!.height.toDouble(),
-            color: Theme.of(context).scaffoldBackgroundColor,
-            child: AdWidget(ad: _bannerAd!),
-          ),
-          // Çarpı ikonu - banner tamamen dışında
-          Positioned(
-            top: -12,
-            right: -12,
-            child: Opacity(
-              opacity: 0.95, // Hafif şeffaf
-              child: GestureDetector(
-                onTap: _showPremiumDialog,
-                child: Container(
-                  width: 24,
-                  height: 24,
-                  decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.85),
-                    borderRadius: BorderRadius.circular(4), // Kare şekil
-                    border: Border.all(
-                      color: Colors.white,
-                      width: 1.5,
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.4),
-                        blurRadius: 4,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: const Icon(
-                    Icons.close,
-                    color: Colors.white,
-                    size: 16,
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ],
+      return Container(
+        width: _adSize!.width.toDouble(),
+        height: _adSize!.height.toDouble(),
+        color: Theme.of(context).scaffoldBackgroundColor,
+        child: AdWidget(ad: _bannerAd!),
       );
     }
     
