@@ -90,7 +90,8 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
 
   void _onSearchChanged() {
     if (_debounceTimer?.isActive ?? false) _debounceTimer!.cancel();
-    _debounceTimer = Timer(const Duration(milliseconds: 300), () {
+    // 🚀 PERFORMANCE: Adaptif debounce süresi
+    _debounceTimer = Timer(PerformanceUtils.searchDebounce, () {
       if (_searchController.text.isNotEmpty) {
         _performSearch(_searchController.text);
       } else {
@@ -262,7 +263,11 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
               },
               child: RepaintBoundary(
                 child: CustomScrollView(
+                  // 🚀 PERFORMANCE: Scroll performans optimizasyonları
                   physics: const ClampingScrollPhysics(),
+                  cacheExtent: PerformanceUtils.listCacheExtent, // 🚀 PERFORMANCE: Adaptif cache
+                  // 🚀 PERFORMANCE: Scroll optimizasyonu için key
+                  key: const PageStorageKey<String>('home_scroll'),
                   slivers: <Widget>[
                     SliverAppBar(
                     backgroundColor: widget.isDarkMode 
@@ -583,11 +588,12 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
                 
                 // Normal arama sonucu
                 if (actualIndex < _searchResults.length) {
+                  final word = _searchResults[actualIndex];
                   return RepaintBoundary(
+                    key: ValueKey('result_${word.kelime}_$actualIndex'),
                     child: SearchResultCard(
-                      key: ValueKey('result_${_searchResults[actualIndex].kelime}_$actualIndex'),
-                      word: _searchResults[actualIndex],
-                      onTap: () => _selectWord(_searchResults[actualIndex]),
+                      word: word,
+                      onTap: () => _selectWord(word),
                       onExpand: () {
                         // Arapça klavye açıksa kapat
                         if (_showArabicKeyboard) {
@@ -603,10 +609,41 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
                 return const SizedBox.shrink();
               },
               childCount: _searchResults.length + totalAds,
+              findChildIndexCallback: (Key key) {
+                if (key is ValueKey) {
+                  final value = key.value as String;
+                  if (value.startsWith('ad_')) {
+                    return int.tryParse(value.substring(3));
+                  } else if (value.startsWith('result_')) {
+                    // Actual index'i bul
+                    for (int i = 0; i < _searchResults.length + totalAds; i++) {
+                      int adsShown = adPositions.where((pos) => pos <= i).length;
+                      int actualIndex = i - adsShown;
+                      if (actualIndex >= 0 && actualIndex < _searchResults.length) {
+                        final word = _searchResults[actualIndex];
+                        if (value == 'result_${word.kelime}_$actualIndex') {
+                          return i;
+                        }
+                      }
+                    }
+                  }
+                }
+                return null;
+              },
+              semanticIndexCallback: (Widget widget, int localIndex) {
+                return localIndex;
+              },
             ),
           ),
         ),
       );
+      
+      slivers.add(
+        const SliverToBoxAdapter(
+          child: SizedBox(height: 100), // Scroll performance için buffer
+        ),
+      );
+      
       return slivers;
     }
 
@@ -615,7 +652,12 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
         SliverPadding(
           padding: EdgeInsets.fromLTRB(8, 12, 8, widget.bottomPadding),
           sliver: SliverToBoxAdapter(
-            child: WordCard(word: _selectedWord!),
+            child: RepaintBoundary(
+              child: WordCard(
+                key: ValueKey('selected_word_${_selectedWord!.kelime}'),
+                word: _selectedWord!,
+              ),
+            ),
           ),
         ),
       );
