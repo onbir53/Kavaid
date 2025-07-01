@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'dart:io';
 import 'device_data_service.dart';
+import 'analytics_service.dart';
 
 class CreditsService extends ChangeNotifier {
   static const String _premiumKey = 'is_premium';
@@ -127,6 +128,9 @@ class CreditsService extends ChangeNotifier {
     // Firebase'e de kaydet
     await _saveToFirebase();
     
+    // Analytics user properties'ini güncelle
+    await AnalyticsService.setUserProperties(isPremium: _isPremium);
+    
     notifyListeners();
   }
   
@@ -144,6 +148,9 @@ class CreditsService extends ChangeNotifier {
     
     // Firebase'e de kaydet
     await _saveToFirebase();
+    
+    // Analytics user properties'ini güncelle
+    await AnalyticsService.setUserProperties(isPremium: _isPremium);
     
     notifyListeners();
   }
@@ -163,6 +170,9 @@ class CreditsService extends ChangeNotifier {
     
     // Firebase'e de kaydet
     await _saveToFirebase();
+    
+    // Analytics user properties'ini güncelle
+    await AnalyticsService.setUserProperties(isPremium: _isPremium);
     
     notifyListeners();
   }
@@ -205,6 +215,9 @@ class CreditsService extends ChangeNotifier {
     
     // Firebase'e de kaydet
     await _saveToFirebase();
+    
+    // Analytics user properties'ini güncelle
+    await AnalyticsService.setUserProperties(isPremium: _isPremium);
     
     notifyListeners();
   }

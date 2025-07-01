@@ -3,6 +3,7 @@ import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:flutter/foundation.dart';
 import '../services/admob_service.dart';
 import '../services/credits_service.dart';
+import '../services/analytics_service.dart';
 
 class NativeAdWidget extends StatefulWidget {
   final String? adUnitId; // Özel ad unit ID kullanmak için
@@ -68,6 +69,9 @@ class _NativeAdWidgetState extends State<NativeAdWidget> with AutomaticKeepAlive
               _isLoading = false;
               _retryCount = 0;
             });
+            
+            // Analytics event'i gönder
+            AnalyticsService.logAdImpression('native', adUnitId: widget.adUnitId ?? AdMobService.nativeAdUnitId);
           }
           debugPrint('✅ Native reklam yüklendi');
         },
@@ -85,6 +89,8 @@ class _NativeAdWidgetState extends State<NativeAdWidget> with AutomaticKeepAlive
         },
         onAdClicked: (Ad ad) {
           debugPrint('📱 Native reklama tıklandı');
+          // Analytics event'i gönder
+          AnalyticsService.logAdClick('native', adUnitId: widget.adUnitId ?? AdMobService.nativeAdUnitId);
         },
         onAdImpression: (Ad ad) {
           debugPrint('👁️ Native reklam görüntülendi');

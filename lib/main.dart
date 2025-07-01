@@ -22,6 +22,7 @@ import 'utils/image_cache_manager.dart';
 import 'widgets/fps_counter_widget.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'services/firebase_service.dart';
+import 'services/analytics_service.dart';
 import 'models/word_model.dart';
 
 // Custom ScrollBehavior - overscroll glow efektini kaldırmak için
@@ -199,6 +200,17 @@ void main() async {
 
 // Servisleri arka planda başlat
 void _initializeServicesInBackground() {
+  // Firebase Analytics'i ilk olarak başlat
+  Future.delayed(const Duration(milliseconds: 50), () async {
+    try {
+      await AnalyticsService.initialize();
+      await AnalyticsService.logAppOpen();
+      debugPrint('✅ Analytics Service başlatıldı');
+    } catch (e) {
+      debugPrint('❌ Analytics Service başlatılamadı: $e');
+    }
+  });
+
   // Önce CreditsService'i başlat (premium kontrolü için)
   Future.delayed(const Duration(milliseconds: 100), () async {
     final creditsService = CreditsService();
@@ -337,6 +349,9 @@ class _KavaidAppState extends State<KavaidApp> with WidgetsBindingObserver {
       _isDarkMode = !_isDarkMode;
     });
     _saveThemePreference(_isDarkMode);
+    
+    // Analytics event'i gönder
+    AnalyticsService.logThemeChange(_isDarkMode);
   }
 
   @override

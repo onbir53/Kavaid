@@ -3,8 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:in_app_review/in_app_review.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../services/credits_service.dart';
 import '../services/subscription_service.dart';
+import '../services/analytics_service.dart';
 
 class ProfileScreen extends StatefulWidget {
   final double bottomPadding;
@@ -25,6 +27,7 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   final CreditsService _creditsService = CreditsService();
   final SubscriptionService _subscriptionService = SubscriptionService();
+  bool _hasRatedApp = false;
 
   @override
   void initState() {
@@ -34,8 +37,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
     
     // Play Console'dan fiyat bilgilerini yükle
     _loadSubscriptionData();
+    // Değerlendirme durumunu kontrol et
+    _checkRatingStatus();
   }
   
+  Future<void> _checkRatingStatus() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _hasRatedApp = prefs.getBool('has_rated_app') ?? false;
+    });
+  }
+  
+  Future<void> _setRatedApp() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('has_rated_app', true);
+    setState(() {
+      _hasRatedApp = true;
+    });
+  }
+
   Future<void> _loadSubscriptionData() async {
     // SubscriptionService henüz başlatılmamışsa başlat
     try {
@@ -209,75 +229,63 @@ class _ProfileScreenState extends State<ProfileScreen> {
             
             const SizedBox(height: 16),
             
-            // Google Play Değerlendirme Butonu
-            GestureDetector(
-              onTap: _openInAppReview,
-              child: Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: isDarkMode 
-                      ? const Color(0xFF2C2C2E) 
-                      : Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
+            // Google Play Değerlendirme Butonu - sadece değerlendirme yapılmamışsa göster
+            if (!_hasRatedApp) ...[
+              GestureDetector(
+                onTap: _openInAppReview,
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
                     color: isDarkMode 
-                        ? const Color(0xFF3A3A3C)
-                        : const Color(0xFFE5E5EA),
-                    width: 1,
+                        ? const Color(0xFF2C2C2E) 
+                        : Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: isDarkMode 
+                          ? const Color(0xFF3A3A3C)
+                          : const Color(0xFFE5E5EA),
+                      width: 1,
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFFD700).withOpacity(0.2),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          Icons.star_rounded,
+                          color: const Color(0xFFFFD700),
+                          size: 24,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          'Uygulamayı Değerlendir',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: isDarkMode ? Colors.white : Colors.black,
+                          ),
+                        ),
+                      ),
+                      Icon(
+                        Icons.arrow_forward_ios,
+                        size: 16,
+                        color: isDarkMode 
+                            ? const Color(0xFF8E8E93)
+                            : const Color(0xFF6D6D70),
+                      ),
+                    ],
                   ),
                 ),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 40,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFFD700).withOpacity(0.2),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(
-                        Icons.star_rounded,
-                        color: const Color(0xFFFFD700),
-                        size: 24,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Uygulamayı Değerlendir',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                              color: isDarkMode ? Colors.white : Colors.black,
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            'Uygulamayı değerlendirin ve yorum yapın',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: isDarkMode 
-                                  ? const Color(0xFF8E8E93)
-                                  : const Color(0xFF6D6D70),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Icon(
-                      Icons.arrow_forward_ios,
-                      size: 16,
-                      color: isDarkMode 
-                          ? const Color(0xFF8E8E93)
-                          : const Color(0xFF6D6D70),
-                    ),
-                  ],
-                ),
               ),
-            ),
+              const SizedBox(height: 16),
+            ],
 
             const SizedBox(height: 16),
             
@@ -461,6 +469,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _openInAppReview() async {
     try {
+      // Analytics event'i gönder
+      await AnalyticsService.logAppRating();
+      
       final InAppReview inAppReview = InAppReview.instance;
       
       // Önce uygulama içi değerlendirme mevcut mu kontrol et
@@ -468,6 +479,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
         // Uygulama içinde değerlendirme penceresi aç
         await inAppReview.requestReview();
         debugPrint('✅ Uygulama içi değerlendirme açıldı');
+        
+        // Değerlendirme açıldığında flag'i set et
+        await _setRatedApp();
       } else {
         // Mevcut değilse store sayfasını aç
         debugPrint('⚠️ Uygulama içi değerlendirme mevcut değil, store sayfası açılıyor');
@@ -492,12 +506,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
           googlePlayUrl,
           mode: LaunchMode.externalApplication,
         );
+        // Google Play açıldığında da flag'i set et
+        await _setRatedApp();
       } else if (await canLaunchUrl(webUrl)) {
         // Google Play uygulaması yoksa web'de aç
         await launchUrl(
           webUrl,
           mode: LaunchMode.externalApplication,
         );
+        // Web açıldığında da flag'i set et
+        await _setRatedApp();
       } else {
         // Hiçbiri açılamazsa hata göster
         if (mounted) {

@@ -7,6 +7,7 @@ import 'package:in_app_purchase_android/in_app_purchase_android.dart';
 import 'package:in_app_purchase_storekit/in_app_purchase_storekit.dart';
 import 'package:in_app_purchase_storekit/store_kit_wrappers.dart';
 import 'credits_service.dart';
+import 'analytics_service.dart';
 
 class SubscriptionService extends ChangeNotifier {
   static const String _monthlySubscriptionId = 'kavaid_monthly_subscription';
@@ -334,6 +335,17 @@ class SubscriptionService extends ChangeNotifier {
     try {
       // Premium'u aktifleştir (30 gün)
       await _creditsService.activatePremiumMonthly();
+      
+      // Analytics event'lerini gönder
+      double price = 0.0;
+      if (_products.isNotEmpty) {
+        final priceString = _products[0].price.replaceAll(RegExp(r'[^\d,.]'), '');
+        final priceFormatted = priceString.replaceAll(',', '.');
+        price = double.tryParse(priceFormatted) ?? 59.90;
+      }
+      
+      await AnalyticsService.logSubscriptionPurchase(purchaseDetails.productID, price);
+      await AnalyticsService.logPremiumActivated('subscription');
       
       _purchases.add(purchaseDetails);
       debugPrint('✅ [SUBSCRIPTION] Premium başarıyla aktifleştirildi!');

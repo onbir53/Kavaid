@@ -4,6 +4,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import '../models/word_model.dart';
+import 'analytics_service.dart';
 
 class SavedWordsService extends ChangeNotifier {
   // Singleton pattern
@@ -211,6 +212,9 @@ class SavedWordsService extends ChangeNotifier {
             },
           );
         });
+        
+        // Analytics event'i gönder
+        await AnalyticsService.logWordSave(word.kelime);
         
         _operationInProgress.remove(operationKey);
         return true;

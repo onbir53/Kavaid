@@ -5,6 +5,7 @@ import '../models/word_model.dart';
 import '../services/gemini_service.dart';
 import '../services/firebase_service.dart';
 import '../services/credits_service.dart';
+import '../services/analytics_service.dart';
 import '../widgets/word_card.dart';
 import '../widgets/search_result_card.dart';
 import '../widgets/arabic_keyboard.dart';
@@ -49,7 +50,6 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
   bool _showAIButton = false;
   bool _showNotFound = false;
   bool _showArabicKeyboard = false;
-  Timer? _debounceTimer;
   StreamSubscription<List<WordModel>>? _searchSubscription;
 
   @override
@@ -83,27 +83,23 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
   void dispose() {
     _searchController.dispose();
     _searchFocusNode.dispose();
-    _debounceTimer?.cancel();
     _searchSubscription?.cancel();
     super.dispose();
   }
 
   void _onSearchChanged() {
-    if (_debounceTimer?.isActive ?? false) _debounceTimer!.cancel();
-    // 🚀 PERFORMANCE: Adaptif debounce süresi
-    _debounceTimer = Timer(PerformanceUtils.searchDebounce, () {
-      if (_searchController.text.isNotEmpty) {
-        _performSearch(_searchController.text);
-      } else {
-        setState(() {
-          _searchResults = [];
-          _selectedWord = null;
-          _isSearching = false;
-          _showAIButton = false;
-          _showNotFound = false;
-        });
-      }
-    });
+    // Debounce timer kaldırıldı - harf girildiği anda direkt arama yapılıyor
+    if (_searchController.text.isNotEmpty) {
+      _performSearch(_searchController.text);
+    } else {
+      setState(() {
+        _searchResults = [];
+        _selectedWord = null;
+        _isSearching = false;
+        _showAIButton = false;
+        _showNotFound = false;
+      });
+    }
   }
 
   Future<void> _performSearch(String query) async {
@@ -119,6 +115,10 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
     try {
       // Tüm sonuçları al, limit yok
       final results = await _firebaseService.searchWords(query, limit: 999); // Limit ekledim
+      
+      // Analytics event'i gönder
+      await AnalyticsService.logWordSearch(query, resultCount: results.length);
+      
       setState(() {
         _searchResults = results; // Tüm sonuçlar gösterilecek
         _isLoading = false;
@@ -145,6 +145,9 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
       });
       widget.onArabicKeyboardStateChanged?.call(false);
     }
+    
+    // Analytics event'i gönder
+    await AnalyticsService.logWordView(word.kelime, source: 'search_results');
     
     // Artık hak kontrolü yok, direkt kelimeyi göster
     setState(() {
@@ -190,6 +193,9 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
       
       debugPrint('🤖 Kelime veritabanında bulunamadı, AI\'ya soruluyor: $query');
       final aiResult = await _geminiService.searchWord(query);
+      
+      // AI arama analytics event'i gönder
+      await AnalyticsService.logAISearch(query, aiResult.bulunduMu);
       
       if (aiResult.bulunduMu) {
         // AI sonucunu Firebase'e kaydet
@@ -362,6 +368,8 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
                                           _showArabicKeyboard = !_showArabicKeyboard;
                                           if (_showArabicKeyboard) {
                                             _searchFocusNode.unfocus();
+                                            // Arapça klavye açıldığında analytics event'i gönder
+                                            AnalyticsService.logArabicKeyboardUsage();
                                           }
                                         });
                                         // Main ekrana klavye durumunu bildir

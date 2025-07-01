@@ -6,6 +6,7 @@ import 'package:google_mobile_ads/google_mobile_ads.dart';
 import '../services/admob_service.dart';
 import '../services/credits_service.dart';
 import '../services/subscription_service.dart';
+import '../services/analytics_service.dart';
 
 class BannerAdWidget extends StatefulWidget {
   final Function(double) onAdHeightChanged;
@@ -172,6 +173,9 @@ class BannerAdWidgetState extends State<BannerAdWidget>
             _retryCount = 0;
           });
           widget.onAdHeightChanged(platformSize.height.toDouble());
+          
+          // Analytics event'i gönder
+          AnalyticsService.logAdImpression('banner', adUnitId: AdMobService.bannerAdUnitId);
         },
         onAdFailedToLoad: (ad, error) {
           debugPrint('❌ Banner reklam yüklenemedi: ${error.message}');
