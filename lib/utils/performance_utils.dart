@@ -445,8 +445,10 @@ class PerformanceUtils {
     return currentDeviceSettings['enable_complex_animations'] as bool? ?? false;
   }
   
+  // 🚀 PERFORMANCE MOD: ListView optimizasyonları
   static double get listCacheExtent {
-    return currentDeviceSettings['list_cache_extent'] as double? ?? defaultCacheExtent;
+    // Mevcut implementasyon ile cihaz kategorisine göre cache ayarlama
+    return currentDeviceSettings['list_cache_extent'] as double? ?? 1000.0;
   }
   
   // Getters

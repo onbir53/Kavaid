@@ -586,6 +586,8 @@ class _SavedWordsScreenState extends State<SavedWordsScreen> with AutomaticKeepA
             );
           },
           childCount: _filteredWords.length,
+          addAutomaticKeepAlives: true,
+          addRepaintBoundaries: true,
         ),
       ),
     );

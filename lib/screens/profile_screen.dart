@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../services/credits_service.dart';
 import '../services/subscription_service.dart';
 
@@ -207,6 +208,78 @@ class _ProfileScreenState extends State<ProfileScreen> {
             
             const SizedBox(height: 16),
             
+            // Google Play Değerlendirme Butonu
+            GestureDetector(
+              onTap: _openGooglePlayRating,
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: isDarkMode 
+                      ? const Color(0xFF2C2C2E) 
+                      : Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: isDarkMode 
+                        ? const Color(0xFF3A3A3C)
+                        : const Color(0xFFE5E5EA),
+                    width: 1,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFFD700).withOpacity(0.2),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Icons.star_rounded,
+                        color: const Color(0xFFFFD700),
+                        size: 24,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Uygulamayı Değerlendir',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: isDarkMode ? Colors.white : Colors.black,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            'Google Play\'de yıldız verin',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: isDarkMode 
+                                  ? const Color(0xFF8E8E93)
+                                  : const Color(0xFF6D6D70),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Icon(
+                      Icons.arrow_forward_ios,
+                      size: 16,
+                      color: isDarkMode 
+                          ? const Color(0xFF8E8E93)
+                          : const Color(0xFF6D6D70),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 16),
+            
             // Premium önerisi veya durumu
             if (!_creditsService.isPremium) ...[
               // Premium önerisi
@@ -379,13 +452,52 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
               ),
             ],
-
-
-
           ],
         ),
       ),
     );
+  }
+
+  Future<void> _openGooglePlayRating() async {
+    const String packageName = 'com.onbir.kavaid';
+    final Uri googlePlayUrl = Uri.parse('market://details?id=$packageName');
+    final Uri webUrl = Uri.parse('https://play.google.com/store/apps/details?id=$packageName');
+    
+    try {
+      // Önce Google Play uygulamasını açmayı dene
+      if (await canLaunchUrl(googlePlayUrl)) {
+        await launchUrl(
+          googlePlayUrl,
+          mode: LaunchMode.externalApplication,
+        );
+      } else if (await canLaunchUrl(webUrl)) {
+        // Google Play uygulaması yoksa web'de aç
+        await launchUrl(
+          webUrl,
+          mode: LaunchMode.externalApplication,
+        );
+      } else {
+        // Hiçbiri açılamazsa hata göster
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Google Play açılamadı'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint('❌ Google Play değerlendirme hatası: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Bir hata oluştu'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   void _showPremiumDialog() {
@@ -489,6 +601,4 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
     );
   }
-
-
 } 

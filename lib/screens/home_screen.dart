@@ -609,6 +609,9 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
                 return const SizedBox.shrink();
               },
               childCount: _searchResults.length + totalAds,
+              // 🚀 PERFORMANCE: Widget state'lerini koru ve otomatik RepaintBoundary ekle
+              addAutomaticKeepAlives: true,
+              addRepaintBoundaries: true,
               findChildIndexCallback: (Key key) {
                 if (key is ValueKey) {
                   final value = key.value as String;

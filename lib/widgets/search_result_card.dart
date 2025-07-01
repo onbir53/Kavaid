@@ -130,7 +130,7 @@ class _SearchResultCardState extends State<SearchResultCard> with SingleTickerPr
   void _initializeAnimation() {
     if (_animationController == null) {
       _animationController = AnimationController(
-        duration: const Duration(milliseconds: 150), // 🚀 PERFORMANCE: Daha hızlı animasyon
+        duration: const Duration(milliseconds: 100), // 🚀 PERFORMANCE: 150ms'den 100ms'ye düşürdüm
         vsync: this,
       );
       
@@ -417,7 +417,7 @@ class _SearchResultCardState extends State<SearchResultCard> with SingleTickerPr
           padding: const EdgeInsets.all(4),
           child: AnimatedRotation(
             turns: _isExpanded ? 0.5 : 0,
-            duration: const Duration(milliseconds: 150), // 🚀 PERFORMANCE: Daha hızlı animasyon
+            duration: const Duration(milliseconds: 100), // 🚀 PERFORMANCE: 150ms'den 100ms'ye düşürdüm
             curve: Curves.easeInOut,
             child: Icon(
               Icons.expand_more,
