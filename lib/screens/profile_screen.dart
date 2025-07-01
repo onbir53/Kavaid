@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../services/credits_service.dart';
 import '../services/subscription_service.dart';
 import '../services/analytics_service.dart';
+import '../services/app_usage_service.dart';
 
 class ProfileScreen extends StatefulWidget {
   final double bottomPadding;
@@ -27,6 +28,7 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   final CreditsService _creditsService = CreditsService();
   final SubscriptionService _subscriptionService = SubscriptionService();
+  final AppUsageService _appUsageService = AppUsageService();
   bool _hasRatedApp = false;
 
   @override
@@ -34,6 +36,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     super.initState();
     _creditsService.addListener(_updateState);
     _subscriptionService.addListener(_updateState);
+    _appUsageService.addListener(_updateState);
     
     // Play Console'dan fiyat bilgilerini yükle
     _loadSubscriptionData();
@@ -79,6 +82,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void dispose() {
     _creditsService.removeListener(_updateState);
     _subscriptionService.removeListener(_updateState);
+    _appUsageService.removeListener(_updateState);
     super.dispose();
   }
 
@@ -229,8 +233,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
             
             const SizedBox(height: 16),
             
-            // Google Play Değerlendirme Butonu - sadece değerlendirme yapılmamışsa göster
-            if (!_hasRatedApp) ...[
+            // Google Play Değerlendirme Butonu - 30 dakika kullanım sonrası ve değerlendirme yapılmamışsa göster
+            if (!_hasRatedApp && _appUsageService.shouldShowRating) ...[
               GestureDetector(
                 onTap: _openInAppReview,
                 child: Container(
@@ -282,6 +286,96 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                     ],
                   ),
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
+            
+            // TEST: Debug butonları (sadece debug modda)
+            if (!kReleaseMode) ...[
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.red.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: Colors.red.withOpacity(0.3),
+                    width: 1,
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'DEBUG PANEL',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.red,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: () async {
+                              await _appUsageService.setUsageTimeForTest(31);
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Kullanım süresi 31 dakikaya ayarlandı'),
+                                    backgroundColor: Colors.green,
+                                  ),
+                                );
+                              }
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.green,
+                            ),
+                            child: const Text(
+                              '31 dakika',
+                              style: TextStyle(fontSize: 12),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: () async {
+                              await _appUsageService.resetUsageStats();
+                              final prefs = await SharedPreferences.getInstance();
+                              await prefs.setBool('has_rated_app', false);
+                              await _checkRatingStatus();
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Tüm veriler sıfırlandı'),
+                                    backgroundColor: Colors.orange,
+                                  ),
+                                );
+                              }
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.orange,
+                            ),
+                            child: const Text(
+                              'Sıfırla',
+                              style: TextStyle(fontSize: 12),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Mevcut kullanım: ${_appUsageService.totalUsageMinutes} dakika',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: Colors.red,
+                      ),
+                    ),
+                  ],
                 ),
               ),
               const SizedBox(height: 16),
@@ -482,6 +576,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
         
         // Değerlendirme açıldığında flag'i set et
         await _setRatedApp();
+        
+        // AppUsageService'e de bildir
+        await _appUsageService.markRatingUIShown();
       } else {
         // Mevcut değilse store sayfasını aç
         debugPrint('⚠️ Uygulama içi değerlendirme mevcut değil, store sayfası açılıyor');
@@ -508,6 +605,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
         );
         // Google Play açıldığında da flag'i set et
         await _setRatedApp();
+        // AppUsageService'e de bildir
+        await _appUsageService.markRatingUIShown();
       } else if (await canLaunchUrl(webUrl)) {
         // Google Play uygulaması yoksa web'de aç
         await launchUrl(
@@ -516,6 +615,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
         );
         // Web açıldığında da flag'i set et
         await _setRatedApp();
+        // AppUsageService'e de bildir
+        await _appUsageService.markRatingUIShown();
       } else {
         // Hiçbiri açılamazsa hata göster
         if (mounted) {

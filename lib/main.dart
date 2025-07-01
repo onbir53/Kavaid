@@ -24,6 +24,7 @@ import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'services/firebase_service.dart';
 import 'services/analytics_service.dart';
 import 'models/word_model.dart';
+import 'services/app_usage_service.dart';
 
 // Custom ScrollBehavior - overscroll glow efektini kaldırmak için
 class NoGlowScrollBehavior extends ScrollBehavior {
@@ -239,6 +240,13 @@ void _initializeServicesInBackground() {
     await subscriptionService.initialize();
     debugPrint('✅ SubscriptionService başlatıldı');
   });
+  
+  // AppUsageService'i arka planda başlat
+  Future.delayed(const Duration(milliseconds: 400), () async {
+    final appUsageService = AppUsageService();
+    await appUsageService.startSession();
+    debugPrint('✅ AppUsageService başlatıldı');
+  });
 }
 
 class KavaidApp extends StatefulWidget {
@@ -254,6 +262,8 @@ class _KavaidAppState extends State<KavaidApp> with WidgetsBindingObserver {
   bool _isAppInForeground = true;
   bool _themeLoaded = false;
   final CreditsService _creditsService = CreditsService();
+  final AppUsageService _appUsageService = AppUsageService();
+  Timer? _usageTimer;
 
   @override
   void initState() {
@@ -265,6 +275,19 @@ class _KavaidAppState extends State<KavaidApp> with WidgetsBindingObserver {
     _initializeCreditsService();
     
     // İlk açılışta app open ad gösterme - sadece resume'da göster
+    
+    // Kullanım süresini periyodik olarak güncelle
+    _startUsageTimer();
+  }
+  
+  void _startUsageTimer() {
+    // Her 5 dakikada bir kullanım süresini güncelle
+    _usageTimer = Timer.periodic(const Duration(minutes: 5), (timer) {
+      if (_isAppInForeground) {
+        _appUsageService.updateUsage();
+        debugPrint('⏱️ [AppUsage] Kullanım süresi güncellendi');
+      }
+    });
   }
   
   Future<void> _initializeCreditsService() async {
@@ -279,6 +302,8 @@ class _KavaidAppState extends State<KavaidApp> with WidgetsBindingObserver {
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _creditsService.removeListener(() {});
+    _usageTimer?.cancel();
+    _appUsageService.endSession();
     super.dispose();
   }
 
@@ -326,6 +351,9 @@ class _KavaidAppState extends State<KavaidApp> with WidgetsBindingObserver {
         _isAppInForeground = true;
         ImageCacheManager.restoreForForeground();
         
+        // Uygulama aktif olduğunda kullanım süresini güncelle
+        _appUsageService.updateUsage();
+        
         // TEST: 2 saniye sonra debug durumunu göster
         Future.delayed(const Duration(seconds: 2), () {
           debugPrint('🧪 [TEST] 2 saniye sonra debug durumu:');
@@ -335,6 +363,9 @@ class _KavaidAppState extends State<KavaidApp> with WidgetsBindingObserver {
       case AppLifecycleState.paused:
         _isAppInForeground = false;
         ImageCacheManager.optimizeForBackground();
+        
+        // Uygulama arka plana alındığında oturumu sonlandır
+        _appUsageService.endSession();
         break;
       case AppLifecycleState.inactive:
       case AppLifecycleState.detached:
