@@ -580,14 +580,17 @@ class _SavedWordsScreenState extends State<SavedWordsScreen> with AutomaticKeepA
         delegate: SliverChildBuilderDelegate(
           (context, index) {
             final word = _filteredWords[index];
-            return SearchResultCard(
-              word: word,
-              onTap: () => _selectWord(word),
+            return RepaintBoundary(
+              key: ValueKey('saved_word_${word.kelime}_$index'),
+              child: SearchResultCard(
+                word: word,
+                onTap: () => _selectWord(word),
+              ),
             );
           },
           childCount: _filteredWords.length,
-          addAutomaticKeepAlives: true,
-          addRepaintBoundaries: true,
+          addAutomaticKeepAlives: false,
+          addRepaintBoundaries: false,
         ),
       ),
     );

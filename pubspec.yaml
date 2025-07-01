@@ -60,6 +60,7 @@ dependencies:
   shared_preferences: ^2.3.4
   sqflite: ^2.4.1
   path: ^1.9.1
+  path_provider: ^2.1.5
   
   # Device Info
   device_info_plus: ^10.1.2
@@ -77,6 +78,9 @@ dependencies:
   
   # URL Launcher for Google Play rating
   url_launcher: ^6.3.1
+  
+  # In-App Review for native rating dialog
+  in_app_review: ^2.0.9
 
 dev_dependencies:
   flutter_test:

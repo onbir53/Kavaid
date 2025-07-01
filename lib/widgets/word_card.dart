@@ -38,7 +38,8 @@ class _FontCache {
   }
 }
 
-class WordCard extends StatefulWidget {
+// 🚀 PERFORMANCE: StatelessWidget'a dönüştür ve ValueListenableBuilder kullan
+class WordCard extends StatelessWidget {
   final WordModel word;
 
   const WordCard({
@@ -47,159 +48,75 @@ class WordCard extends StatefulWidget {
   });
 
   @override
-  State<WordCard> createState() => _WordCardState();
-}
-
-class _WordCardState extends State<WordCard> {
-  final SavedWordsService _savedWordsService = SavedWordsService();
-  late bool _isSaved;
-  bool _isLoading = false;
-  
-  // 🚀 PERFORMANCE: Listener'ı optimize et
-  bool _isListenerActive = false;
-
-  @override
-  void initState() {
-    super.initState();
-    // Başlangıçta sync kontrolü yap
-    _isSaved = _savedWordsService.isWordSavedSync(widget.word);
-    
-    // 🚀 PERFORMANCE: Listener'ı delayed olarak ekle
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        _savedWordsService.addListener(_updateSavedStatus);
-        _isListenerActive = true;
-      }
-    });
-  }
-
-  @override
-  void didUpdateWidget(WordCard oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    // Widget güncellendiğinde kelime değiştiyse durumu güncelle
-    if (oldWidget.word.kelime != widget.word.kelime) {
-      _isSaved = _savedWordsService.isWordSavedSync(widget.word);
-    }
-  }
-
-  @override
-  void dispose() {
-    // Listener'ı kaldır
-    if (_isListenerActive) {
-      _savedWordsService.removeListener(_updateSavedStatus);
-    }
-    super.dispose();
-  }
-
-  void _updateSavedStatus() {
-    if (mounted) {
-      final newSavedStatus = _savedWordsService.isWordSavedSync(widget.word);
-      if (newSavedStatus != _isSaved) {
-        setState(() {
-          _isSaved = newSavedStatus;
-        });
-      }
-    }
-  }
-
-  Future<void> _toggleSaved() async {
-    if (_isLoading) return;
-    
-    setState(() {
-      _isLoading = true;
-    });
-
-    try {
-      bool success;
-      if (_isSaved) {
-        success = await _savedWordsService.removeWord(widget.word);
-      } else {
-        success = await _savedWordsService.saveWord(widget.word);
-      }
-      
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-        
-        if (!success) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('İşlem başarısız oldu'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
-      }
-    } catch (e) {
-      print('Toggle saved error: $e');
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-        
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('İşlem başarısız: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
-  }
-
-  @override
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final savedWordsService = SavedWordsService();
     
     // 🚀 PERFORMANCE: RepaintBoundary ile sarmalama ve key kullanımı
     return RepaintBoundary(
-      key: ValueKey('word_card_${widget.word.kelime}'),
-      child: GestureDetector(
-        onTap: _isLoading ? null : _toggleSaved,
-        child: Container( // 🚀 PERFORMANCE: AnimatedContainer yerine normal Container
-          width: double.infinity,
-          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            // 🚀 PERFORMANCE: Gradient kaldırıldı, solid renk kullanıldı
-            color: isDarkMode 
-                ? const Color(0xFF2C2C2E) 
-                : Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: isDarkMode 
-                  ? const Color(0xFF3A3A3C)
-                  : const Color(0xFFE5E5EA),
-              width: 1,
-            ),
-            // 🚀 PERFORMANCE: Shadow optimizasyonu
-            boxShadow: PerformanceUtils.enableShadows ? [
-              BoxShadow(
+      key: ValueKey('word_card_${word.kelime}'),
+      child: ValueListenableBuilder<bool>(
+        valueListenable: savedWordsService.isWordSavedNotifier(word),
+        builder: (context, isSaved, child) {
+          return GestureDetector(
+            onTap: () => _toggleSaved(context, savedWordsService, isSaved),
+            child: Container(
+              width: double.infinity,
+              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                // 🚀 PERFORMANCE: Gradient kaldırıldı, solid renk kullanıldı
                 color: isDarkMode 
-                    ? Colors.black.withOpacity(0.2)
-                    : Colors.black.withOpacity(0.05),
-                blurRadius: 8,
-                offset: const Offset(0, 2),
+                    ? const Color(0xFF2C2C2E) 
+                    : Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: isDarkMode 
+                      ? const Color(0xFF3A3A3C)
+                      : const Color(0xFFE5E5EA),
+                  width: 1,
+                ),
+                // 🚀 PERFORMANCE: Shadow optimizasyonu
+                boxShadow: PerformanceUtils.enableShadows ? [
+                  BoxShadow(
+                    color: isDarkMode 
+                        ? Colors.black.withOpacity(0.2)
+                        : Colors.black.withOpacity(0.05),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ] : null,
               ),
-            ] : null,
-          ),
-          // 🚀 PERFORMANCE: Basitleştirilmiş widget tree
-          child: _buildCardContent(isDarkMode),
-        ),
+              // 🚀 PERFORMANCE: Basitleştirilmiş widget tree
+              child: _buildCardContent(isDarkMode, isSaved),
+            ),
+          );
+        },
       ),
     );
   }
   
+  Future<void> _toggleSaved(BuildContext context, SavedWordsService service, bool isSaved) async {
+    try {
+      if (isSaved) {
+        await service.removeWord(word);
+      } else {
+        await service.saveWord(word);
+      }
+    } catch (e) {
+      print('Toggle saved error: $e');
+    }
+  }
+  
   // 🚀 PERFORMANCE: İçeriği ayrı method'a al
-  Widget _buildCardContent(bool isDarkMode) {
+  Widget _buildCardContent(bool isDarkMode, bool isSaved) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min, // 🚀 PERFORMANCE: Column boyutunu minimize et
       children: [
         // Arapça kelime - 🚀 PERFORMANCE: Cache'lenmiş font stili
         Text(
-          widget.word.harekeliKelime ?? widget.word.kelime,
+          word.harekeliKelime ?? word.kelime,
           style: _FontCache.getArabicStyle().copyWith(
             color: isDarkMode ? Colors.white : const Color(0xFF1C1C1E),
           ),
@@ -207,10 +124,10 @@ class _WordCardState extends State<WordCard> {
         ),
         
         // Türkçe anlam
-        if (widget.word.anlam != null && widget.word.anlam!.isNotEmpty) ...[
+        if (word.anlam != null && word.anlam!.isNotEmpty) ...[
           const SizedBox(height: 8),
           Text(
-            widget.word.anlam!,
+            word.anlam!,
             style: TextStyle(
               fontSize: 16,
               color: isDarkMode 
@@ -222,26 +139,17 @@ class _WordCardState extends State<WordCard> {
         ],
         
         // 🚀 PERFORMANCE: Örnek cümle widget'ını optimize et
-        if (widget.word.ornekler.isNotEmpty)
+        if (word.ornekler.isNotEmpty)
           _buildExampleSection(isDarkMode),
         
         // Kaydetme göstergesi
         const SizedBox(height: 12),
         Center(
-          child: _isLoading 
-              ? SizedBox(
-                  width: 24,
-                  height: 24,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: isDarkMode ? Colors.white : Colors.black,
-                  ),
-                )
-              : Icon(
-                  _isSaved ? Icons.bookmark : Icons.bookmark_border,
-                  color: isDarkMode ? Colors.white : Colors.black,
-                  size: 24,
-                ),
+          child: Icon(
+            isSaved ? Icons.bookmark : Icons.bookmark_border,
+            color: isDarkMode ? Colors.white : Colors.black,
+            size: 24,
+          ),
         ),
       ],
     );
@@ -299,7 +207,7 @@ class _WordCardState extends State<WordCard> {
               children: [
                 // 🚀 PERFORMANCE: Cache'lenmiş font stili kullan
                 Text(
-                  widget.word.ornekler.first.arapcaCumle,
+                  word.ornekler.first.arapcaCumle,
                   style: _FontCache.getExampleArabicStyle().copyWith(
                     color: isDarkMode 
                         ? Colors.white.withOpacity(0.9)
@@ -308,10 +216,10 @@ class _WordCardState extends State<WordCard> {
                   textDirection: TextDirection.rtl,
                 ),
                 
-                if (widget.word.ornekler.first.turkceCeviri.isNotEmpty) ...[
+                if (word.ornekler.first.turkceCeviri.isNotEmpty) ...[
                   const SizedBox(height: 8),
                   Text(
-                    widget.word.ornekler.first.turkceCeviri,
+                    word.ornekler.first.turkceCeviri,
                     style: TextStyle(
                       fontSize: 14,
                       color: isDarkMode 

@@ -69,61 +69,21 @@ class SearchResultCard extends StatefulWidget {
 class _SearchResultCardState extends State<SearchResultCard> with SingleTickerProviderStateMixin { // 🚀 PERFORMANCE: Single ticker
   final SavedWordsService _savedWordsService = SavedWordsService();
   final CreditsService _creditsService = CreditsService();
-  late bool _isSaved;
-  bool _isLoading = false;
   bool _isExpanded = false;
   
   // 🚀 PERFORMANCE: Animasyon controller'ı optimize et
   AnimationController? _animationController;
   Animation<double>? _expandAnimation;
-  
-  // 🚀 PERFORMANCE: Listener optimizasyonu
-  bool _isListenerActive = false;
 
   @override
   void initState() {
     super.initState();
-    
-    // İlk durumu sync olarak belirle
-    _isSaved = _savedWordsService.isWordSavedSync(widget.word);
-    
-    // 🚀 PERFORMANCE: Listener'ı delayed ekle
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        _savedWordsService.addListener(_updateSavedStatus);
-        _isListenerActive = true;
-      }
-    });
-  }
-
-  @override
-  void didUpdateWidget(SearchResultCard oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    // Widget güncellendiğinde kelime değiştiyse durumu güncelle
-    if (oldWidget.word.kelime != widget.word.kelime) {
-      _isSaved = _savedWordsService.isWordSavedSync(widget.word);
-    }
   }
 
   @override
   void dispose() {
-    // Listener'ı kaldır
-    if (_isListenerActive) {
-      _savedWordsService.removeListener(_updateSavedStatus);
-    }
     _animationController?.dispose();
     super.dispose();
-  }
-
-  void _updateSavedStatus() {
-    if (mounted) {
-      final newSavedStatus = _savedWordsService.isWordSavedSync(widget.word);
-      if (newSavedStatus != _isSaved) {
-        setState(() {
-          _isSaved = newSavedStatus;
-        });
-      }
-    }
   }
   
   // 🚀 PERFORMANCE: Animasyon controller'ı lazy initialize et
@@ -216,33 +176,17 @@ class _SearchResultCardState extends State<SearchResultCard> with SingleTickerPr
     }
   }
 
-  Future<void> _toggleSaved() async {
-    if (_isLoading || !mounted) return;
-    
-    setState(() {
-      _isLoading = true;
-    });
+  Future<void> _toggleSaved(bool isSaved) async {
+    if (!mounted) return;
 
     try {
-      bool success;
-      if (_isSaved) {
-        success = await _savedWordsService.removeWord(widget.word);
+      if (isSaved) {
+        await _savedWordsService.removeWord(widget.word);
       } else {
-        success = await _savedWordsService.saveWord(widget.word);
-      }
-      
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
+        await _savedWordsService.saveWord(widget.word);
       }
     } catch (e) {
       print('Toggle saved error: $e');
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
     }
   }
 
@@ -374,33 +318,29 @@ class _SearchResultCardState extends State<SearchResultCard> with SingleTickerPr
   
   // 🚀 PERFORMANCE: Bookmark button'ı optimize et
   Widget _buildBookmarkButton(bool isDarkMode) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: _isLoading ? null : _toggleSaved,
-        borderRadius: BorderRadius.circular(16),
-        child: Container(
-          width: 32,
-          height: 32,
-          padding: const EdgeInsets.all(6),
-          child: _isLoading
-              ? SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: isDarkMode ? Colors.white : Colors.black,
-                  ),
-                )
-              : Icon(
-                  _isSaved ? Icons.bookmark : Icons.bookmark_border,
-                  color: _isSaved 
-                      ? const Color(0xFF007AFF)
-                      : (isDarkMode ? const Color(0xFF8E8E93) : const Color(0xFF6D6D70)),
-                  size: 20,
-                ),
-        ),
-      ),
+    return ValueListenableBuilder<bool>(
+      valueListenable: _savedWordsService.isWordSavedNotifier(widget.word),
+      builder: (context, isSaved, child) {
+        return Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: () => _toggleSaved(isSaved),
+            borderRadius: BorderRadius.circular(16),
+            child: Container(
+              width: 32,
+              height: 32,
+              padding: const EdgeInsets.all(6),
+              child: Icon(
+                isSaved ? Icons.bookmark : Icons.bookmark_border,
+                color: isSaved 
+                    ? const Color(0xFF007AFF)
+                    : (isDarkMode ? const Color(0xFF8E8E93) : const Color(0xFF6D6D70)),
+                size: 20,
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
   

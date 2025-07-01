@@ -609,9 +609,11 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
                 return const SizedBox.shrink();
               },
               childCount: _searchResults.length + totalAds,
-              // 🚀 PERFORMANCE: Widget state'lerini koru ve otomatik RepaintBoundary ekle
-              addAutomaticKeepAlives: true,
-              addRepaintBoundaries: true,
+              // 🚀 PERFORMANCE: Widget state'lerini koruma ve RepaintBoundary'leri kapat
+              addAutomaticKeepAlives: false,
+              addRepaintBoundaries: false,
+              // 🚀 PERFORMANCE: Semantic index'leri kapat
+              addSemanticIndexes: false,
               findChildIndexCallback: (Key key) {
                 if (key is ValueKey) {
                   final value = key.value as String;
@@ -632,9 +634,6 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
                   }
                 }
                 return null;
-              },
-              semanticIndexCallback: (Widget widget, int localIndex) {
-                return localIndex;
               },
             ),
           ),

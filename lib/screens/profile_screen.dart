@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:in_app_review/in_app_review.dart';
 import '../services/credits_service.dart';
 import '../services/subscription_service.dart';
 
@@ -210,7 +211,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             
             // Google Play Değerlendirme Butonu
             GestureDetector(
-              onTap: _openGooglePlayRating,
+              onTap: _openInAppReview,
               child: Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
@@ -255,7 +256,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            'Google Play\'de yıldız verin',
+                            'Uygulamayı değerlendirin ve yorum yapın',
                             style: TextStyle(
                               fontSize: 12,
                               color: isDarkMode 
@@ -456,6 +457,27 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _openInAppReview() async {
+    try {
+      final InAppReview inAppReview = InAppReview.instance;
+      
+      // Önce uygulama içi değerlendirme mevcut mu kontrol et
+      if (await inAppReview.isAvailable()) {
+        // Uygulama içinde değerlendirme penceresi aç
+        await inAppReview.requestReview();
+        debugPrint('✅ Uygulama içi değerlendirme açıldı');
+      } else {
+        // Mevcut değilse store sayfasını aç
+        debugPrint('⚠️ Uygulama içi değerlendirme mevcut değil, store sayfası açılıyor');
+        await _openGooglePlayRating();
+      }
+    } catch (e) {
+      debugPrint('❌ Uygulama içi değerlendirme hatası: $e');
+      // Hata durumunda fallback olarak store sayfasını aç
+      await _openGooglePlayRating();
+    }
   }
 
   Future<void> _openGooglePlayRating() async {

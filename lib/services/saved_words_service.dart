@@ -18,6 +18,9 @@ class SavedWordsService extends ChangeNotifier {
   bool _isInitialized = false;
   final bool _isWebPlatform = kIsWeb;
   final Map<String, bool> _operationInProgress = {};
+  
+  // 🚀 PERFORMANCE: ValueNotifier'lar için cache
+  final Map<String, ValueNotifier<bool>> _savedNotifiers = {};
 
   // Database'i aç veya oluştur
   Future<Database?> _getDatabase() async {
@@ -66,6 +69,18 @@ class SavedWordsService extends ChangeNotifier {
 
   // Getter
   bool get isInitialized => _isInitialized;
+  
+  // 🚀 PERFORMANCE: ValueListenableBuilder için notifier döndür
+  ValueNotifier<bool> isWordSavedNotifier(WordModel word) {
+    final key = word.kelime;
+    
+    // Notifier yoksa oluştur
+    if (!_savedNotifiers.containsKey(key)) {
+      _savedNotifiers[key] = ValueNotifier<bool>(isWordSavedSync(word));
+    }
+    
+    return _savedNotifiers[key]!;
+  }
   
   // Kaydedilen kelimeleri getir
   Future<List<WordModel>> getSavedWords() async {
@@ -151,6 +166,12 @@ class SavedWordsService extends ChangeNotifier {
       if (!_savedWordKeys.contains(word.kelime)) {
         _cachedSavedWords.insert(0, word);
         _savedWordKeys.add(word.kelime);
+        
+        // 🚀 PERFORMANCE: ValueNotifier'ı güncelle
+        if (_savedNotifiers.containsKey(word.kelime)) {
+          _savedNotifiers[word.kelime]!.value = true;
+        }
+        
         notifyListeners();
       } else {
         _operationInProgress.remove(operationKey);
@@ -231,6 +252,12 @@ class SavedWordsService extends ChangeNotifier {
       );
       _cachedSavedWords.removeWhere((w) => w.kelime == word.kelime);
       _savedWordKeys.remove(word.kelime);
+      
+      // 🚀 PERFORMANCE: ValueNotifier'ı güncelle
+      if (_savedNotifiers.containsKey(word.kelime)) {
+        _savedNotifiers[word.kelime]!.value = false;
+      }
+      
       notifyListeners();
       
       // Web platformunda sadece cache kullan
@@ -280,6 +307,12 @@ class SavedWordsService extends ChangeNotifier {
       if (_isWebPlatform) {
         _cachedSavedWords = [];
         _savedWordKeys.clear();
+        
+        // 🚀 PERFORMANCE: Tüm notifier'ları false yap
+        for (var notifier in _savedNotifiers.values) {
+          notifier.value = false;
+        }
+        
         notifyListeners();
         return;
       }
@@ -317,6 +350,12 @@ class SavedWordsService extends ChangeNotifier {
     _cachedSavedWords = [];
     _savedWordKeys.clear();
     _isInitialized = false;
+    
+    // 🚀 PERFORMANCE: Notifier'ları temizle
+    for (var notifier in _savedNotifiers.values) {
+      notifier.dispose();
+    }
+    _savedNotifiers.clear();
   }
 
   // Database'i kapat (uygulamadan çıkarken)

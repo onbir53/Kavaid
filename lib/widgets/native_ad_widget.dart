@@ -167,34 +167,10 @@ class _NativeAdWidgetState extends State<NativeAdWidget> with AutomaticKeepAlive
   }
   
   Widget _buildAdContent(bool isDarkMode) {
-    // Reklam yükleniyorsa veya retry devam ediyorsa placeholder göster
+    // Reklam yükleniyorsa veya retry devam ediyorsa hiçbir şey gösterme
     if (!_nativeAdIsLoaded || _nativeAd == null) {
-      return Padding(
-        padding: const EdgeInsets.only(bottom: 6),
-        child: Container(
-          height: 100,
-          decoration: BoxDecoration(
-            color: isDarkMode ? const Color(0xFF1C1C1E) : Colors.white,
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(
-              color: isDarkMode 
-                  ? const Color(0xFF48484A).withOpacity(0.3)
-                  : const Color(0xFFE5E5EA).withOpacity(0.5),
-              width: 0.5,
-            ),
-          ),
-          child: const Center(
-            child: SizedBox(
-              width: 16,
-              height: 16,
-              child: CircularProgressIndicator(
-                strokeWidth: 1.5,
-                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF8E8E93)),
-              ),
-            ),
-          ),
-        ),
-      );
+      // 🚀 PERFORMANCE: Yüklenirken hiçbir şey gösterme
+      return const SizedBox.shrink();
     }
 
     return Padding(
