@@ -281,8 +281,8 @@ class _KavaidAppState extends State<KavaidApp> with WidgetsBindingObserver {
   }
   
   void _startUsageTimer() {
-    // Her 5 dakikada bir kullanım süresini güncelle
-    _usageTimer = Timer.periodic(const Duration(minutes: 5), (timer) {
+    // Her dakika kullanım süresini güncelle
+    _usageTimer = Timer.periodic(const Duration(minutes: 1), (timer) {
       if (_isAppInForeground) {
         _appUsageService.updateUsage();
         debugPrint('⏱️ [AppUsage] Kullanım süresi güncellendi');

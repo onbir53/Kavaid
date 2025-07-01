@@ -37,8 +37,8 @@ android {
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = 21
-        targetSdk = 34
-        versionCode = 2046
+        targetSdk = 35
+        versionCode = 2050
         versionName = "2.1.0"
         
         // Multidex desteği
@@ -91,10 +91,10 @@ android {
             isJniDebuggable = false
             isRenderscriptDebuggable = false
             
-            // 🚀 PERFORMANCE MOD: Release optimizasyonları
-            ndk {
-                debugSymbolLevel = "FULL"
-            }
+            // 🚀 PERFORMANCE MOD: Release optimizasyonları - Debug symbol stripping devre dışı
+            // ndk {
+            //     debugSymbolLevel = "NONE"
+            // }
             
             // 🚀 PERFORMANCE MOD: Optimize edilmiş build flags
             packagingOptions {
