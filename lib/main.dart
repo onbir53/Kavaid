@@ -17,6 +17,7 @@ import 'services/admob_service.dart';
 import 'widgets/banner_ad_widget.dart';
 import 'services/credits_service.dart';
 import 'services/subscription_service.dart';
+import 'services/global_config_service.dart';
 import 'utils/performance_utils.dart';
 import 'utils/image_cache_manager.dart';
 import 'widgets/fps_counter_widget.dart';
@@ -246,6 +247,12 @@ void _initializeServicesInBackground() {
     final appUsageService = AppUsageService();
     await appUsageService.startSession();
     debugPrint('✅ AppUsageService başlatıldı');
+  });
+  
+  // GlobalConfigService'i arka planda başlat
+  Future.delayed(const Duration(milliseconds: 500), () async {
+    final globalConfigService = GlobalConfigService();
+    debugPrint('✅ GlobalConfigService başlatıldı - Subscription disabled: ${globalConfigService.subscriptionDisabled}');
   });
 }
 

@@ -8,6 +8,7 @@ import '../services/credits_service.dart';
 import '../services/subscription_service.dart';
 import '../services/analytics_service.dart';
 import '../services/app_usage_service.dart';
+import '../services/global_config_service.dart';
 
 class ProfileScreen extends StatefulWidget {
   final double bottomPadding;
@@ -29,6 +30,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final CreditsService _creditsService = CreditsService();
   final SubscriptionService _subscriptionService = SubscriptionService();
   final AppUsageService _appUsageService = AppUsageService();
+  final GlobalConfigService _globalConfigService = GlobalConfigService();
   bool _hasRatedApp = false;
 
   @override
@@ -37,6 +39,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _creditsService.addListener(_updateState);
     _subscriptionService.addListener(_updateState);
     _appUsageService.addListener(_updateState);
+    _globalConfigService.addListener(_updateState);
     
     // Play Console'dan fiyat bilgilerini yükle
     _loadSubscriptionData();
@@ -83,6 +86,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _creditsService.removeListener(_updateState);
     _subscriptionService.removeListener(_updateState);
     _appUsageService.removeListener(_updateState);
+    _globalConfigService.removeListener(_updateState);
     super.dispose();
   }
 
@@ -383,10 +387,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
             const SizedBox(height: 16),
             
-            // Premium önerisi veya durumu
-            if (!_creditsService.isPremium) ...[
-              // Premium önerisi
-              GestureDetector(
+            // Premium önerisi veya durumu - GlobalConfig'e göre göster/gizle
+            if (!_globalConfigService.subscriptionDisabled) ...[
+              if (!_creditsService.isPremium) ...[
+                // Premium önerisi
+                GestureDetector(
                 onTap: () {
                   FocusScope.of(context).unfocus();
                   _showPremiumDialog();
@@ -555,6 +560,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
               ),
             ],
+            ], // GlobalConfig check kapanış
           ],
         ),
       ),

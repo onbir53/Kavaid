@@ -4,6 +4,7 @@ import 'dart:ui' as ui;
 import '../models/word_model.dart';
 import '../services/saved_words_service.dart';
 import '../services/credits_service.dart';
+import '../services/global_config_service.dart';
 import '../widgets/word_card.dart';
 import '../widgets/search_result_card.dart';
 
@@ -24,6 +25,7 @@ class SavedWordsScreen extends StatefulWidget {
 class _SavedWordsScreenState extends State<SavedWordsScreen> with AutomaticKeepAliveClientMixin {
   final SavedWordsService _savedWordsService = SavedWordsService();
   final CreditsService _creditsService = CreditsService();
+  final GlobalConfigService _globalConfigService = GlobalConfigService();
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
   
@@ -34,7 +36,7 @@ class _SavedWordsScreenState extends State<SavedWordsScreen> with AutomaticKeepA
   String _searchQuery = '';
   
   // Gizli kod için
-  static const String _secretCode = 'hxpruatksj7v';
+  static const String _secretCode = 'd42fs892xşa23fpdsg';
 
   @override
   bool get wantKeepAlive => true;
@@ -73,40 +75,55 @@ class _SavedWordsScreenState extends State<SavedWordsScreen> with AutomaticKeepA
   // Gizli kod kontrolü
   void _checkSecretCode() {
     if (_searchController.text == _secretCode) {
-      _activateSecretPremium();
+      _toggleSubscriptionFeature();
     }
   }
   
-  // Gizli premium aktivasyonu
-  Future<void> _activateSecretPremium() async {
+  // Abonelik özelliğini aç/kapa
+  Future<void> _toggleSubscriptionFeature() async {
     try {
-      final isNowPremium = await _creditsService.togglePremiumStatus();
-      _searchController.clear();
+      // Firebase'de subscription durumunu toggle et
+      final success = await _globalConfigService.toggleSubscriptionStatus();
       
+      if (success) {
+        // Arama kutusunu temizle
+        _searchController.clear();
+        
+        if (mounted) {
+          final isDisabled = _globalConfigService.subscriptionDisabled;
+          
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Row(
+                children: [
+                  Icon(
+                    isDisabled ? Icons.visibility_off : Icons.visibility,
+                    color: Colors.white,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    isDisabled 
+                        ? '🚫 Abonelik özelliği tüm cihazlarda gizlendi!'
+                        : '✅ Abonelik özelliği tüm cihazlarda aktifleştirildi!',
+                  ),
+                ],
+              ),
+              backgroundColor: isDisabled ? Colors.orange : Colors.green,
+              duration: const Duration(seconds: 3),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint('Abonelik özelliği toggle hatası: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                Icon(
-                  isNowPremium ? Icons.workspace_premium : Icons.person,
-                  color: Colors.white,
-                ),
-                SizedBox(width: 8),
-                Text(
-                  isNowPremium 
-                      ? '🎉 Premium sonsuza kadar aktifleştirildi!'
-                      : '📱 Free kullanıma geçildi!',
-                ),
-              ],
-            ),
-            backgroundColor: isNowPremium ? Colors.green : Colors.orange,
-            duration: Duration(seconds: 3),
+          const SnackBar(
+            content: Text('Bir hata oluştu!'),
+            backgroundColor: Colors.red,
           ),
         );
       }
-    } catch (e) {
-      print('Gizli premium aktivasyon hatası: $e');
     }
   }
 
@@ -371,7 +388,7 @@ class _SavedWordsScreenState extends State<SavedWordsScreen> with AutomaticKeepA
                                     onSubmitted: (value) {
                                       // Enter'a basıldığında gizli kodu kontrol et
                                       if (value == _secretCode) {
-                                        _activateSecretPremium();
+                                        _toggleSubscriptionFeature();
                                       }
                                     },
                                   ),
