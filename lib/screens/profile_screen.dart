@@ -452,7 +452,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: Icon(
-                          Icons.rocket_launch,
+                          Icons.block,
                           color: Colors.white,
                           size: 24,
                         ),
