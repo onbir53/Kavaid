@@ -91,9 +91,9 @@ class AdMobService {
     
     // Production ID'leri
     if (Platform.isAndroid) {
-      return 'ca-app-pub-3375249639458473/1234567890'; // Buraya gerçek Android interstitial ID eklenecek
+      return 'ca-app-pub-3375249639458473/4972153248'; // Geçiş - Android interstitial ID
     } else if (Platform.isIOS) {
-      return 'ca-app-pub-3375249639458473/1234567890'; // Buraya gerçek iOS interstitial ID eklenecek
+      return 'ca-app-pub-3375249639458473/4972153248'; // Geçiş - iOS interstitial ID (aynı birim)
     }
     
     // Fallback
