@@ -61,40 +61,22 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
     super.initState();
     _searchController.addListener(_onSearchChanged);
     
-    // Uygulama açıldığında klavyeyi aç
-    // Post frame callback ile klavyeyi açmaya çalış
+    // Uygulama açılınca 0.5 saniye bekle sonra focus yap
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        _searchFocusNode.requestFocus();
-        // Sistem seviyesinde klavyeyi göster
-        SystemChannels.textInput.invokeMethod('TextInput.show');
-      }
-    });
-    
-    // Multiple attempts with increasing delays
-    for (int i = 1; i <= 5; i++) {
-      Future.delayed(Duration(milliseconds: i * 200), () {
-        if (mounted && !_searchFocusNode.hasFocus) {
-          // Önce unfocus yap
-          _searchFocusNode.unfocus();
-          // Sonra focus ver
-          Future.delayed(const Duration(milliseconds: 50), () {
-            if (mounted) {
-              FocusScope.of(context).requestFocus(_searchFocusNode);
-              _searchFocusNode.requestFocus();
-              // Sistem seviyesinde klavyeyi göster
-              SystemChannels.textInput.invokeMethod('TextInput.show');
-              
-              if (i == 5) {
-                // Son denemede callback'i çağır
-                widget.onKeyboardOpened?.call();
-              }
-            }
-          });
+      Future.delayed(const Duration(milliseconds: 500), () {
+        if (mounted) {
+          // Önce tüm focusları temizle
+          FocusScope.of(context).unfocus();
+          
+          // Hemen sonra focus ver
+          _searchFocusNode.requestFocus();
+          debugPrint('🎯 0.5 saniye sonra klavye açıldı');
         }
       });
-    }
+    });
   }
+
+
 
   @override
   void dispose() {
@@ -346,7 +328,7 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
                                     child: TextField(
                                       controller: _searchController,
                                       focusNode: _searchFocusNode,
-                                      autofocus: true,
+                                      autofocus: false, // Manuel focus yapacağız
                                       textAlignVertical: TextAlignVertical.center, // Dikey ortalama
                                       style: TextStyle(
                                         fontSize: 16, // 14'ten 16'ya büyüttüm
