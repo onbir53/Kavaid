@@ -4,7 +4,7 @@ import 'package:device_info_plus/device_info_plus.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'dart:io';
 import 'device_data_service.dart';
-import 'analytics_service.dart';
+import 'turkce_analytics_service.dart';
 
 class CreditsService extends ChangeNotifier {
   static const String _premiumKey = 'is_premium';
@@ -193,7 +193,7 @@ class CreditsService extends ChangeNotifier {
     await _saveToFirebase();
     
     // Analytics user properties'ini güncelle
-    await AnalyticsService.setUserProperties(isPremium: _isPremium);
+    await TurkceAnalyticsService.kullaniciOzellikleriniGuncelle(premiumMu: _isPremium);
     
     notifyListeners();
   }
@@ -214,7 +214,7 @@ class CreditsService extends ChangeNotifier {
     await _saveToFirebase();
     
     // Analytics user properties'ini güncelle
-    await AnalyticsService.setUserProperties(isPremium: _isPremium);
+    await TurkceAnalyticsService.kullaniciOzellikleriniGuncelle(premiumMu: _isPremium);
     
     notifyListeners();
   }
@@ -236,7 +236,7 @@ class CreditsService extends ChangeNotifier {
     await _saveToFirebase();
     
     // Analytics user properties'ini güncelle
-    await AnalyticsService.setUserProperties(isPremium: _isPremium);
+    await TurkceAnalyticsService.kullaniciOzellikleriniGuncelle(premiumMu: _isPremium);
     
     notifyListeners();
   }
@@ -281,7 +281,7 @@ class CreditsService extends ChangeNotifier {
     await _saveToFirebase();
     
     // Analytics user properties'ini güncelle
-    await AnalyticsService.setUserProperties(isPremium: _isPremium);
+    await TurkceAnalyticsService.kullaniciOzellikleriniGuncelle(premiumMu: _isPremium);
     
     notifyListeners();
   }

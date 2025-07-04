@@ -7,6 +7,7 @@ import '../services/credits_service.dart';
 import '../services/global_config_service.dart';
 import '../widgets/word_card.dart';
 import '../widgets/search_result_card.dart';
+import '../services/turkce_analytics_service.dart';
 
 class SavedWordsScreen extends StatefulWidget {
   final double bottomPadding;
@@ -156,6 +157,11 @@ class _SavedWordsScreenState extends State<SavedWordsScreen> with AutomaticKeepA
                  (word.anlam?.toLowerCase().contains(query) ?? false) ||
                  (word.harekeliKelime?.toLowerCase().contains(query) ?? false);
         }).toList();
+        
+        // Analytics event'i gönder - sadece boş olmayan arama için
+        if (query.isNotEmpty) {
+          TurkceAnalyticsService.kayitliKelimelerdeArama(query, _filteredWords.length);
+        }
       }
     });
   }
@@ -247,6 +253,9 @@ class _SavedWordsScreenState extends State<SavedWordsScreen> with AutomaticKeepA
   }
 
   void _selectWord(WordModel word) {
+    // Analytics event'i gönder
+    TurkceAnalyticsService.kelimeDetayiGoruntulendi(word.kelime);
+    
     setState(() {
       _selectedWord = word;
     });

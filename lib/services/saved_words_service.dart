@@ -4,7 +4,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import '../models/word_model.dart';
-import 'analytics_service.dart';
+import 'turkce_analytics_service.dart';
 
 class SavedWordsService extends ChangeNotifier {
   // Singleton pattern
@@ -214,7 +214,7 @@ class SavedWordsService extends ChangeNotifier {
         });
         
         // Analytics event'i gönder
-        await AnalyticsService.logWordSave(word.kelime);
+        await TurkceAnalyticsService.kelimeKaydedildi(word.kelime);
         
         _operationInProgress.remove(operationKey);
         return true;
@@ -285,6 +285,9 @@ class SavedWordsService extends ChangeNotifier {
           whereArgs: [word.kelime],
         );
         
+        // Analytics event'i gönder
+        await TurkceAnalyticsService.kelimeKayittanCikarildi(word.kelime);
+        
         _operationInProgress.remove(operationKey);
         return true;
       } catch (e) {
@@ -307,6 +310,9 @@ class SavedWordsService extends ChangeNotifier {
     try {
       print('DEBUG: Tüm kayıtlı kelimeler temizleniyor');
       
+      // Temizlenecek kelime sayısını al
+      final kelimeSayisi = _cachedSavedWords.length;
+      
       // Web platformunda sadece cache'i temizle
       if (_isWebPlatform) {
         _cachedSavedWords = [];
@@ -316,6 +322,9 @@ class SavedWordsService extends ChangeNotifier {
         for (var notifier in _savedNotifiers.values) {
           notifier.value = false;
         }
+        
+        // Analytics event'i gönder
+        await TurkceAnalyticsService.tumKelimelerTemizlendi(kelimeSayisi);
         
         notifyListeners();
         return;
@@ -330,6 +339,9 @@ class SavedWordsService extends ChangeNotifier {
       // Cache'i temizle
       _cachedSavedWords = [];
       _savedWordKeys.clear();
+      
+      // Analytics event'i gönder
+      await TurkceAnalyticsService.tumKelimelerTemizlendi(kelimeSayisi);
       
       // Tüm dinleyicileri bilgilendir
       notifyListeners();

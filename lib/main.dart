@@ -24,7 +24,7 @@ import 'utils/image_cache_manager.dart';
 import 'widgets/fps_counter_widget.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'services/firebase_service.dart';
-import 'services/analytics_service.dart';
+import 'services/turkce_analytics_service.dart';
 import 'models/word_model.dart';
 import 'services/app_usage_service.dart';
 import 'services/gemini_service.dart';
@@ -226,11 +226,10 @@ void _initializeServicesInBackground() {
   // Firebase Analytics'i ilk olarak başlat
   Future.delayed(const Duration(milliseconds: 50), () async {
     try {
-      await AnalyticsService.initialize();
-      await AnalyticsService.logAppOpen();
-      debugPrint('✅ Analytics Service başlatıldı');
+      await TurkceAnalyticsService.uygulamaBaslatildi();
+      debugPrint('✅ Türkçe Analytics Service başlatıldı');
     } catch (e) {
-      debugPrint('❌ Analytics Service başlatılamadı: $e');
+      debugPrint('❌ Türkçe Analytics Service başlatılamadı: $e');
     }
   });
 
@@ -434,7 +433,7 @@ class _KavaidAppState extends State<KavaidApp> with WidgetsBindingObserver {
     _saveThemePreference(_isDarkMode);
     
     // Analytics event'i gönder
-    AnalyticsService.logThemeChange(_isDarkMode);
+    TurkceAnalyticsService.temaDegistirildi(_isDarkMode ? 'koyu' : 'acik');
   }
 
   @override

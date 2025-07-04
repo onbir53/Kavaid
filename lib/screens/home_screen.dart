@@ -6,7 +6,7 @@ import '../models/word_model.dart';
 import '../services/gemini_service.dart';
 import '../services/firebase_service.dart';
 import '../services/credits_service.dart';
-import '../services/analytics_service.dart';
+import '../services/turkce_analytics_service.dart';
 import '../widgets/word_card.dart';
 import '../widgets/search_result_card.dart';
 import '../widgets/arabic_keyboard.dart';
@@ -134,7 +134,7 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
       final results = await _firebaseService.searchWords(query, limit: 999); // Limit ekledim
       
       // Analytics event'i gönder
-      await AnalyticsService.logWordSearch(query, resultCount: results.length);
+      await TurkceAnalyticsService.kelimeArandiNormal(query, results.length);
       
       setState(() {
         _searchResults = results; // Tüm sonuçlar gösterilecek
@@ -164,7 +164,7 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
     }
     
     // Analytics event'i gönder
-    await AnalyticsService.logWordView(word.kelime, source: 'search_results');
+    await TurkceAnalyticsService.kelimeDetayiGoruntulendi(word.kelime);
     
     // Artık hak kontrolü yok, direkt kelimeyi göster
     setState(() {
@@ -212,7 +212,7 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
       final aiResult = await _geminiService.searchWord(query);
       
       // AI arama analytics event'i gönder
-      await AnalyticsService.logAISearch(query, aiResult.bulunduMu);
+      await TurkceAnalyticsService.kelimeArandiAI(query, aiResult.bulunduMu);
       
       if (aiResult.bulunduMu) {
         // AI sonucunu Firebase'e kaydet
@@ -387,8 +387,8 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
                                           _showArabicKeyboard = !_showArabicKeyboard;
                                           if (_showArabicKeyboard) {
                                             _searchFocusNode.unfocus();
-                                            // Arapça klavye açıldığında analytics event'i gönder
-                                            AnalyticsService.logArabicKeyboardUsage();
+                                                                        // Arapça klavye açıldığında analytics event'i gönder
+                            TurkceAnalyticsService.arapcaKlavyeKullanildi();
                                           }
                                         });
                                         // Main ekrana klavye durumunu bildir

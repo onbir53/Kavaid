@@ -5,7 +5,7 @@ import 'dart:async';
 import 'dart:math';
 import '../services/admob_service.dart';
 import '../services/credits_service.dart';
-import '../services/analytics_service.dart';
+import '../services/turkce_analytics_service.dart';
 
 // PERFORMANCE: Static template style cache for reusing styles.
 class _NativeAdStyleCache {
@@ -145,8 +145,7 @@ class _NativeAdWidgetState extends State<NativeAdWidget>
               _cachedAdWidget = AdWidget(ad: _nativeAd!);
             });
             updateKeepAlive();
-            AnalyticsService.logAdImpression('native',
-                adUnitId: widget.adUnitId ?? AdMobService.nativeAdUnitId);
+            TurkceAnalyticsService.reklamGoruntulendi('native');
           }
         },
         onAdFailedToLoad: (Ad ad, LoadAdError error) {
@@ -159,8 +158,7 @@ class _NativeAdWidgetState extends State<NativeAdWidget>
             _handleLoadError();
           }
         },
-        onAdClicked: (Ad ad) => AnalyticsService.logAdClick('native',
-            adUnitId: widget.adUnitId ?? AdMobService.nativeAdUnitId),
+        onAdClicked: (Ad ad) => TurkceAnalyticsService.reklamTiklandi('native'),
       ),
       nativeTemplateStyle: isDarkMode
           ? _NativeAdStyleCache.getDarkStyle(context)

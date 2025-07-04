@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../services/analytics_service.dart';
+import '../services/turkce_analytics_service.dart';
 
 class InAppReviewWidget extends StatefulWidget {
   final VoidCallback onReviewSubmitted;
@@ -41,11 +41,9 @@ class _InAppReviewWidgetState extends State<InAppReviewWidget> {
       _isSubmitting = true;
     });
     
-    // Analytics event gönder
-    await AnalyticsService.logCustomEvent('in_app_review_submitted', {
-      'rating': _rating,
-      'has_comment': _commentController.text.isNotEmpty,
-    });
+    // Analytics event gönder - artık türkçe event ismi kullanmıyoruz çünkü özel bir durum
+    // Bu event internal bir widget event'i olduğu için genel "uygulamaDegerlendirmeAcildi" event'ini kullanıyoruz
+    await TurkceAnalyticsService.uygulamaDegerlendirmeAcildi();
     
     // Biraz bekle (gerçek API çağrısı simülasyonu)
     await Future.delayed(const Duration(seconds: 1));

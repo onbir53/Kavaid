@@ -6,7 +6,7 @@ import 'package:in_app_review/in_app_review.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/credits_service.dart';
 import '../services/one_time_purchase_service.dart';
-import '../services/analytics_service.dart';
+import '../services/turkce_analytics_service.dart';
 import '../services/app_usage_service.dart';
 import '../services/global_config_service.dart';
 import '../services/admob_service.dart';
@@ -709,7 +709,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _openInAppReview() async {
     try {
       // Analytics event'i gönder
-      await AnalyticsService.logAppRating();
+      await TurkceAnalyticsService.uygulamaDegerlendirmeAcildi();
       
       final InAppReview inAppReview = InAppReview.instance;
       

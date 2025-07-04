@@ -17,7 +17,7 @@ class AppUsageService extends ChangeNotifier {
   AppUsageService._internal();
   
   int get totalUsageMinutes => _totalUsageMinutes;
-  bool get shouldShowRating => _totalUsageMinutes >= 30 && !_hasShownRatingUI;
+  bool get shouldShowRating => _totalUsageMinutes >= 5 && !_hasShownRatingUI;
   bool get hasShownRatingUI => _hasShownRatingUI;
   
   // Uygulama başlatıldığında çağrılacak
@@ -51,9 +51,9 @@ class AppUsageService extends ChangeNotifier {
     
     debugPrint('📱 [AppUsage] Oturum sona erdi. Bu oturum: $sessionDuration dakika, Toplam: $_totalUsageMinutes dakika');
     
-    // 30 dakikayı geçtiyse ve henüz gösterilmediyse bildir
-    if (_totalUsageMinutes >= 30 && !_hasShownRatingUI) {
-      debugPrint('🌟 [AppUsage] 30 dakika kullanım süresi aşıldı! Değerlendirme UI gösterilebilir.');
+    // 5 dakikayı geçtiyse ve henüz gösterilmediyse bildir
+    if (_totalUsageMinutes >= 5 && !_hasShownRatingUI) {
+      debugPrint('🌟 [AppUsage] 5 dakika kullanım süresi aşıldı! Değerlendirme UI gösterilebilir.');
     }
     
     _sessionStartTime = null;
@@ -70,9 +70,9 @@ class AppUsageService extends ChangeNotifier {
     
     _totalUsageMinutes = totalMinutes + currentSessionMinutes;
     
-    // 30 dakikayı yeni geçtiyse bildir
-    if (_totalUsageMinutes >= 30 && !_hasShownRatingUI && totalMinutes < 30) {
-      debugPrint('🌟 [AppUsage] 30 dakika kullanım süresi şimdi aşıldı!');
+    // 5 dakikayı yeni geçtiyse bildir
+    if (_totalUsageMinutes >= 5 && !_hasShownRatingUI && totalMinutes < 5) {
+      debugPrint('🌟 [AppUsage] 5 dakika kullanım süresi şimdi aşıldı!');
       notifyListeners();
     }
   }
@@ -102,7 +102,7 @@ class AppUsageService extends ChangeNotifier {
     notifyListeners();
   }
   
-  // TEST: Kullanım süresini 30 dakikaya ayarla
+  // TEST: Kullanım süresini ayarla
   Future<void> setUsageTimeForTest(int minutes) async {
     final prefs = await SharedPreferences.getInstance();
     _totalUsageMinutes = minutes;

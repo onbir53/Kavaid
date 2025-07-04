@@ -6,7 +6,7 @@ import 'package:in_app_purchase_android/billing_client_wrappers.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'device_data_service.dart';
 import 'credits_service.dart';
-import 'analytics_service.dart';
+import 'turkce_analytics_service.dart';
 
 class OneTimePurchaseService extends ChangeNotifier {
   static const String _removeAdsProductId = 'kavaid_remove_ads_lifetime';
@@ -387,8 +387,8 @@ class OneTimePurchaseService extends ChangeNotifier {
         price = double.tryParse(priceFormatted) ?? 99.90;
       }
       
-      await AnalyticsService.logPurchase(purchaseDetails.productID, price, 'remove_ads');
-      await AnalyticsService.logPremiumActivated('one_time_purchase');
+      await TurkceAnalyticsService.premiumSatinAlinaBasarili('tek_seferlik', price);
+      await TurkceAnalyticsService.kullaniciOzellikleriniGuncelle(premiumMu: true);
       
       debugPrint('✅ [ONE-TIME] Ömür boyu reklamsız özellik başarıyla aktifleştirildi!');
       debugPrint('🔒 [ONE-TIME] Cihaz ID güvenli şekilde kaydedildi: $deviceId');
