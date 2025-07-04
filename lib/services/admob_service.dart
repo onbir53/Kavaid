@@ -24,11 +24,13 @@ class AdMobService {
   
   // Uygulama lifecycle kontrolü için  
   DateTime? _lastPausedTime;
+  DateTime? _lastInactiveTime;
   bool _wasActuallyInBackground = false;
   AppLifecycleState? _previousState;
   bool _creditsServiceInitialized = false;
   int _backgroundToForegroundCount = 0; // Arka plandan öne geçiş sayacı
   bool _isShortPause = false; // Bildirim paneli gibi kısa süreli pause durumları için
+  bool _isNotificationPanel = false; // Bildirim paneli tespiti için
   Timer? _pauseTimer; // Pause süresini kontrol etmek için timer
   
   // Background time kuralı - Debug modda kısa, production'da normal
@@ -356,7 +358,7 @@ class AdMobService {
     return true;
   }
 
-  // App lifecycle için - 3 SANİYE KURALI İLE + BİLDİRİM PANELİ FİLTRESİ
+  // App lifecycle için - GELİŞTİRİLMİŞ BİLDİRİM PANELİ FİLTRESİ İLE
   void onAppStateChanged(AppLifecycleState state) {
     debugPrint('🔄 [LIFECYCLE] $_previousState -> $state (wasBackground: $_wasActuallyInBackground, count: $_backgroundToForegroundCount, shortPause: $_isShortPause)');
     
@@ -375,14 +377,34 @@ class AdMobService {
           final backgroundDuration = DateTime.now().difference(_lastPausedTime!);
           debugPrint('⏱️ [LIFECYCLE] Arka planda geçen süre: ${backgroundDuration.inSeconds} saniye (${backgroundDuration.inMilliseconds}ms)');
           
-          // Çok kısa pause ise bildirim paneli olabilir
-          if (backgroundDuration < const Duration(milliseconds: 800)) {
-            debugPrint('📱 [LIFECYCLE] Çok kısa pause detected (${backgroundDuration.inMilliseconds}ms) - bildirim paneli olabilir, reklam gösterilmeyecek');
+          // KAPSAMLI BİLDİRİM PANELİ FİLTRESİ
+          bool isLikelyNotificationPanel = false;
+          
+          // 1. Süre tabanlı filtre: 2 saniyeden az
+          if (backgroundDuration < const Duration(seconds: 2)) {
+            isLikelyNotificationPanel = true;
+            debugPrint('📱 [LIFECYCLE] Süre filtresi: ${backgroundDuration.inMilliseconds}ms - BİLDİRİM PANELİ olabilir');
+          }
+          
+          // 2. Sequence tabanlı filtre: inactive->paused->resumed pattern'i
+          if (_isNotificationPanel && backgroundDuration < const Duration(seconds: 3)) {
+            isLikelyNotificationPanel = true;
+            debugPrint('📱 [LIFECYCLE] Sequence filtresi: Inactive->Paused->Resumed pattern - BİLDİRİM PANELİ tespit edildi');
+          }
+          
+          // 3. Çok hızlı geçiş filtresi: 1 saniyeden az
+          if (backgroundDuration < const Duration(seconds: 1)) {
+            isLikelyNotificationPanel = true;
+            debugPrint('📱 [LIFECYCLE] Hızlı geçiş filtresi: ${backgroundDuration.inMilliseconds}ms - kesinlikle BİLDİRİM PANELİ');
+          }
+          
+          if (isLikelyNotificationPanel) {
+            debugPrint('🚫 [LIFECYCLE] BİLDİRİM PANELİ tespit edildi - reklam gösterilmeyecek');
             _isShortPause = true;
           } else if (backgroundDuration >= _minBackgroundTime) {
             // 3 saniyeden fazla arka plandaysa reklam göster
             _backgroundToForegroundCount++;
-            debugPrint('✅ [LIFECYCLE] 3 saniye kuralı sağlandı - Arka plandan dönüş #$_backgroundToForegroundCount - REKLAM GÖSTERİLECEK!');
+            debugPrint('✅ [LIFECYCLE] 3 saniye kuralı sağlandı - Gerçek arka plandan dönüş #$_backgroundToForegroundCount - REKLAM GÖSTERİLECEK!');
           
             // 500ms gecikme ile reklam göster (UI stable olsun + credits service hazır olsun)
             Future.delayed(const Duration(milliseconds: 500), () {
@@ -401,7 +423,9 @@ class AdMobService {
         // Resume durumunda değişkenleri sıfırla
         _wasActuallyInBackground = false;
         _lastPausedTime = null;
+        _lastInactiveTime = null;
         _isShortPause = false;
+        _isNotificationPanel = false;
         break;
         
       case AppLifecycleState.paused:
@@ -411,12 +435,30 @@ class AdMobService {
         _wasActuallyInBackground = true;
         _isShortPause = false;
         
+        // Eğer inactive'den hemen sonra pause gelirse bildirim paneli olabilir
+        if (_lastInactiveTime != null && _isNotificationPanel) {
+          final inactiveDuration = DateTime.now().difference(_lastInactiveTime!);
+          if (inactiveDuration < const Duration(milliseconds: 500)) {
+            debugPrint('📱 [LIFECYCLE] Inactive->Pause çok hızlı (${inactiveDuration.inMilliseconds}ms) - bildirim paneli olabilir');
+            _isNotificationPanel = true;
+          }
+        }
+        
         // Timer'ı iptal et (eğer varsa)
         _pauseTimer?.cancel();
         _pauseTimer = null;
         break;
         
       case AppLifecycleState.inactive:
+        // Inactive durumunda zaman damgasını kaydet
+        _lastInactiveTime = DateTime.now();
+        
+        // Eğer önceki state resumed ise ve inactive çok kısa sürerse bildirim paneli olabilir
+        if (_previousState == AppLifecycleState.resumed) {
+          debugPrint('📵 [LIFECYCLE] Inactive - resumed\'dan geldi, bildirim paneli olabilir');
+          _isNotificationPanel = true;
+        }
+        
         // Inactive durumunda hemen background olarak kabul et (eğer henüz pause zamanı yoksa)
         if (_lastPausedTime == null) {
           debugPrint('📵 [LIFECYCLE] Inactive - arka plana geçti');
@@ -501,7 +543,9 @@ class AdMobService {
     debugPrint('🔍 _wasActuallyInBackground: $_wasActuallyInBackground');
     debugPrint('🔍 _backgroundToForegroundCount: $_backgroundToForegroundCount');
     debugPrint('🔍 _lastPausedTime: $_lastPausedTime');
+    debugPrint('🔍 _lastInactiveTime: $_lastInactiveTime');
     debugPrint('🔍 _isShortPause: $_isShortPause');
+    debugPrint('🔍 _isNotificationPanel: $_isNotificationPanel');
     debugPrint('🔍 _pauseTimer active: ${_pauseTimer?.isActive ?? false}');
     debugPrint('🔍 _creditsServiceInitialized: $_creditsServiceInitialized');
     debugPrint('🔍 isPremium: ${_creditsService.isPremium}');
@@ -521,5 +565,13 @@ class AdMobService {
     _interstitialAd = null;
     _pauseTimer?.cancel();
     _pauseTimer = null;
+    
+    // Lifecycle değişkenlerini sıfırla
+    _wasActuallyInBackground = false;
+    _lastPausedTime = null;
+    _lastInactiveTime = null;
+    _isShortPause = false;
+    _isNotificationPanel = false;
+    _backgroundToForegroundCount = 0;
   }
 } 
