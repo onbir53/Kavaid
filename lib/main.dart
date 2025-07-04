@@ -259,7 +259,7 @@ void _initializeServicesInBackground() {
   Future.delayed(const Duration(milliseconds: 300), () async {
     final oneTimePurchaseService = OneTimePurchaseService();
     await oneTimePurchaseService.initialize();
-    debugPrint('✅ OneTimePurchaseService başlatıldı');
+    debugPrint('✅ OneTimePurchaseService başlatıldı - Store: ${oneTimePurchaseService.isAvailable}');
   });
   
   // AppUsageService'i arka planda başlat

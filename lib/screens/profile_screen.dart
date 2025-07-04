@@ -392,6 +392,41 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             ),
                           ),
                         ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: () async {
+                              // Gerçek satın alma testi
+                              try {
+                                await _purchaseService.loadProducts();
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text('Ürünler yüklendi: ${_purchaseService.products.length}'),
+                                      backgroundColor: Colors.blue,
+                                    ),
+                                  );
+                                }
+                              } catch (e) {
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text('Ürün yükleme hatası: $e'),
+                                      backgroundColor: Colors.red,
+                                    ),
+                                  );
+                                }
+                              }
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.purple,
+                            ),
+                            child: Text(
+                              'Ürün Test',
+                              style: TextStyle(fontSize: 10),
+                            ),
+                          ),
+                        ),
                       ],
                     ),
                     const SizedBox(height: 8),
@@ -408,6 +443,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         fontSize: 11,
                         color: _creditsService.isLifetimeAdsFree ? Colors.green : Colors.red,
                         fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    Text(
+                      'Play Console: ${_purchaseService.isAvailable ? "BAĞLI" : "BAĞLI DEĞİL"}',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: _purchaseService.isAvailable ? Colors.green : Colors.red,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    Text(
+                      'Ürün sayısı: ${_purchaseService.products.length}',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: _purchaseService.products.isEmpty ? Colors.red : Colors.green,
+                      ),
+                    ),
+                    Text(
+                      'Fiyat: ${_purchaseService.removeAdsPrice}',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: Colors.blue,
                       ),
                     ),
                   ],

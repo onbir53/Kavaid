@@ -68,9 +68,9 @@ class OneTimePurchaseService extends ChangeNotifier {
         }
       );
       
-      // GEÇİCİ: OneTimePurchase henüz yapılandırılmadığı için devre dışı
-      // await loadProducts();
-      // await restorePurchases();
+      // Play Console entegrasyonu - ürünleri yükle
+      await loadProducts();
+      await restorePurchases();
       
       debugPrint('✅ [ONE-TIME] Servis başarıyla başlatıldı');
       
@@ -100,11 +100,7 @@ class OneTimePurchaseService extends ChangeNotifier {
   
   // Ürünleri yükle
   Future<void> loadProducts() async {
-    // GEÇİCİ: OneTimePurchase henüz yapılandırılmadığı için devre dışı
-    debugPrint('⏸️ [ONE-TIME] Ürün yükleme geçici olarak devre dışı');
-    return;
-    
-    /*debugPrint('📦 [ONE-TIME] Ürünler yükleniyor...');
+    debugPrint('📦 [ONE-TIME] Ürünler yükleniyor...');
     
     try {
       Set<String> kIds = <String>{_removeAdsProductId};
@@ -142,7 +138,7 @@ class OneTimePurchaseService extends ChangeNotifier {
       debugPrint('❌ [ONE-TIME] Ürün yükleme exception: $e');
       _lastError = 'Ürünler yüklenirken hata oluştu: $e';
       notifyListeners();
-    }*/
+    }
   }
   
   // Satın alma işlemi
@@ -356,10 +352,8 @@ class OneTimePurchaseService extends ChangeNotifier {
   // Fiyat bilgisi - Play Console'dan dinamik çeker
   String _getRemoveAdsPrice() {
     if (_products.isEmpty) {
-      // GEÇİCİ: OneTimePurchase henüz yapılandırılmadığı için devre dışı
-      // debugPrint('⚠️ [ONE-TIME] Ürün listesi boş, Play Console bağlantısı kontrol ediliyor...');
-      // loadProducts();
-      return '₺99,90'; // Varsayılan fiyat
+      debugPrint('⚠️ [ONE-TIME] Ürün listesi boş, Play Console bağlantısı kontrol ediliyor...');
+      return '₺99,90'; // Varsayılan fiyat - Play Console'dan yüklenmemiş
     }
     
     final product = _products[0];
