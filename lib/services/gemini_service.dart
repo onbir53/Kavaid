@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:firebase_database/firebase_database.dart';
 import '../models/word_model.dart';
 import 'firebase_service.dart';
+import 'dart:math' as math;
 
 class GeminiService {
   static const String _defaultApiKey = 'AIzaSyCbAR_1yQ2QVKbpyWRFj0VpOxAQZ2JBfas';
@@ -88,131 +89,169 @@ emirForm (string): Emir, 2. tekil eril, harekeli.
   factory GeminiService() => _instance;
   GeminiService._internal();
 
-  // Firebase Realtime Database'den API anahtarını al (her seferinde fresh)
+  // Firebase config durumu
+  bool _isConfigInitialized = false;
+  static const int _maxRetries = 3;
+  static const Duration _retryDelay = Duration(seconds: 2);
+
+  // Firebase config'i initialize et ve validate et
+  Future<void> _initializeFirebaseConfig() async {
+    if (_isConfigInitialized) return;
+    
+    debugPrint('🔧 Firebase config initialization başlatılıyor...');
+    
+    try {
+      await _createConfigInDatabase();
+      await _validateConfig();
+      _isConfigInitialized = true;
+      debugPrint('✅ Firebase config başarıyla initialize edildi');
+    } catch (e) {
+      debugPrint('❌ Firebase config initialization hatası: $e');
+      // Hata durumunda da devam et ama flag'i false bırak
+    }
+  }
+
+  // Config'in valid olup olmadığını kontrol et
+  Future<void> _validateConfig() async {
+    debugPrint('🔍 Firebase config validation başlatılıyor...');
+    
+    try {
+      // API key kontrolü
+      final apiKey = await _getApiKey();
+      if (apiKey.isEmpty || apiKey == 'null') {
+        throw Exception('API key boş veya geçersiz');
+      }
+      
+      // Model kontrolü  
+      final model = await _getModel();
+      if (model.isEmpty || model == 'null') {
+        throw Exception('Model boş veya geçersiz');
+      }
+      
+      // Prompt kontrolü
+      final prompt = await _getPrompt();
+      if (prompt.isEmpty || prompt.length < 100) {
+        throw Exception('Prompt boş veya çok kısa');
+      }
+      
+      debugPrint('✅ Firebase config validation başarılı');
+      debugPrint('   API Key: ${apiKey.length} karakter');
+      debugPrint('   Model: $model');
+      debugPrint('   Prompt: ${prompt.length} karakter');
+      
+    } catch (e) {
+      debugPrint('❌ Firebase config validation hatası: $e');
+      throw e;
+    }
+  }
+
+  // Retry mekanizması ile API key al
   Future<String> _getApiKey() async {
-    try {
-      debugPrint('🔑 Firebase\'den API anahtarı alınıyor...');
-      
-      final database = FirebaseDatabase.instance;
-      final configRef = database.ref('config/gemini_api');
-      
-      final snapshot = await configRef.get();
-      
-      String apiKey = _defaultApiKey;
-      if (snapshot.exists && snapshot.value != null) {
-        final value = snapshot.value.toString().trim();
-        if (value.isNotEmpty && value != 'null' && value != _defaultApiKey) {
-          apiKey = value;
-          debugPrint('✅ FIREBASE API KEY: ${value.substring(0, 15)}...${value.substring(value.length - 5)}');
-        } else {
-          debugPrint('⚠️ Firebase API key boş veya default, varsayılan kullanılıyor');
-          apiKey = _defaultApiKey;
-        }
-      } else {
-        debugPrint('⚠️ Firebase\'de config/gemini_api bulunamadı, varsayılan kullanılıyor');
-        apiKey = _defaultApiKey;
-      }
-      
-      debugPrint('🔧 KULLANILAN API KEY: ${apiKey.substring(0, 15)}...${apiKey.substring(apiKey.length - 5)}');
-      return apiKey;
-      
-    } catch (e) {
-      debugPrint('❌ Firebase API key hatası, varsayılan kullanılıyor: $e');
-      return _defaultApiKey;
-    }
+    return await _getConfigWithRetry('gemini_api', _defaultApiKey);
   }
 
-  // Firebase'den Gemini model bilgisini al
+  // Retry mekanizması ile model al
   Future<String> _getModel() async {
-    try {
-      final database = FirebaseDatabase.instance;
-      final configRef = database.ref('config/gemini_model');
-      
-      final snapshot = await configRef.get();
-      
-      String model = _defaultModel;
-      if (snapshot.exists && snapshot.value != null) {
-        final value = snapshot.value.toString().trim();
-        if (value.isNotEmpty && value != 'null') {
-          model = value;
-          debugPrint('✅ FIREBASE MODEL: $value');
-        } else {
-          debugPrint('⚠️ Firebase model boş, varsayılan kullanılıyor');
-          model = _defaultModel;
-        }
-      } else {
-        debugPrint('⚠️ Firebase\'de model bulunamadı, varsayılan kullanılıyor');
-        model = _defaultModel;
-      }
-      
-      debugPrint('🔧 KULLANILAN MODEL: $model');
-      return model;
-      
-    } catch (e) {
-      debugPrint('❌ Firebase model hatası, varsayılan kullanılıyor: $e');
-      return _defaultModel;
-    }
+    return await _getConfigWithRetry('gemini_model', _defaultModel);
   }
 
-  // Firebase'den Gemini prompt'unu al
+  // Retry mekanizması ile prompt al
   Future<String> _getPrompt() async {
-    try {
-      final database = FirebaseDatabase.instance;
-      final configRef = database.ref('config/gemini_prompt');
-      
-      final snapshot = await configRef.get();
-      
-      String prompt = _defaultPrompt;
-      if (snapshot.exists && snapshot.value != null) {
-        final value = snapshot.value.toString();
-        if (value.isNotEmpty && value.length > 100) {
-          prompt = value;
-          debugPrint('✅ FIREBASE PROMPT: ${value.length} karakter');
-        } else {
-          debugPrint('⚠️ Firebase prompt çok kısa veya boş, varsayılan kullanılıyor');
-          prompt = _defaultPrompt;
-        }
-      } else {
-        debugPrint('⚠️ Firebase\'de prompt bulunamadı, varsayılan kullanılıyor');
-        prompt = _defaultPrompt;
-      }
-      
-      debugPrint('🔧 KULLANILAN PROMPT: ${prompt.length} karakter');
-      return prompt;
-      
-    } catch (e) {
-      debugPrint('❌ Firebase prompt hatası, varsayılan kullanılıyor: $e');
-      return _defaultPrompt;
-    }
+    return await _getConfigWithRetry('gemini_prompt', _defaultPrompt);
   }
 
-  // Config alanını database'de oluştur
+  // Retry mekanizması ile config değeri al
+  Future<String> _getConfigWithRetry(String configKey, String defaultValue) async {
+    for (int i = 0; i < _maxRetries; i++) {
+      try {
+        debugPrint('🔄 Firebase config okunuyor (${i + 1}/$_maxRetries): $configKey');
+        
+        final database = FirebaseDatabase.instance;
+        final configRef = database.ref('config/$configKey');
+        
+        final snapshot = await configRef.get();
+        
+        if (snapshot.exists && snapshot.value != null) {
+          final value = snapshot.value.toString().trim();
+          
+          if (value.isNotEmpty && value != 'null') {
+            debugPrint('✅ Firebase config başarıyla okundu: $configKey');
+            return value;
+          }
+        }
+        
+        debugPrint('⚠️ Firebase config boş veya bulunamadı: $configKey');
+        return defaultValue;
+        
+      } catch (e) {
+        debugPrint('❌ Firebase config okuma hatası (${i + 1}/$_maxRetries): $configKey - $e');
+        
+        if (i < _maxRetries - 1) {
+          debugPrint('🔄 ${_retryDelay.inSeconds} saniye beklenip tekrar denenecek...');
+          await Future.delayed(_retryDelay);
+        }
+      }
+    }
+    
+    debugPrint('❌ Firebase config okuma başarısız, varsayılan kullanılıyor: $configKey');
+    return defaultValue;
+  }
+
+  // Config alanını database'de oluştur (geliştirilmiş)
   Future<void> _createConfigInDatabase() async {
     try {
-      debugPrint('🔧 Database\'de config alanı kontrol ediliyor...');
+      debugPrint('🔧 Firebase config kontrolü yapılıyor...');
       
       final database = FirebaseDatabase.instance;
       final configRef = database.ref('config');
       
-      // Önce var mı kontrol et
+      // Config alanının var olup olmadığını kontrol et
       final snapshot = await configRef.get();
-      if (snapshot.exists) {
-        debugPrint('✅ Config alanı zaten mevcut, değiştirilmeyecek');
-        return;
+      
+      if (snapshot.exists && snapshot.value != null) {
+        final configData = snapshot.value as Map<dynamic, dynamic>;
+        
+        // Eksik alanları kontrol et ve ekle
+        final updates = <String, dynamic>{};
+        
+        if (!configData.containsKey('gemini_api') || configData['gemini_api'] == null) {
+          updates['gemini_api'] = _defaultApiKey;
+          debugPrint('📝 gemini_api alanı eklenecek');
+        }
+        
+        if (!configData.containsKey('gemini_model') || configData['gemini_model'] == null) {
+          updates['gemini_model'] = _defaultModel;
+          debugPrint('📝 gemini_model alanı eklenecek');
+        }
+        
+        if (!configData.containsKey('gemini_prompt') || configData['gemini_prompt'] == null) {
+          updates['gemini_prompt'] = _defaultPrompt;
+          debugPrint('📝 gemini_prompt alanı eklenecek');
+        }
+        
+        if (updates.isNotEmpty) {
+          await configRef.update(updates);
+          debugPrint('✅ Eksik config alanları güncellendi: ${updates.keys.join(', ')}');
+        } else {
+          debugPrint('✅ Tüm config alanları mevcut');
+        }
+      } else {
+        // Config alanı hiç yoksa tamamen oluştur
+        await configRef.set({
+          'gemini_api': _defaultApiKey,
+          'gemini_model': _defaultModel,
+          'gemini_prompt': _defaultPrompt,
+          'created_at': DateTime.now().millisecondsSinceEpoch,
+          'updated_at': DateTime.now().millisecondsSinceEpoch,
+          'note': 'Firebase Console\'dan bu değerleri düzenleyebilirsiniz'
+        });
+        
+        debugPrint('✅ Firebase config tamamen oluşturuldu');
       }
       
-      // Yoksa oluştur
-      await configRef.set({
-        'gemini_api': _defaultApiKey,
-        'gemini_model': _defaultModel,
-        'gemini_prompt': _defaultPrompt,
-        'created_at': DateTime.now().millisecondsSinceEpoch,
-        'note': 'Bu alanları Firebase Console\'dan düzenleyebilirsiniz'
-      });
-      
-      debugPrint('✅ Config alanı başarıyla oluşturuldu');
     } catch (e) {
-      debugPrint('❌ Config alanı oluşturulamadı: $e');
+      debugPrint('❌ Firebase config oluşturma hatası: $e');
+      throw e;
     }
   }
 
@@ -221,10 +260,132 @@ emirForm (string): Emir, 2. tekil eril, harekeli.
     debugPrint('🔄 API anahtarı bir sonraki istekte Firebase\'den fresh alınacak');
   }
 
+  // Firebase config'i manuel olarak yeniden initialize et
+  Future<void> forceConfigRefresh() async {
+    debugPrint('🔄 Firebase config manuel refresh başlatılıyor...');
+    _isConfigInitialized = false;
+    await _initializeFirebaseConfig();
+  }
+
+  // Manual olarak config değerlerini set et (test için)
+  Future<bool> setConfigValues({
+    String? apiKey,
+    String? model,
+    String? prompt,
+  }) async {
+    try {
+      debugPrint('🔧 Firebase config değerleri manuel olarak set ediliyor...');
+      
+      final database = FirebaseDatabase.instance;
+      final configRef = database.ref('config');
+      
+      final updates = <String, dynamic>{};
+      
+      if (apiKey != null && apiKey.isNotEmpty) {
+        updates['gemini_api'] = apiKey;
+        debugPrint('🔑 API Key güncelleniyor: ${apiKey.substring(0, 15)}...${apiKey.substring(apiKey.length - 5)}');
+      }
+      
+      if (model != null && model.isNotEmpty) {
+        updates['gemini_model'] = model;
+        debugPrint('🤖 Model güncelleniyor: $model');
+      }
+      
+      if (prompt != null && prompt.isNotEmpty) {
+        updates['gemini_prompt'] = prompt;
+        debugPrint('📝 Prompt güncelleniyor: ${prompt.length} karakter');
+      }
+      
+      if (updates.isNotEmpty) {
+        updates['updated_at'] = DateTime.now().millisecondsSinceEpoch;
+        await configRef.update(updates);
+        
+        // Config'i yeniden initialize et
+        await forceConfigRefresh();
+        
+        debugPrint('✅ Firebase config manuel güncelleme başarılı');
+        return true;
+      } else {
+        debugPrint('⚠️ Güncellenecek config değeri bulunamadı');
+        return false;
+      }
+      
+    } catch (e) {
+      debugPrint('❌ Firebase config manuel güncelleme hatası: $e');
+      return false;
+    }
+  }
+
+  // Config durumunu debug et
+  Future<void> debugConfigStatus() async {
+    try {
+      debugPrint('🔍 GeminiService Config Debug Başlıyor...');
+      debugPrint('────────────────────────────────────');
+      
+      // Initialization durumu
+      debugPrint('🔧 Config Initialize Durumu: $_isConfigInitialized');
+      
+      // Firebase bağlantısı test et
+      debugPrint('🔥 Firebase bağlantısı test ediliyor...');
+      final database = FirebaseDatabase.instance;
+      final configRef = database.ref('config');
+      
+      try {
+        final snapshot = await configRef.get();
+        if (snapshot.exists) {
+          debugPrint('✅ Firebase config alanı mevcut');
+          final configData = snapshot.value as Map<dynamic, dynamic>;
+          debugPrint('📊 Config alanları: ${configData.keys.toList()}');
+        } else {
+          debugPrint('❌ Firebase config alanı bulunamadı');
+        }
+      } catch (e) {
+        debugPrint('❌ Firebase bağlantı hatası: $e');
+      }
+      
+      // Tüm config değerlerini test et
+      debugPrint('🔍 Config değerleri test ediliyor...');
+      
+      try {
+        final apiKey = await _getApiKey();
+        debugPrint('🔑 API Key: ${apiKey.substring(0, 15)}...${apiKey.substring(apiKey.length - 5)} (${apiKey.length} karakter)');
+        debugPrint('🔑 API Key Default?: ${apiKey == _defaultApiKey}');
+      } catch (e) {
+        debugPrint('❌ API Key hatası: $e');
+      }
+      
+      try {
+        final model = await _getModel();
+        debugPrint('🤖 Model: $model');
+        debugPrint('🤖 Model Default?: ${model == _defaultModel}');
+      } catch (e) {
+        debugPrint('❌ Model hatası: $e');
+      }
+      
+      try {
+        final prompt = await _getPrompt();
+        debugPrint('📝 Prompt: ${prompt.length} karakter');
+        debugPrint('📝 Prompt Default?: ${prompt == _defaultPrompt}');
+        debugPrint('📝 Prompt Preview: ${prompt.substring(0, math.min(100, prompt.length))}...');
+      } catch (e) {
+        debugPrint('❌ Prompt hatası: $e');
+      }
+      
+      debugPrint('────────────────────────────────────');
+      debugPrint('✅ GeminiService Config Debug Tamamlandı');
+      
+    } catch (e) {
+      debugPrint('❌ Config debug kritik hatası: $e');
+    }
+  }
+
   // Kelime analizi - HomeScreen için
   Future<WordModel?> analyzeWord(String word) async {
     try {
       debugPrint('🔍 Kelime analiz ediliyor: $word');
+      
+      // Firebase config'i initialize et
+      await _initializeFirebaseConfig();
       
       // Önce Firebase'de kelime var mı kontrol et
       final firebaseService = FirebaseService();
@@ -261,6 +422,9 @@ emirForm (string): Emir, 2. tekil eril, harekeli.
       }
       
       debugPrint('🤖 Kelime veritabanında bulunamadı, Gemini API\'ye istek atılıyor: $word');
+      
+      // Firebase config'i initialize et
+      await _initializeFirebaseConfig();
       
       // API anahtarını, modeli ve prompt'u dinamik olarak al
       debugPrint('📥 Firebase config değerleri alınıyor...');
@@ -530,24 +694,8 @@ emirForm (string): Emir, 2. tekil eril, harekeli.
     try {
       debugPrint('🔧 Firebase\'e config alanları kontrol ediliyor...');
       
-      final database = FirebaseDatabase.instance;
-      final configRef = database.ref('config');
-      
-      // Önce var mı kontrol et
-      final snapshot = await configRef.get();
-      if (snapshot.exists) {
-        debugPrint('✅ Config alanı zaten mevcut, üzerine yazılmayacak');
-        return;
-      }
-      
-      // Yoksa oluştur
-      await configRef.set({
-        'gemini_api': _defaultApiKey,
-        'gemini_model': _defaultModel,
-        'gemini_prompt': _defaultPrompt,
-        'created_at': DateTime.now().millisecondsSinceEpoch,
-        'note': 'Bu alanları Firebase Console\'dan düzenleyebilirsiniz - Manuel oluşturuldu'
-      });
+      final service = GeminiService();
+      await service._createConfigInDatabase();
       
       debugPrint('📝 Firebase\'e yazılan config:');
       debugPrint('   API Key: ${_defaultApiKey.substring(0, 15)}...${_defaultApiKey.substring(_defaultApiKey.length - 5)}');
@@ -566,6 +714,10 @@ emirForm (string): Emir, 2. tekil eril, harekeli.
       debugPrint('🧪 Gemini API bağlantısı test ediliyor...');
       
       final service = GeminiService();
+      
+      // Önce config'i initialize et
+      await service._initializeFirebaseConfig();
+      
       final testWord = 'مرحبا'; // "Merhaba" Arapça
       
       // Test kelimesi ile API çağrısı yap
@@ -582,6 +734,211 @@ emirForm (string): Emir, 2. tekil eril, harekeli.
       
     } catch (e) {
       debugPrint('❌ API test kritik hatası: $e');
+    }
+  }
+
+  // TEST: Firebase config değerlerini test et
+  static Future<void> testFirebaseConfig() async {
+    try {
+      debugPrint('🧪🔥 Firebase Config Test Başlıyor...');
+      
+      final service = GeminiService();
+      
+      // Önce config'i initialize et
+      await service._initializeFirebaseConfig();
+      
+      // API Key test
+      debugPrint('🔑 API Key test ediliyor...');
+      final apiKey = await service._getApiKey();
+      debugPrint('🔑 Alınan API Key: ${apiKey.substring(0, 15)}...${apiKey.substring(apiKey.length - 5)}');
+      
+      // Model test
+      debugPrint('🤖 Model test ediliyor...');
+      final model = await service._getModel();
+      debugPrint('🤖 Alınan Model: $model');
+      
+      // Prompt test
+      debugPrint('📝 Prompt test ediliyor...');
+      final prompt = await service._getPrompt();
+      debugPrint('📝 Alınan Prompt: ${prompt.length} karakter');
+      debugPrint('📝 Prompt başı: ${prompt.substring(0, math.min(200, prompt.length))}...');
+      
+      debugPrint('✅ Firebase Config Test Tamamlandı');
+      
+    } catch (e) {
+      debugPrint('❌ Firebase Config test hatası: $e');
+    }
+  }
+
+  // COMPREHENSIVE TEST: Tüm sistemi test et
+  static Future<Map<String, dynamic>> runComprehensiveTest() async {
+    final results = <String, dynamic>{
+      'configSetup': false,
+      'configValidation': false,
+      'firebaseConnection': false,
+      'geminiApiConnection': false,
+      'testWordSearch': false,
+      'errors': <String>[],
+      'details': <String, dynamic>{},
+    };
+    
+    try {
+      debugPrint('🔬 COMPREHENSIVE TEST BAŞLATIYOR...');
+      debugPrint('═══════════════════════════════════════════════════════════════');
+      
+      final service = GeminiService();
+      
+      // 1. Config Setup Test
+      debugPrint('1️⃣ Config Setup Test...');
+      try {
+        await service._createConfigInDatabase();
+        results['configSetup'] = true;
+        debugPrint('✅ Config setup başarılı');
+      } catch (e) {
+        results['errors'].add('Config setup hatası: $e');
+        debugPrint('❌ Config setup hatası: $e');
+      }
+      
+      // 2. Config Validation Test
+      debugPrint('2️⃣ Config Validation Test...');
+      try {
+        await service._validateConfig();
+        results['configValidation'] = true;
+        debugPrint('✅ Config validation başarılı');
+      } catch (e) {
+        results['errors'].add('Config validation hatası: $e');
+        debugPrint('❌ Config validation hatası: $e');
+      }
+      
+      // 3. Firebase Connection Test
+      debugPrint('3️⃣ Firebase Connection Test...');
+      try {
+        final database = FirebaseDatabase.instance;
+        final configRef = database.ref('config');
+        final snapshot = await configRef.get();
+        
+        if (snapshot.exists) {
+          results['firebaseConnection'] = true;
+          final configData = snapshot.value as Map<dynamic, dynamic>;
+          results['details']['firebaseConfigKeys'] = configData.keys.toList();
+          debugPrint('✅ Firebase connection başarılı');
+          debugPrint('📊 Config keys: ${configData.keys.toList()}');
+        } else {
+          results['errors'].add('Firebase config bulunamadı');
+          debugPrint('❌ Firebase config bulunamadı');
+        }
+      } catch (e) {
+        results['errors'].add('Firebase connection hatası: $e');
+        debugPrint('❌ Firebase connection hatası: $e');
+      }
+      
+      // 4. Gemini API Connection Test
+      debugPrint('4️⃣ Gemini API Connection Test...');
+      try {
+        final apiKey = await service._getApiKey();
+        final model = await service._getModel();
+        
+        results['details']['apiKey'] = '${apiKey.substring(0, 15)}...${apiKey.substring(apiKey.length - 5)}';
+        results['details']['model'] = model;
+        results['details']['apiKeyIsDefault'] = apiKey == _defaultApiKey;
+        
+        // Basit HTTP test
+        final url = Uri.parse('https://generativelanguage.googleapis.com/v1beta/models?key=$apiKey');
+        final response = await http.get(url);
+        
+        if (response.statusCode == 200) {
+          results['geminiApiConnection'] = true;
+          debugPrint('✅ Gemini API connection başarılı');
+        } else {
+          results['errors'].add('Gemini API HTTP hatası: ${response.statusCode}');
+          debugPrint('❌ Gemini API HTTP hatası: ${response.statusCode}');
+        }
+      } catch (e) {
+        results['errors'].add('Gemini API connection hatası: $e');
+        debugPrint('❌ Gemini API connection hatası: $e');
+      }
+      
+      // 5. Test Word Search
+      debugPrint('5️⃣ Test Word Search...');
+      try {
+        final testWord = 'مرحبا'; // "Merhaba" Arapça
+        final result = await service.searchWord(testWord);
+        
+        if (result.bulunduMu) {
+          results['testWordSearch'] = true;
+          results['details']['testWordResult'] = {
+            'word': result.kelime,
+            'meaning': result.anlam,
+            'harakeli': result.harekeliKelime,
+          };
+          debugPrint('✅ Test word search başarılı');
+          debugPrint('📖 Test sonucu: ${result.kelime} - ${result.anlam}');
+        } else {
+          results['errors'].add('Test word search başarısız: ${result.anlam}');
+          debugPrint('❌ Test word search başarısız: ${result.anlam}');
+        }
+      } catch (e) {
+        results['errors'].add('Test word search hatası: $e');
+        debugPrint('❌ Test word search hatası: $e');
+      }
+      
+      // Sonuçları özetle
+      debugPrint('═══════════════════════════════════════════════════════════════');
+      debugPrint('📊 TEST SONUÇLARI:');
+      debugPrint('   Config Setup: ${results['configSetup'] ? '✅' : '❌'}');
+      debugPrint('   Config Validation: ${results['configValidation'] ? '✅' : '❌'}');
+      debugPrint('   Firebase Connection: ${results['firebaseConnection'] ? '✅' : '❌'}');
+      debugPrint('   Gemini API Connection: ${results['geminiApiConnection'] ? '✅' : '❌'}');
+      debugPrint('   Test Word Search: ${results['testWordSearch'] ? '✅' : '❌'}');
+      debugPrint('   Hata Sayısı: ${results['errors'].length}');
+      
+      if (results['errors'].isNotEmpty) {
+        debugPrint('🔍 HATALAR:');
+        for (int i = 0; i < results['errors'].length; i++) {
+          debugPrint('   ${i + 1}. ${results['errors'][i]}');
+        }
+      }
+      
+      final allPassed = results['configSetup'] && 
+                       results['configValidation'] && 
+                       results['firebaseConnection'] && 
+                       results['geminiApiConnection'] && 
+                       results['testWordSearch'];
+      
+      debugPrint('═══════════════════════════════════════════════════════════════');
+      debugPrint(allPassed ? '🎉 TÜM TESTLER BAŞARILI!' : '⚠️ BAZI TESTLER BAŞARISIZ!');
+      debugPrint('═══════════════════════════════════════════════════════════════');
+      
+    } catch (e) {
+      results['errors'].add('Critical test hatası: $e');
+      debugPrint('❌ Critical test hatası: $e');
+    }
+    
+    return results;
+  }
+
+  // UI'dan çağrılabilir test metodu
+  static Future<String> runQuickTest() async {
+    try {
+      debugPrint('⚡ Quick Test Başlatılıyor...');
+      
+      final service = GeminiService();
+      
+      // Config debug
+      await service.debugConfigStatus();
+      
+      // Basit test
+      final testWord = 'سلام'; // "Selam" Arapça
+      final result = await service.searchWord(testWord);
+      
+      if (result.bulunduMu) {
+        return 'TEST BAŞARILI ✅\n\nTest Kelimesi: ${result.kelime}\nAnlam: ${result.anlam}\nHarekeli: ${result.harekeliKelime}';
+      } else {
+        return 'TEST BAŞARISIZ ❌\n\nHata: ${result.anlam}';
+      }
+      
+    } catch (e) {
+      return 'TEST HATASI ❌\n\nHata: $e';
     }
   }
 } 

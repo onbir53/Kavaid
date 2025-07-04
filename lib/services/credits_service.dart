@@ -22,9 +22,7 @@ class CreditsService extends ChangeNotifier {
   // Getter'lar
   bool get isPremium => _isPremium && (_premiumExpiry?.isAfter(DateTime.now()) ?? false);
   DateTime? get premiumExpiry => _premiumExpiry;
-  
-  // One-time purchase için lifetime ads-free durumu
-  bool get isLifetimeAdsFree => _isPremium;
+  bool get isLifetimeAdsFree => _isPremium; // Premium kullanıcıları için reklamsız
   
   Future<void> initialize() async {
     debugPrint('🚀 [CreditsService] Initialize başlıyor...');
@@ -180,38 +178,6 @@ class CreditsService extends ChangeNotifier {
     notifyListeners();
   }
   
-  // One-time purchase için lifetime ads-free durumunu ayarla
-  Future<void> setLifetimeAdsFree(bool value) async {
-    _isPremium = value;
-    
-    if (value) {
-      // Lifetime satın alım için 100 yıl sonraya ayarla
-      _premiumExpiry = DateTime.now().add(const Duration(days: 365 * 100));
-    } else {
-      _premiumExpiry = null;
-    }
-    
-    final prefs = await SharedPreferences.getInstance();
-    final devicePremiumKey = '${_premiumKey}_$_deviceId';
-    final devicePremiumExpiryKey = '${_premiumExpiryKey}_$_deviceId';
-    
-    await prefs.setBool(devicePremiumKey, value);
-    
-    if (_premiumExpiry != null) {
-      await prefs.setInt(devicePremiumExpiryKey, _premiumExpiry!.millisecondsSinceEpoch);
-    } else {
-      await prefs.remove(devicePremiumExpiryKey);
-    }
-    
-    // Firebase'e de kaydet
-    await _saveToFirebase();
-    
-    // Analytics user properties'ini güncelle
-    await AnalyticsService.setUserProperties(isPremium: _isPremium);
-    
-    notifyListeners();
-  }
-  
   // GIZLI KOD: Premium durumunu toggle et (premium ise free yap, free ise premium yap)
   Future<bool> togglePremiumStatus() async {
     if (isPremium) {
@@ -313,5 +279,16 @@ class CreditsService extends ChangeNotifier {
   
   Future<void> checkDailyResetManually() async {
     // Artık bir şey yapmıyor
+  }
+  
+  // Lifetime Ads Free durumunu ayarla (OneTimePurchase için)
+  Future<void> setLifetimeAdsFree(bool value) async {
+    if (value) {
+      // Lifetime ads free = premium forever
+      await activatePremiumForever();
+    } else {
+      // Lifetime ads free'yi kaldır
+      await cancelPremium();
+    }
   }
 } 
