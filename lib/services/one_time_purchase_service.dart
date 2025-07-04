@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
 import 'package:in_app_purchase_android/billing_client_wrappers.dart';
+import 'package:firebase_database/firebase_database.dart';
 import 'device_data_service.dart';
 import 'credits_service.dart';
 import 'analytics_service.dart';
@@ -84,8 +85,22 @@ class OneTimePurchaseService extends ChangeNotifier {
   // Firebase'den ömür boyu reklamsız durumunu kontrol et
   Future<void> _checkLifetimeAdsFree() async {
     try {
+      // Önce ana cihaz verisini kontrol et
       final deviceData = await _deviceDataService.getDeviceData();
+      bool isAdFree = false;
+      
       if (deviceData != null && deviceData['lifetimeAdsFree'] == true) {
+        isAdFree = true;
+        debugPrint('✅ [ONE-TIME] Ana cihaz verisinde reklamsız bulundu!');
+      }
+      
+      // Ayrıca özel reklamsız cihazlar koleksiyonunu da kontrol et
+      if (!isAdFree) {
+        final deviceId = await _deviceDataService.getDeviceId();
+        isAdFree = await _checkAdFreeDevicesCollection(deviceId);
+      }
+      
+      if (isAdFree) {
         _isLifetimeAdsFree = true;
         debugPrint('✅ [ONE-TIME] Cihaz ömür boyu reklamsız!');
         
@@ -96,6 +111,39 @@ class OneTimePurchaseService extends ChangeNotifier {
       debugPrint('❌ [ONE-TIME] Firebase kontrol hatası: $e');
     }
     notifyListeners();
+  }
+  
+  // Özel reklamsız cihazlar koleksiyonunu kontrol et
+  Future<bool> _checkAdFreeDevicesCollection(String deviceId) async {
+    try {
+      debugPrint('🔍 [ONE-TIME] Reklamsız cihazlar koleksiyonu kontrol ediliyor...');
+      
+      final adFreeDevicesRef = FirebaseDatabase.instance.ref().child('reklamsiz_cihazlar').child(deviceId);
+      final snapshot = await adFreeDevicesRef.get();
+      
+      if (snapshot.exists) {
+        final data = snapshot.value as Map<dynamic, dynamic>;
+        final isActive = data['isActive'] == true;
+        final purchaseVerified = data['purchaseVerified'] == true;
+        
+        if (isActive && purchaseVerified) {
+          debugPrint('✅ [ONE-TIME] Reklamsız cihazlar koleksiyonunda aktif kayıt bulundu!');
+          
+          // Son doğrulama zamanını güncelle
+          await adFreeDevicesRef.update({
+            'lastVerified': DateTime.now().millisecondsSinceEpoch,
+          });
+          
+          return true;
+        }
+      }
+      
+      debugPrint('❌ [ONE-TIME] Reklamsız cihazlar koleksiyonunda kayıt bulunamadı');
+      return false;
+    } catch (e) {
+      debugPrint('❌ [ONE-TIME] Reklamsız cihazlar koleksiyonu kontrol hatası: $e');
+      return false;
+    }
   }
   
   // Ürünleri yükle
@@ -301,13 +349,30 @@ class OneTimePurchaseService extends ChangeNotifier {
     debugPrint('📦 [ONE-TIME] Ömür boyu reklamsız özellik aktifleştiriliyor...');
     
     try {
-      // Firebase'e kaydet
+      // Cihaz ID'sini al
+      final deviceId = await _deviceDataService.getDeviceId();
+      final purchaseTimestamp = DateTime.now().millisecondsSinceEpoch;
+      
+      // Firebase'e detaylı satın alma bilgileri kaydet
       await _deviceDataService.saveDeviceData({
         'lifetimeAdsFree': true,
-        'purchaseDate': DateTime.now().millisecondsSinceEpoch,
+        'purchaseDate': purchaseTimestamp,
         'purchaseId': purchaseDetails.purchaseID,
         'productId': purchaseDetails.productID,
+        'deviceId': deviceId,
+        'purchaseVerified': true,
+        'adFreeForever': true,
+        'purchaseDetails': {
+          'transactionDate': purchaseTimestamp,
+          'productId': purchaseDetails.productID,
+          'purchaseToken': purchaseDetails.purchaseID,
+          'deviceId': deviceId,
+          'verificationStatus': 'verified',
+        }
       });
+      
+      // Ayrıca özel bir "reklamsız_cihazlar" koleksiyonuna da kaydet
+      await _savePurchaseToAdFreeDevices(deviceId, purchaseDetails);
       
       _isLifetimeAdsFree = true;
       
@@ -326,11 +391,38 @@ class OneTimePurchaseService extends ChangeNotifier {
       await AnalyticsService.logPremiumActivated('one_time_purchase');
       
       debugPrint('✅ [ONE-TIME] Ömür boyu reklamsız özellik başarıyla aktifleştirildi!');
+      debugPrint('🔒 [ONE-TIME] Cihaz ID güvenli şekilde kaydedildi: $deviceId');
       
     } catch (e) {
       debugPrint('❌ [ONE-TIME] Ömür boyu reklamsız aktifleştirme hatası: $e');
       _lastError = 'Ömür boyu reklamsız aktifleştirilemedi: $e';
       throw e;
+    }
+  }
+  
+  // Özel reklamsız cihazlar koleksiyonuna kaydet
+  Future<void> _savePurchaseToAdFreeDevices(String deviceId, PurchaseDetails purchaseDetails) async {
+    try {
+      debugPrint('🔒 [ONE-TIME] Reklamsız cihazlar koleksiyonuna kaydediliyor...');
+      
+      final adFreeDevicesRef = FirebaseDatabase.instance.ref().child('reklamsiz_cihazlar').child(deviceId);
+      
+      await adFreeDevicesRef.set({
+        'deviceId': deviceId,
+        'purchaseDate': DateTime.now().millisecondsSinceEpoch,
+        'purchaseId': purchaseDetails.purchaseID,
+        'productId': purchaseDetails.productID,
+        'isActive': true,
+        'purchaseVerified': true,
+        'createdAt': DateTime.now().millisecondsSinceEpoch,
+        'lastVerified': DateTime.now().millisecondsSinceEpoch,
+      });
+      
+      debugPrint('✅ [ONE-TIME] Reklamsız cihazlar koleksiyonuna kaydedildi');
+      
+    } catch (e) {
+      debugPrint('❌ [ONE-TIME] Reklamsız cihazlar koleksiyonu kaydetme hatası: $e');
+      // Bu hata critical değil, ana işlemi durdurmuyoruz
     }
   }
   

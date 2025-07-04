@@ -68,11 +68,11 @@ class BannerAdWidgetState extends State<BannerAdWidget>
   
   void _onCreditsChanged() {
     // Premium durumu değiştiğinde reklamı güncelle
-    if (_creditsService.isPremium && _bannerAd != null) {
-      // Premium olduysa reklamı kaldır
+    if ((_creditsService.isPremium || _creditsService.isLifetimeAdsFree) && _bannerAd != null) {
+      // Premium/Reklamsız olduysa reklamı kaldır
       _disposeAd();
-    } else if (!_creditsService.isPremium && _bannerAd == null && !_isAdLoaded) {
-      // Premium değilse ve reklam yoksa yükle
+    } else if (!_creditsService.isPremium && !_creditsService.isLifetimeAdsFree && _bannerAd == null && !_isAdLoaded) {
+      // Premium/Reklamsız değilse ve reklam yoksa yükle
       _loadBannerAd();
     }
   }
@@ -91,7 +91,7 @@ class BannerAdWidgetState extends State<BannerAdWidget>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
-    if (state == AppLifecycleState.resumed && !_isAdLoaded && !_creditsService.isPremium) {
+    if (state == AppLifecycleState.resumed && !_isAdLoaded && !_creditsService.isPremium && !_creditsService.isLifetimeAdsFree) {
       if (_bannerAd == null && _retryCount < _maxRetries) {
         _loadBannerAd();
       }
@@ -107,16 +107,16 @@ class BannerAdWidgetState extends State<BannerAdWidget>
   @override
   void activate() {
     _isVisible = true;
-    if (_bannerAd == null && _retryCount < _maxRetries && !_isAdLoaded && !_creditsService.isPremium) {
+    if (_bannerAd == null && _retryCount < _maxRetries && !_isAdLoaded && !_creditsService.isPremium && !_creditsService.isLifetimeAdsFree) {
       _loadBannerAd();
     }
     super.activate();
   }
 
   Future<void> _loadBannerAd() async {
-    // Premium kontrolü - her zaman güncel değeri kontrol et
-    if (_creditsService.isPremium) {
-      debugPrint('👑 [BannerAd] Premium kullanıcı - Reklam yüklenmeyecek');
+    // Premium ve reklamsız kontrolü - her zaman güncel değeri kontrol et
+    if (_creditsService.isPremium || _creditsService.isLifetimeAdsFree) {
+      debugPrint('👑 [BannerAd] Premium/Reklamsız kullanıcı - Reklam yüklenmeyecek');
       if (mounted) widget.onAdHeightChanged(0.0);
       return;
     }
@@ -155,9 +155,9 @@ class BannerAdWidgetState extends State<BannerAdWidget>
         onAdLoaded: (ad) async {
           if (!mounted) return;
           
-          // Reklam yüklendikten sonra da premium kontrolü yap
-          if (_creditsService.isPremium) {
-            debugPrint('👑 [BannerAd] Reklam yüklendi ama kullanıcı premium - Reklam gösterilmeyecek');
+          // Reklam yüklendikten sonra da premium/reklamsız kontrolü yap
+          if (_creditsService.isPremium || _creditsService.isLifetimeAdsFree) {
+            debugPrint('👑 [BannerAd] Reklam yüklendi ama kullanıcı premium/reklamsız - Reklam gösterilmeyecek');
             ad.dispose();
             return;
           }
@@ -197,10 +197,10 @@ class BannerAdWidgetState extends State<BannerAdWidget>
       widget.onAdHeightChanged(0.0);
     }
 
-    if (_retryCount < _maxRetries && !_creditsService.isPremium) {
+    if (_retryCount < _maxRetries && !_creditsService.isPremium && !_creditsService.isLifetimeAdsFree) {
       _retryCount++;
       Future.delayed(_retryDelay, () {
-        if (mounted && _isVisible && !_creditsService.isPremium) {
+        if (mounted && _isVisible && !_creditsService.isPremium && !_creditsService.isLifetimeAdsFree) {
           _loadBannerAd();
         }
       });
@@ -219,8 +219,8 @@ class BannerAdWidgetState extends State<BannerAdWidget>
   Widget build(BuildContext context) {
     super.build(context);
 
-    // Build sırasında da premium kontrolü
-    if (_creditsService.isPremium) {
+    // Build sırasında da premium/reklamsız kontrolü
+    if (_creditsService.isPremium || _creditsService.isLifetimeAdsFree) {
       return const SizedBox.shrink();
     }
 

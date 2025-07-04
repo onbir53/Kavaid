@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:device_info_plus/device_info_plus.dart';
+import 'package:firebase_database/firebase_database.dart';
 import 'dart:io';
 import 'device_data_service.dart';
 import 'analytics_service.dart';
@@ -32,18 +33,29 @@ class CreditsService extends ChangeNotifier {
     await _initializeDeviceId(prefs);
     debugPrint('📱 [CreditsService] Cihaz ID: $_deviceId');
     
-    // Önce Firebase'den verileri almayı dene
+    // Önce Firebase'den ana cihaz verisini almayı dene
     debugPrint('🔥 [CreditsService] Firebase\'den veriler alınmaya çalışılıyor...');
     final deviceDataService = DeviceDataService();
     final firebaseData = await deviceDataService.getDeviceData();
     
+    // Önce reklamsız cihazlar koleksiyonunu kontrol et
+    bool isAdFreeDevice = await _checkAdFreeDeviceStatus();
+    
     if (firebaseData != null) {
       debugPrint('✅ [CreditsService] Firebase\'de veri bulundu: $firebaseData');
-      // Firebase'de veri varsa, onları kullan
-      _isPremium = firebaseData['premiumDurumu'] ?? false;
       
-      if (firebaseData['premiumBitisTarihi'] != null) {
-        _premiumExpiry = DateTime.fromMillisecondsSinceEpoch(firebaseData['premiumBitisTarihi']);
+      // Eğer cihaz reklamsız listesindeyse veya Firebase'de reklamsız olarak işaretlenmişse
+      if (isAdFreeDevice || firebaseData['lifetimeAdsFree'] == true || firebaseData['adFreeForever'] == true) {
+        _isPremium = true;
+        _premiumExpiry = DateTime.now().add(const Duration(days: 365 * 100)); // 100 yıl
+        debugPrint('🔒 [CreditsService] Cihaz reklamsız cihazlar listesinde veya Firebase\'de reklamsız!');
+      } else {
+        // Normal premium kontrolü
+        _isPremium = firebaseData['premiumDurumu'] ?? false;
+        
+        if (firebaseData['premiumBitisTarihi'] != null) {
+          _premiumExpiry = DateTime.fromMillisecondsSinceEpoch(firebaseData['premiumBitisTarihi']);
+        }
       }
       
       // Firebase'den alınan verileri SharedPreferences'a da kaydet (cache için)
@@ -56,25 +68,76 @@ class CreditsService extends ChangeNotifier {
         await prefs.setInt(devicePremiumExpiryKey, _premiumExpiry!.millisecondsSinceEpoch);
       }
       
-      debugPrint('✅ [CreditsService] Firebase\'den veriler yüklendi: Premium: $_isPremium');
+      debugPrint('✅ [CreditsService] Firebase\'den veriler yüklendi: Premium: $_isPremium, AdFree: $isAdFreeDevice');
     } else {
-      debugPrint('⚠️ [CreditsService] Firebase\'de veri yok, SharedPreferences kullanılıyor');
-      // Firebase'de veri yoksa, SharedPreferences'tan yükle
-      // Cihaz bazlı key'ler oluştur
-      final devicePremiumKey = '${_premiumKey}_$_deviceId';
-      final devicePremiumExpiryKey = '${_premiumExpiryKey}_$_deviceId';
+      debugPrint('⚠️ [CreditsService] Firebase\'de veri yok');
       
-      // Premium durumunu yükle
-      _isPremium = prefs.getBool(devicePremiumKey) ?? false;
-      
-      final expiryMillis = prefs.getInt(devicePremiumExpiryKey);
-      if (expiryMillis != null) {
-        _premiumExpiry = DateTime.fromMillisecondsSinceEpoch(expiryMillis);
+      // Eğer cihaz reklamsız listesindeyse offline bile olsa premium olarak işaretle
+      if (isAdFreeDevice) {
+        _isPremium = true;
+        _premiumExpiry = DateTime.now().add(const Duration(days: 365 * 100)); // 100 yıl
+        debugPrint('🔒 [CreditsService] Offline ama cihaz reklamsız listesinde!');
+        
+        // SharedPreferences'a da kaydet
+        final devicePremiumKey = '${_premiumKey}_$_deviceId';
+        final devicePremiumExpiryKey = '${_premiumExpiryKey}_$_deviceId';
+        
+        await prefs.setBool(devicePremiumKey, _isPremium);
+        await prefs.setInt(devicePremiumExpiryKey, _premiumExpiry!.millisecondsSinceEpoch);
+      } else {
+        // SharedPreferences'tan yükle
+        final devicePremiumKey = '${_premiumKey}_$_deviceId';
+        final devicePremiumExpiryKey = '${_premiumExpiryKey}_$_deviceId';
+        
+        // Premium durumunu yükle
+        _isPremium = prefs.getBool(devicePremiumKey) ?? false;
+        
+        final expiryMillis = prefs.getInt(devicePremiumExpiryKey);
+        if (expiryMillis != null) {
+          _premiumExpiry = DateTime.fromMillisecondsSinceEpoch(expiryMillis);
+        }
       }
     }
     
-    debugPrint('🎯 [CreditsService] Initialize tamamlandı - Premium: $_isPremium');
+    debugPrint('🎯 [CreditsService] Initialize tamamlandı - Premium: $_isPremium, AdFree: $isAdFreeDevice');
     notifyListeners();
+  }
+  
+  // Reklamsız cihaz durumunu kontrol et
+  Future<bool> _checkAdFreeDeviceStatus() async {
+    try {
+      debugPrint('🔍 [CreditsService] Reklamsız cihaz durumu kontrol ediliyor...');
+      
+      final deviceDataService = DeviceDataService();
+      final deviceId = await deviceDataService.getDeviceId();
+      
+      // Firebase'den reklamsız cihazlar koleksiyonunu kontrol et
+      final adFreeDevicesRef = FirebaseDatabase.instance.ref().child('reklamsiz_cihazlar').child(deviceId);
+      final snapshot = await adFreeDevicesRef.get();
+      
+      if (snapshot.exists) {
+        final data = snapshot.value as Map<dynamic, dynamic>;
+        final isActive = data['isActive'] == true;
+        final purchaseVerified = data['purchaseVerified'] == true;
+        
+        if (isActive && purchaseVerified) {
+          debugPrint('✅ [CreditsService] Cihaz reklamsız listesinde aktif olarak kayıtlı!');
+          
+          // Son kontrol zamanını güncelle
+          await adFreeDevicesRef.update({
+            'lastChecked': DateTime.now().millisecondsSinceEpoch,
+          });
+          
+          return true;
+        }
+      }
+      
+      debugPrint('❌ [CreditsService] Cihaz reklamsız listesinde bulunamadı');
+      return false;
+    } catch (e) {
+      debugPrint('❌ [CreditsService] Reklamsız cihaz kontrolü hatası: $e');
+      return false;
+    }
   }
   
   // Cihaz ID'sini al veya oluştur

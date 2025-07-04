@@ -33,7 +33,7 @@ class _NativeAdWidgetState extends State<NativeAdWidget> with AutomaticKeepAlive
   void initState() {
     super.initState();
     if (!kIsWeb && (defaultTargetPlatform == TargetPlatform.android || 
-        defaultTargetPlatform == TargetPlatform.iOS) && !_creditsService.isPremium) {
+        defaultTargetPlatform == TargetPlatform.iOS) && !_creditsService.isPremium && !_creditsService.isLifetimeAdsFree) {
       // Widget görünür olduğunda reklamı yükle (lazy loading)
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
@@ -44,9 +44,9 @@ class _NativeAdWidgetState extends State<NativeAdWidget> with AutomaticKeepAlive
   }
 
   void _loadNativeAd() {
-    // Premium kullanıcılar için reklam yükleme
-    if (_creditsService.isPremium) {
-      debugPrint('👑 Premium kullanıcı - Native reklam yüklenmeyecek');
+    // Premium kullanıcılar ve reklamsız kullanıcılar için reklam yükleme
+    if (_creditsService.isPremium || _creditsService.isLifetimeAdsFree) {
+      debugPrint('👑 Premium/Reklamsız kullanıcı - Native reklam yüklenmeyecek');
       return;
     }
     
@@ -150,8 +150,8 @@ class _NativeAdWidgetState extends State<NativeAdWidget> with AutomaticKeepAlive
     
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     
-    // Premium kullanıcılar için boş alan döndür
-    if (_creditsService.isPremium) {
+    // Premium kullanıcılar ve reklamsız kullanıcılar için boş alan döndür
+    if (_creditsService.isPremium || _creditsService.isLifetimeAdsFree) {
       return const SizedBox.shrink();
     }
     

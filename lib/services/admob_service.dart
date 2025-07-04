@@ -158,21 +158,21 @@ class AdMobService {
   }
   
   void _onPremiumStatusChanged() {
-    debugPrint('🔄 Premium durumu değişti: isPremium=${_creditsService.isPremium}');
+    debugPrint('🔄 Premium/Reklamsız durumu değişti: isPremium=${_creditsService.isPremium}, isLifetimeAdsFree=${_creditsService.isLifetimeAdsFree}');
     
-    if (_creditsService.isPremium) {
-      // Premium olduysa mevcut reklamı temizle
-      debugPrint('👑 [AdMob] Premium aktif - App Open reklamı temizleniyor');
+    if (_creditsService.isPremium || _creditsService.isLifetimeAdsFree) {
+      // Premium/Reklamsız olduysa mevcut reklamı temizle
+      debugPrint('👑 [AdMob] Premium/Reklamsız aktif - App Open reklamı temizleniyor');
       _appOpenAd?.dispose();
       _appOpenAd = null;
       _isShowingAppOpenAd = false;
       _isLoadingAppOpenAd = false;
-    } else if (!_creditsService.isPremium && _appOpenAd == null && !_isLoadingAppOpenAd) {
-      // Premium değilse ve reklam yoksa yükle
-      debugPrint('📱 [AdMob] Premium değil - App Open reklamı yüklenmeye başlıyor...');
+    } else if (!_creditsService.isPremium && !_creditsService.isLifetimeAdsFree && _appOpenAd == null && !_isLoadingAppOpenAd) {
+      // Premium/Reklamsız değilse ve reklam yoksa yükle
+      debugPrint('📱 [AdMob] Premium/Reklamsız değil - App Open reklamı yüklenmeye başlıyor...');
       // Biraz gecikme ile yükle ki servisi stable olsun
       Future.delayed(const Duration(milliseconds: 500), () {
-        if (!_creditsService.isPremium) { // Double check
+        if (!_creditsService.isPremium && !_creditsService.isLifetimeAdsFree) { // Double check
           debugPrint('🚀 [AdMob] App Open reklamı yükleme komutu veriliyor...');
           loadAppOpenAd();
         }
@@ -194,9 +194,9 @@ class AdMobService {
       return;
     }
     
-    // Premium kullanıcılar için reklam yükleme
-    if (_creditsService.isPremium) {
-      debugPrint('👑 Premium kullanıcı - Reklam yüklenmeyecek');
+    // Premium kullanıcılar ve reklamsız kullanıcılar için reklam yükleme
+    if (_creditsService.isPremium || _creditsService.isLifetimeAdsFree) {
+      debugPrint('👑 Premium/Reklamsız kullanıcı - Reklam yüklenmeyecek');
       return;
     }
 
@@ -245,9 +245,9 @@ class AdMobService {
       return;
     }
     
-    // Premium kullanıcılar için reklam gösterme
-    if (_creditsService.isPremium) {
-      debugPrint('👑 Premium kullanıcı - Reklam gösterilmeyecek');
+    // Premium kullanıcılar ve reklamsız kullanıcılar için reklam gösterme
+    if (_creditsService.isPremium || _creditsService.isLifetimeAdsFree) {
+      debugPrint('👑 Premium/Reklamsız kullanıcı - Reklam gösterilmeyecek');
       return;
     }
     
