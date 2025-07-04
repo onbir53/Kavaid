@@ -468,6 +468,31 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             ),
                           ),
                         ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: () async {
+                              // Debug durumunu göster
+                              final AdMobService adService = AdMobService();
+                              adService.debugAdStatus();
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text('Debug bilgileri console\'da'),
+                                    backgroundColor: Colors.purple,
+                                  ),
+                                );
+                              }
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.indigo,
+                            ),
+                            child: Text(
+                              'Debug Info',
+                              style: TextStyle(fontSize: 10),
+                            ),
+                          ),
+                        ),
                       ],
                     ),
                     const SizedBox(height: 8),
@@ -506,6 +531,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       style: TextStyle(
                         fontSize: 11,
                         color: Colors.blue,
+                      ),
+                    ),
+                    Text(
+                      'AdMob Credits: ${AdMobService().mounted ? "HAZIR" : "BEKLİYOR"}',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: AdMobService().mounted ? Colors.green : Colors.orange,
+                      ),
+                    ),
+                    Text(
+                      'Interstitial Ad: ${AdMobService().isInterstitialAdAvailable ? "MEVCUT" : "YOK"}',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: AdMobService().isInterstitialAdAvailable ? Colors.green : Colors.red,
                       ),
                     ),
                   ],

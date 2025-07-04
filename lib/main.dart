@@ -243,6 +243,14 @@ void _initializeServicesInBackground() {
     try {
       await AdMobService.initialize();
       debugPrint('✅ AdMob başlatıldı');
+      
+      // AdMob başlatıldıktan hemen sonra interstitial ad yüklemeyi başlat
+      if (!creditsService.isPremium && !creditsService.isLifetimeAdsFree) {
+        Future.delayed(const Duration(milliseconds: 500), () {
+          debugPrint('🚀 [MAIN] AdMob başlatıldı, interstitial reklam yükleniyor...');
+          AdMobService().loadInterstitialAd();
+        });
+      }
     } catch (e) {
       debugPrint('❌ AdMob başlatılamadı: $e');
     }

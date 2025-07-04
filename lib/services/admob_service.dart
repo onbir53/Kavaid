@@ -29,13 +29,15 @@ class AdMobService {
   bool _creditsServiceInitialized = false;
   int _backgroundToForegroundCount = 0; // Arka plandan öne geçiş sayacı
   
-  // 3 saniye kuralı için sabit
-  static const Duration _minBackgroundTime = Duration(seconds: 3);
+  // Background time kuralı - Debug modda kısa, production'da normal
+  static Duration get _minBackgroundTime => kDebugMode 
+      ? const Duration(seconds: 2) // Debug modda 2 saniye - test için
+      : const Duration(seconds: 3); // Production'da 3 saniye
   
-  // Reklam frekans kontrolü için sabitler - 5 dakika minimum aralık
+  // Reklam frekans kontrolü için sabitler - Debug modda kısa, production'da uzun
   static Duration get _minTimeBetweenInterstitialAds => kDebugMode 
-      ? const Duration(minutes: 5) // Debug modda da 5 dakika minimum
-      : const Duration(minutes: 5); // Production'da da 5 dakika minimum
+      ? const Duration(seconds: 30) // Debug modda 30 saniye - test için
+      : const Duration(minutes: 5); // Production'da 5 dakika minimum
   static const Duration _interstitialAdExpiration = Duration(hours: 4); // Interstitial reklam geçerlilik süresi
   static const int _maxAdLoadRetries = 3; // Maksimum reklam yükleme deneme sayısı
   int _currentRetryCount = 0;
@@ -146,15 +148,26 @@ class AdMobService {
   }
 
   void _initializeCreditsListener() async {
+    debugPrint('🔄 [AdMob] Credits service listener başlatılıyor...');
+    
     // Credits service başlatılmasını bekle
     await _creditsService.initialize();
     _creditsServiceInitialized = true;
+    debugPrint('✅ [AdMob] Credits service başlatıldı, premium: ${_creditsService.isPremium}, adsFree: ${_creditsService.isLifetimeAdsFree}');
     
     // Premium durumu değişikliklerini dinle
     _creditsService.addListener(_onPremiumStatusChanged);
     
-    // İlk kontrol
+    // İlk kontrol ve reklam yükleme
     _onPremiumStatusChanged();
+    
+    // 2 saniye gecikme ile zorunlu reklam yükleme (eğer hala yüklenmemişse)
+    Future.delayed(const Duration(seconds: 2), () {
+      if (!_creditsService.isPremium && !_creditsService.isLifetimeAdsFree && _interstitialAd == null && !_isLoadingInterstitialAd) {
+        debugPrint('🚀 [AdMob] Zorunlu reklam yükleme tetikleniyor...');
+        loadInterstitialAd();
+      }
+    });
   }
   
   void _onPremiumStatusChanged() {
@@ -350,10 +363,14 @@ class AdMobService {
     
     switch (state) {
       case AppLifecycleState.resumed:
+        // İlk açılış kontrolünü gevşetiyoruz - sadece ilk 5 saniye skip
         if (_isFirstLaunch) {
-          // İlk açılış - reklam gösterme
-          debugPrint('🚀 [LIFECYCLE] İlk açılış - reklam gösterilmeyecek');
+          debugPrint('🚀 [LIFECYCLE] İlk açılış detected - 5 saniye grace period başlıyor');
           _isFirstLaunch = false;
+          // 5 saniye sonra artık reklam gösterebiliriz
+          Future.delayed(const Duration(seconds: 5), () {
+            debugPrint('⏰ [LIFECYCLE] İlk açılış grace period bitti - artık reklam gösterilebilir');
+          });
         } else if (_wasActuallyInBackground && _lastPausedTime != null) {
           // 3 saniye kuralını kontrol et
           final backgroundDuration = DateTime.now().difference(_lastPausedTime!);
@@ -361,19 +378,23 @@ class AdMobService {
           
           if (backgroundDuration >= _minBackgroundTime) {
             // 3 saniyeden fazla arka plandaysa reklam göster
-          _backgroundToForegroundCount++;
+            _backgroundToForegroundCount++;
             debugPrint('✅ [LIFECYCLE] 3 saniye kuralı sağlandı - Arka plandan dönüş #$_backgroundToForegroundCount - REKLAM GÖSTERİLECEK!');
           
-          // 100ms gecikme ile reklam göster (UI stable olsun)
-          Future.delayed(const Duration(milliseconds: 100), () {
-            showInterstitialAd();
-          });
+            // 500ms gecikme ile reklam göster (UI stable olsun + credits service hazır olsun)
+            Future.delayed(const Duration(milliseconds: 500), () {
+              debugPrint('🎯 [LIFECYCLE] Reklam gösterme komutu çalıştırılıyor...');
+              showInterstitialAd();
+            });
           } else {
             debugPrint('⏳ [LIFECYCLE] 3 saniye dolmadı (${backgroundDuration.inSeconds}s) - reklam gösterilmeyecek');
           }
           
           _wasActuallyInBackground = false;
           _lastPausedTime = null;
+        } else if (!_wasActuallyInBackground && _previousState != null) {
+          // Arka plandan gelmiyor ama önceki state var - bu normal app geçişi olabilir
+          debugPrint('ℹ️ [LIFECYCLE] Normal resume - arka plandan gelmiyor ($_previousState -> resumed)');
         } else {
           debugPrint('⚠️ [LIFECYCLE] Resume ama arka plandan gelmiyor veya pause zamanı yok');
         }
@@ -411,13 +432,17 @@ class AdMobService {
     debugPrint('🧪 [TEST] ForceShowInterstitialAd çağırıldı');
     debugPrint('🧪 [TEST] Credits initialized: $_creditsServiceInitialized');
     debugPrint('🧪 [TEST] Premium durumu: ${_creditsService.isPremium}');
+    debugPrint('🧪 [TEST] Lifetime ads free: ${_creditsService.isLifetimeAdsFree}');
     debugPrint('🧪 [TEST] Interstitial Ad mevcut: ${_interstitialAd != null}');
     debugPrint('🧪 [TEST] Interstitial Ad yükleniyor: $_isLoadingInterstitialAd');
     debugPrint('🧪 [TEST] Interstitial Ad gösteriliyor: $_isShowingInterstitialAd');
     
     if (!_creditsServiceInitialized) {
-      debugPrint('🧪 [TEST] Credits service başlatılmamış, başlatılıyor...');
-      _initializeCreditsListener();
+      debugPrint('🧪 [TEST] Credits service başlatılmamış, beklemede...');
+      // 1 saniye bekle ve tekrar dene
+      Future.delayed(const Duration(seconds: 1), () {
+        forceShowInterstitialAd();
+      });
       return;
     }
     
@@ -427,12 +452,26 @@ class AdMobService {
     }
     
     if (_interstitialAd == null) {
-      debugPrint('🧪 [TEST] Reklam mevcut değil, yükleniyor...');
+      debugPrint('🧪 [TEST] Reklam mevcut değil, yükleniyor ve 3 saniye sonra gösteriliyor...');
       loadInterstitialAd();
+      // 3 saniye bekle ve tekrar dene
+      Future.delayed(const Duration(seconds: 3), () {
+        if (_interstitialAd != null) {
+          debugPrint('🧪 [TEST] Reklam yüklendi, şimdi gösteriliyor!');
+          showInterstitialAd();
+        } else {
+          debugPrint('🧪 [TEST] Reklam hala yüklenemedi, tekrar deneniyor...');
+          forceShowInterstitialAd();
+        }
+      });
       return;
     }
     
     debugPrint('🧪 [TEST] Tüm kontroller geçildi, reklam gösterilecek!');
+    
+    // Frekans kontrolünü bypass et (test için)
+    _lastInterstitialShowTime = null;
+    
     showInterstitialAd();
   }
   
