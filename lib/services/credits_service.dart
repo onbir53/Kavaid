@@ -23,6 +23,9 @@ class CreditsService extends ChangeNotifier {
   bool get isPremium => _isPremium && (_premiumExpiry?.isAfter(DateTime.now()) ?? false);
   DateTime? get premiumExpiry => _premiumExpiry;
   
+  // One-time purchase için lifetime ads-free durumu
+  bool get isLifetimeAdsFree => _isPremium;
+  
   Future<void> initialize() async {
     debugPrint('🚀 [CreditsService] Initialize başlıyor...');
     final prefs = await SharedPreferences.getInstance();
@@ -167,6 +170,38 @@ class CreditsService extends ChangeNotifier {
     
     await prefs.setBool(devicePremiumKey, true);
     await prefs.setInt(devicePremiumExpiryKey, _premiumExpiry!.millisecondsSinceEpoch);
+    
+    // Firebase'e de kaydet
+    await _saveToFirebase();
+    
+    // Analytics user properties'ini güncelle
+    await AnalyticsService.setUserProperties(isPremium: _isPremium);
+    
+    notifyListeners();
+  }
+  
+  // One-time purchase için lifetime ads-free durumunu ayarla
+  Future<void> setLifetimeAdsFree(bool value) async {
+    _isPremium = value;
+    
+    if (value) {
+      // Lifetime satın alım için 100 yıl sonraya ayarla
+      _premiumExpiry = DateTime.now().add(const Duration(days: 365 * 100));
+    } else {
+      _premiumExpiry = null;
+    }
+    
+    final prefs = await SharedPreferences.getInstance();
+    final devicePremiumKey = '${_premiumKey}_$_deviceId';
+    final devicePremiumExpiryKey = '${_premiumExpiryKey}_$_deviceId';
+    
+    await prefs.setBool(devicePremiumKey, value);
+    
+    if (_premiumExpiry != null) {
+      await prefs.setInt(devicePremiumExpiryKey, _premiumExpiry!.millisecondsSinceEpoch);
+    } else {
+      await prefs.remove(devicePremiumExpiryKey);
+    }
     
     // Firebase'e de kaydet
     await _saveToFirebase();

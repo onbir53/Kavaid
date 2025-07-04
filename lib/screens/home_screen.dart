@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import '../models/word_model.dart';
 import '../services/gemini_service.dart';
 import '../services/firebase_service.dart';
@@ -61,19 +62,35 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
     _searchController.addListener(_onSearchChanged);
     
     // Uygulama açıldığında klavyeyi aç
-    // Hem immediate hem delayed focus
-    _searchFocusNode.requestFocus();
+    // Post frame callback ile klavyeyi açmaya çalış
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _searchFocusNode.requestFocus();
+        // Sistem seviyesinde klavyeyi göster
+        SystemChannels.textInput.invokeMethod('TextInput.show');
+      }
+    });
     
     // Multiple attempts with increasing delays
     for (int i = 1; i <= 5; i++) {
       Future.delayed(Duration(milliseconds: i * 200), () {
         if (mounted && !_searchFocusNode.hasFocus) {
-          FocusScope.of(context).requestFocus(_searchFocusNode);
-          _searchFocusNode.requestFocus();
-          if (i == 5) {
-            // Son denemede callback'i çağır
-            widget.onKeyboardOpened?.call();
-          }
+          // Önce unfocus yap
+          _searchFocusNode.unfocus();
+          // Sonra focus ver
+          Future.delayed(const Duration(milliseconds: 50), () {
+            if (mounted) {
+              FocusScope.of(context).requestFocus(_searchFocusNode);
+              _searchFocusNode.requestFocus();
+              // Sistem seviyesinde klavyeyi göster
+              SystemChannels.textInput.invokeMethod('TextInput.show');
+              
+              if (i == 5) {
+                // Son denemede callback'i çağır
+                widget.onKeyboardOpened?.call();
+              }
+            }
+          });
         }
       });
     }

@@ -102,6 +102,24 @@ class AnalyticsService {
     }
   }
   
+  // Tek seferlik satın alma eventi
+  static Future<void> logPurchase(String productId, double price, String category) async {
+    try {
+      await _analytics.logPurchase(
+        currency: 'TRY',
+        value: price,
+        parameters: <String, Object>{
+          'item_id': productId,
+          'item_name': category == 'remove_ads' ? 'Remove Ads Lifetime' : 'One-time Purchase',
+          'item_category': category,
+        },
+      );
+      debugPrint('📊 Analytics: One-time Purchase - $productId (₺$price)');
+    } catch (e) {
+      debugPrint('❌ Analytics One-time Purchase hatası: $e');
+    }
+  }
+  
   // Premium aktifleştirme eventi
   static Future<void> logPremiumActivated(String method) async {
     try {
@@ -213,7 +231,7 @@ class AnalyticsService {
         name: 'ai_search',
         parameters: <String, Object>{
           'query': query,
-          'found_result': foundResult,
+          'found_result': foundResult ? 'true' : 'false', // Boolean'ı string'e çevir
           'query_length': query.length,
         },
       );

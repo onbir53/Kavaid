@@ -29,6 +29,9 @@ class AdMobService {
   bool _creditsServiceInitialized = false;
   int _backgroundToForegroundCount = 0; // Arka plandan öne geçiş sayacı
   
+  // 3 saniye kuralı için sabit
+  static const Duration _minBackgroundTime = Duration(seconds: 3);
+  
   // Reklam frekans kontrolü için sabitler - 5 dakika minimum aralık
   static Duration get _minTimeBetweenAppOpenAds => kDebugMode 
       ? const Duration(minutes: 5) // Debug modda da 5 dakika minimum
@@ -71,7 +74,7 @@ class AdMobService {
     return _testBannerAdUnitIdAndroid;
   }
 
-  // App Open reklam ID'si
+  // App Open reklamı için test ID'leri
   static String get appOpenAdUnitId {
     if (kDebugMode) {
       // Test ID'leri
@@ -338,7 +341,7 @@ class AdMobService {
     return true;
   }
 
-  // App lifecycle için - BASIT VE GÜVENİLİR ÇÖZÜM
+  // App lifecycle için - 3 SANİYE KURALI İLE
   void onAppStateChanged(AppLifecycleState state) {
     debugPrint('🔄 [LIFECYCLE] $_previousState -> $state (firstLaunch: $_isFirstLaunch, wasBackground: $_wasActuallyInBackground, count: $_backgroundToForegroundCount)');
     
@@ -351,19 +354,28 @@ class AdMobService {
           // İlk açılış - reklam gösterme
           debugPrint('🚀 [LIFECYCLE] İlk açılış - reklam gösterilmeyecek');
           _isFirstLaunch = false;
-        } else if (_wasActuallyInBackground) {
-          // Arka plandan dönüş - reklam göster
+        } else if (_wasActuallyInBackground && _lastPausedTime != null) {
+          // 3 saniye kuralını kontrol et
+          final backgroundDuration = DateTime.now().difference(_lastPausedTime!);
+          debugPrint('⏱️ [LIFECYCLE] Arka planda geçen süre: ${backgroundDuration.inSeconds} saniye');
+          
+          if (backgroundDuration >= _minBackgroundTime) {
+            // 3 saniyeden fazla arka plandaysa reklam göster
           _backgroundToForegroundCount++;
-          debugPrint('✅ [LIFECYCLE] Arka plandan dönüş #$_backgroundToForegroundCount - REKLAM GÖSTERİLECEK!');
+            debugPrint('✅ [LIFECYCLE] 3 saniye kuralı sağlandı - Arka plandan dönüş #$_backgroundToForegroundCount - REKLAM GÖSTERİLECEK!');
           
           // 100ms gecikme ile reklam göster (UI stable olsun)
           Future.delayed(const Duration(milliseconds: 100), () {
             showAppOpenAd();
           });
+          } else {
+            debugPrint('⏳ [LIFECYCLE] 3 saniye dolmadı (${backgroundDuration.inSeconds}s) - reklam gösterilmeyecek');
+          }
           
           _wasActuallyInBackground = false;
+          _lastPausedTime = null;
         } else {
-          debugPrint('⚠️ [LIFECYCLE] Resume ama arka plandan gelmiyor');
+          debugPrint('⚠️ [LIFECYCLE] Resume ama arka plandan gelmiyor veya pause zamanı yok');
         }
         break;
         
@@ -379,12 +391,16 @@ class AdMobService {
       case AppLifecycleState.hidden:
         // Bu durumlar da arka plan demektir
         debugPrint('📵 [LIFECYCLE] $state - arka plan durumu');
+        if (_lastPausedTime == null) {
+          // Eğer pause olmadıysa şimdi zamanı kaydet
+          _lastPausedTime = DateTime.now();
+        }
         _wasActuallyInBackground = true;
         break;
     }
     
     _previousState = state;
-    debugPrint('🔍 [LIFECYCLE] Güncellendi: firstLaunch=$_isFirstLaunch, wasBackground=$_wasActuallyInBackground');
+    debugPrint('🔍 [LIFECYCLE] Güncellendi: firstLaunch=$_isFirstLaunch, wasBackground=$_wasActuallyInBackground, lastPaused=$_lastPausedTime');
   }
   
   // Mounted kontrolü için helper
@@ -426,6 +442,7 @@ class AdMobService {
     debugPrint('🔍 _isFirstLaunch: $_isFirstLaunch');
     debugPrint('🔍 _wasActuallyInBackground: $_wasActuallyInBackground');
     debugPrint('🔍 _backgroundToForegroundCount: $_backgroundToForegroundCount');
+    debugPrint('🔍 _lastPausedTime: $_lastPausedTime');
     debugPrint('🔍 _creditsServiceInitialized: $_creditsServiceInitialized');
     debugPrint('🔍 isPremium: ${_creditsService.isPremium}');
     debugPrint('🔍 _appOpenAd != null: ${_appOpenAd != null}');

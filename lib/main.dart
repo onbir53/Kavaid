@@ -16,7 +16,7 @@ import 'services/saved_words_service.dart';
 import 'services/admob_service.dart';
 import 'widgets/banner_ad_widget.dart';
 import 'services/credits_service.dart';
-import 'services/subscription_service.dart';
+import 'services/one_time_purchase_service.dart';
 import 'services/global_config_service.dart';
 import 'utils/performance_utils.dart';
 import 'utils/image_cache_manager.dart';
@@ -26,6 +26,7 @@ import 'services/firebase_service.dart';
 import 'services/analytics_service.dart';
 import 'models/word_model.dart';
 import 'services/app_usage_service.dart';
+import 'services/gemini_service.dart';
 
 // Custom ScrollBehavior - overscroll glow efektini kaldırmak için
 class NoGlowScrollBehavior extends ScrollBehavior {
@@ -41,6 +42,26 @@ class NoGlowScrollBehavior extends ScrollBehavior {
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // Android sistem seviyesi log'larını filtrele
+  if (!kIsWeb && Platform.isAndroid) {
+    SystemChannels.platform.setMethodCallHandler(null);
+    // Gralloc4 ve Surface debug mesajlarını engelle
+    FlutterError.onError = (details) {
+      final message = details.toString();
+      // Gereksiz sistem log'larını filtrele
+      if (message.contains('gralloc4') || 
+          message.contains('Surface') || 
+          message.contains('FrameEvents') ||
+          message.contains('SMPTE 2094-40') ||
+          message.contains('lockHardwareCanvas') ||
+          message.contains('updateAcquireFence')) {
+        return; // Bu log'ları gösterme
+      }
+      // Diğer hataları normal şekilde göster
+      FlutterError.presentError(details);
+    };
+  }
   
   // 🚀 PERFORMANCE MOD: Engine optimizasyonları
   if (!kIsWeb) {
@@ -168,9 +189,8 @@ void main() async {
     
     // Garbage collection'ı optimize et
     SchedulerBinding.instance.addPostFrameCallback((_) {
-      // İlk frame'den sonra performans izlemeyi başlat
-      // Context gerektirmeyen optimized version
-      PerformanceUtils.enableFPSCounter();
+      // FPS counter devre dışı - gereksiz debug log'larını önlemek için
+      // PerformanceUtils.enableFPSCounter();
       
       // 🚀 PERFORMANCE MOD: Cihaz performansını tespit et
       PerformanceUtils.detectDevicePerformance();
@@ -235,11 +255,11 @@ void _initializeServicesInBackground() {
     debugPrint('✅ SavedWordsService başlatıldı: ${savedWordsService.savedWordsCount} kelime yüklendi');
   });
 
-  // SubscriptionService'i arka planda başlat
+  // OneTimePurchaseService'i arka planda başlat
   Future.delayed(const Duration(milliseconds: 300), () async {
-    final subscriptionService = SubscriptionService();
-    await subscriptionService.initialize();
-    debugPrint('✅ SubscriptionService başlatıldı');
+    final oneTimePurchaseService = OneTimePurchaseService();
+    await oneTimePurchaseService.initialize();
+    debugPrint('✅ OneTimePurchaseService başlatıldı');
   });
   
   // AppUsageService'i arka planda başlat
@@ -253,6 +273,21 @@ void _initializeServicesInBackground() {
   Future.delayed(const Duration(milliseconds: 500), () async {
     final globalConfigService = GlobalConfigService();
     debugPrint('✅ GlobalConfigService başlatıldı - Subscription disabled: ${globalConfigService.subscriptionDisabled}');
+  });
+  
+  // GeminiService Firebase config oluştur ve test et
+  Future.delayed(const Duration(milliseconds: 600), () async {
+    try {
+      // Firebase config'ini oluştur (varsa dokunmaz)
+      await GeminiService.createFirebaseConfig();
+      debugPrint('✅ GeminiService Firebase config kontrol edildi');
+      
+      // API bağlantısını test et
+      await GeminiService.testApiConnection();
+      debugPrint('✅ GeminiService API testi tamamlandı');
+    } catch (e) {
+      debugPrint('❌ GeminiService hatası: $e');
+    }
   });
 }
 
@@ -432,8 +467,8 @@ class _KavaidAppState extends State<KavaidApp> with WidgetsBindingObserver {
             child: RepaintBoundary(
               // 🚀 PERFORMANCE MOD: Ana uygulama RepaintBoundary ile sarılı
               child: FPSOverlay(
-                showFPS: const bool.fromEnvironment('SHOW_PERFORMANCE', defaultValue: false),
-                detailedFPS: true,
+                showFPS: false, // Debug mesajlarını önlemek için tamamen kapalı
+                detailedFPS: false,
                 child: child!,
               ),
             ),

@@ -323,37 +323,14 @@ class PerformanceUtils {
         
         if (frameDropped) {
           _droppedFrames++;
-          debugPrint('⚠️ Frame Drop: ${_currentFPS.toStringAsFixed(1)} FPS | Build: ${buildTime.toStringAsFixed(1)}ms | Raster: ${rasterTime.toStringAsFixed(1)}ms');
         }
         
-        // Her 60 frame'de bir rapor
-        if (_frameCount % 60 == 0) {
-          final dropRate = (_droppedFrames / _frameCount) * 100;
-          debugPrint('📊 FPS Raporu: ${_currentFPS.toStringAsFixed(1)} FPS | Drop Rate: ${dropRate.toStringAsFixed(1)}% | Total Frames: $_frameCount');
-          
-          // Drop rate %5'ten fazlaysa uyarı ver
-          if (dropRate > 5.0) {
-            debugPrint('🔴 PERFORMANS UYARISI: Yüksek frame drop oranı!');
-            
-            // Termal durum kontrolü
-            if (_thermalStatus >= 3) {
-              debugPrint('🌡️ Cihaz ısınmış durumda, performans düşüşü normal');
-            } else {
-              debugPrint('🔧 Önerilen çözümler:');
-              debugPrint('   • Diğer uygulamaları kapatın');
-              debugPrint('   • Cihazın soğumasını bekleyin');
-              if (_isXiaomiDevice) {
-                debugPrint('   • MIUI optimizasyonlarını kapatın');
-                debugPrint('   • Geliştirici seçeneklerinde GPU rendering aktif edin');
-              }
-            }
-          }
-        }
+        // Performans log'larını tamamen kaldır (gereksiz çıktı)
         
         // Çok düşük performans tespiti
-        if (_frameCount > 300 && dropRate > 15.0) {
+        if (_frameCount > 1000 && dropRate > 30.0) {
+          // Daha yüksek eşik değerleri ile nadir log
           debugPrint('🔴 CRİTİK PERFORMANS SORUNU TESPİT EDİLDİ!');
-          debugPrint('🔧 Acil düşük performans moduna geçiliyor...');
           _activateEmergencyMode();
         }
       }

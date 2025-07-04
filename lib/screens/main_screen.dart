@@ -349,7 +349,16 @@ class _MainScreenState extends State<MainScreen> {
                             controller: _searchController,
                             focusNode: _searchFocusNode,
                             autofocus: true,
+                            enableInteractiveSelection: true,
+                            keyboardType: TextInputType.text,
+                            textInputAction: TextInputAction.search,
+                            autocorrect: false,
+                            enableSuggestions: false,
                             onChanged: _performSearch,
+                            onSubmitted: (value) {
+                              // Enter tuşuna basıldığında da arama yap
+                              _performSearch(value);
+                            },
                             style: TextStyle(
                               fontSize: 11,
                               color: isDarkMode ? Colors.white : const Color(0xFF1C1C1E),

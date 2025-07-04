@@ -5,7 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:in_app_review/in_app_review.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/credits_service.dart';
-import '../services/subscription_service.dart';
+import '../services/one_time_purchase_service.dart';
 import '../services/analytics_service.dart';
 import '../services/app_usage_service.dart';
 import '../services/global_config_service.dart';
@@ -28,7 +28,7 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   final CreditsService _creditsService = CreditsService();
-  final SubscriptionService _subscriptionService = SubscriptionService();
+  final OneTimePurchaseService _purchaseService = OneTimePurchaseService();
   final AppUsageService _appUsageService = AppUsageService();
   final GlobalConfigService _globalConfigService = GlobalConfigService();
   bool _hasRatedApp = false;
@@ -37,12 +37,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void initState() {
     super.initState();
     _creditsService.addListener(_updateState);
-    _subscriptionService.addListener(_updateState);
+    _purchaseService.addListener(_updateState);
     _appUsageService.addListener(_updateState);
     _globalConfigService.addListener(_updateState);
     
     // Play Console'dan fiyat bilgilerini yükle
-    _loadSubscriptionData();
+    _loadPurchaseData();
     // Değerlendirme durumunu kontrol et
     _checkRatingStatus();
   }
@@ -62,29 +62,29 @@ class _ProfileScreenState extends State<ProfileScreen> {
     });
   }
 
-  Future<void> _loadSubscriptionData() async {
-    // SubscriptionService henüz başlatılmamışsa başlat
+  Future<void> _loadPurchaseData() async {
+    // OneTimePurchaseService henüz başlatılmamışsa başlat
     try {
-      if (_subscriptionService.products.isEmpty) {
-        debugPrint('📦 [PROFILE] Subscription service ürünleri yükleniyor...');
-        await _subscriptionService.initialize();
-        debugPrint('✅ [PROFILE] Subscription service başlatıldı, ürün sayısı: ${_subscriptionService.products.length}');
+      if (_purchaseService.products.isEmpty) {
+        debugPrint('📦 [PROFILE] One-time purchase service ürünleri yükleniyor...');
+        await _purchaseService.initialize();
+        debugPrint('✅ [PROFILE] One-time purchase service başlatıldı, ürün sayısı: ${_purchaseService.products.length}');
       }
       
       // Fiyat güncellemesi için UI'ı yenile
       if (mounted) {
         setState(() {});
-        debugPrint('🔄 [PROFILE] UI güncellendi, fiyat: ${_subscriptionService.monthlyPrice}');
+        debugPrint('🔄 [PROFILE] UI güncellendi, fiyat: ${_purchaseService.removeAdsPrice}');
       }
     } catch (e) {
-      debugPrint('❌ [PROFILE] Subscription data yükleme hatası: $e');
+      debugPrint('❌ [PROFILE] Purchase data yükleme hatası: $e');
     }
   }
 
   @override
   void dispose() {
     _creditsService.removeListener(_updateState);
-    _subscriptionService.removeListener(_updateState);
+    _purchaseService.removeListener(_updateState);
     _appUsageService.removeListener(_updateState);
     _globalConfigService.removeListener(_updateState);
     super.dispose();
@@ -143,13 +143,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     width: 40,
                     height: 40,
                     decoration: BoxDecoration(
-                      color: _creditsService.isPremium
+                      color: _creditsService.isLifetimeAdsFree
                           ? const Color(0xFF007AFF)
                           : const Color(0xFF007AFF),
                       shape: BoxShape.circle,
                     ),
                     child: Icon(
-                      _creditsService.isPremium
+                      _creditsService.isLifetimeAdsFree
                           ? Icons.workspace_premium
                           : Icons.person,
                       color: Colors.white,
@@ -162,8 +162,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          _creditsService.isPremium
-                              ? 'Premium Üye'
+                          _creditsService.isLifetimeAdsFree
+                              ? 'Reklamsız Kullanıcı'
                               : 'Ücretsiz Kullanıcı',
                           style: TextStyle(
                             fontSize: 14,
@@ -387,14 +387,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
             const SizedBox(height: 16),
             
-            // Premium önerisi veya durumu - GlobalConfig'e göre göster/gizle
-            if (!_globalConfigService.subscriptionDisabled) ...[
-              if (!_creditsService.isPremium) ...[
-                // Premium önerisi
+            // Reklam kaldırma önerisi veya durumu
+            if (!_creditsService.isLifetimeAdsFree) ...[
+              // Reklam kaldırma önerisi
                 GestureDetector(
                 onTap: () {
                   FocusScope.of(context).unfocus();
-                  _showPremiumDialog();
+                  _showPurchaseDialog();
                 },
                 child: Container(
                   padding: const EdgeInsets.all(16),
@@ -433,7 +432,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Premium\'a Yükselt',
+                              'Reklamları Kaldır',
                               style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
@@ -442,7 +441,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              'Reklamları kaldır',
+                              'Ömür boyu reklamsız kullanım',
                               style: TextStyle(
                                 fontSize: 12,
                                 height: 1.3,
@@ -459,7 +458,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Text(
-                          '${_subscriptionService.monthlyPrice}/Ay',
+                          _purchaseService.removeAdsPrice,
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.bold,
@@ -472,7 +471,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
               ),
             ] else ...[
-              // Premium durumu - daha küçük
+              // Reklamsız durumu - daha küçük
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
@@ -508,7 +507,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'Premium Aktif',
+                                'Reklamsız Kullanıcı',
                                 style: TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.bold,
@@ -516,7 +515,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 ),
                               ),
                               Text(
-                                'Sınırsız Erişim',
+                                'Ömür boyu reklamsız kullanım',
                                 style: TextStyle(
                                   fontSize: 12,
                                   color: Colors.white.withOpacity(0.9),
@@ -527,40 +526,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ),
                       ],
                     ),
-                    if (_creditsService.premiumExpiry != null) ...[
-                      const SizedBox(height: 12),
-                      Container(
-                        padding: EdgeInsets.symmetric(vertical: 6, horizontal: 12),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.15),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              Icons.calendar_today,
-                              color: Colors.white,
-                              size: 14,
-                            ),
-                            const SizedBox(width: 6),
-                            Text(
-                              'Bitiş: ${_creditsService.premiumExpiry!.day}/${_creditsService.premiumExpiry!.month}/${_creditsService.premiumExpiry!.year}',
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.white,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
                   ],
                 ),
               ),
             ],
-            ], // GlobalConfig check kapanış
           ],
         ),
       ),
@@ -647,7 +616,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-  void _showPremiumDialog() {
+  void _showPurchaseDialog() {
     // Güçlü klavye kapatma - dialog açılmadan önce
     FocusManager.instance.primaryFocus?.unfocus();
     SystemChannels.textInput.invokeMethod('TextInput.hide');
@@ -663,12 +632,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
           return true;
         },
         child: AlertDialog(
-          title: const Text('Premium'),
+          title: const Text('Reklamları Kaldır'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Premium ile reklamları kaldırın.'),
+              const Text('Ömür boyu reklamsız kullanım için tek seferlik satın alın.'),
               const SizedBox(height: 16),
               Container(
                 padding: EdgeInsets.all(12),
@@ -680,11 +649,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
-                      'Aylık ',
+                      'Tek Seferlik ',
                       style: TextStyle(fontSize: 16),
                     ),
                     Text(
-                      _subscriptionService.monthlyPrice,
+                      _purchaseService.removeAdsPrice,
                       style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
@@ -722,13 +691,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   FocusManager.instance.primaryFocus?.unfocus();
                   SystemChannels.textInput.invokeMethod('TextInput.hide');
                 });
-                await _subscriptionService.buySubscription();
+                await _purchaseService.buyRemoveAds();
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF007AFF),
                 foregroundColor: Colors.white,
               ),
-              child: const Text('Abone Ol'),
+              child: const Text('Satın Al'),
             ),
           ],
         ),
