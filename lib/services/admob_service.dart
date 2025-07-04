@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:async';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
@@ -22,21 +23,22 @@ class AdMobService {
   DateTime? _lastInterstitialShowTime;
   
   // Uygulama lifecycle kontrolü için  
-  bool _isFirstLaunch = true;
   DateTime? _lastPausedTime;
   bool _wasActuallyInBackground = false;
   AppLifecycleState? _previousState;
   bool _creditsServiceInitialized = false;
   int _backgroundToForegroundCount = 0; // Arka plandan öne geçiş sayacı
+  bool _isShortPause = false; // Bildirim paneli gibi kısa süreli pause durumları için
+  Timer? _pauseTimer; // Pause süresini kontrol etmek için timer
   
   // Background time kuralı - Debug modda kısa, production'da normal
   static Duration get _minBackgroundTime => kDebugMode 
       ? const Duration(seconds: 2) // Debug modda 2 saniye - test için
       : const Duration(seconds: 3); // Production'da 3 saniye
   
-  // Reklam frekans kontrolü için sabitler - Debug modda kısa, production'da uzun
+  // Reklam frekans kontrolü için sabitler - Debug modda çok kısa, production'da uzun
   static Duration get _minTimeBetweenInterstitialAds => kDebugMode 
-      ? const Duration(seconds: 30) // Debug modda 30 saniye - test için
+      ? const Duration(seconds: 5) // Debug modda 5 saniye - test için
       : const Duration(minutes: 5); // Production'da 5 dakika minimum
   static const Duration _interstitialAdExpiration = Duration(hours: 4); // Interstitial reklam geçerlilik süresi
   static const int _maxAdLoadRetries = 3; // Maksimum reklam yükleme deneme sayısı
@@ -354,29 +356,30 @@ class AdMobService {
     return true;
   }
 
-  // App lifecycle için - 3 SANİYE KURALI İLE
+  // App lifecycle için - 3 SANİYE KURALI İLE + BİLDİRİM PANELİ FİLTRESİ
   void onAppStateChanged(AppLifecycleState state) {
-    debugPrint('🔄 [LIFECYCLE] $_previousState -> $state (firstLaunch: $_isFirstLaunch, wasBackground: $_wasActuallyInBackground, count: $_backgroundToForegroundCount)');
+    debugPrint('🔄 [LIFECYCLE] $_previousState -> $state (wasBackground: $_wasActuallyInBackground, count: $_backgroundToForegroundCount, shortPause: $_isShortPause)');
     
     // Debug durumu her state değişikliğinde göster
     debugAdStatus();
     
     switch (state) {
       case AppLifecycleState.resumed:
-        // İlk açılış kontrolünü gevşetiyoruz - sadece ilk 5 saniye skip
-        if (_isFirstLaunch) {
-          debugPrint('🚀 [LIFECYCLE] İlk açılış detected - 5 saniye grace period başlıyor');
-          _isFirstLaunch = false;
-          // 5 saniye sonra artık reklam gösterebiliriz
-          Future.delayed(const Duration(seconds: 5), () {
-            debugPrint('⏰ [LIFECYCLE] İlk açılış grace period bitti - artık reklam gösterilebilir');
-          });
-        } else if (_wasActuallyInBackground && _lastPausedTime != null) {
-          // 3 saniye kuralını kontrol et
+        // Pause timer'ı iptal et (eğer varsa)
+        _pauseTimer?.cancel();
+        _pauseTimer = null;
+        
+        // Background-resume geçişi kontrol et
+        if (_wasActuallyInBackground && _lastPausedTime != null) {
+          // Background süresini kontrol et
           final backgroundDuration = DateTime.now().difference(_lastPausedTime!);
-          debugPrint('⏱️ [LIFECYCLE] Arka planda geçen süre: ${backgroundDuration.inSeconds} saniye');
+          debugPrint('⏱️ [LIFECYCLE] Arka planda geçen süre: ${backgroundDuration.inSeconds} saniye (${backgroundDuration.inMilliseconds}ms)');
           
-          if (backgroundDuration >= _minBackgroundTime) {
+          // Çok kısa pause ise bildirim paneli olabilir
+          if (backgroundDuration < const Duration(milliseconds: 800)) {
+            debugPrint('📱 [LIFECYCLE] Çok kısa pause detected (${backgroundDuration.inMilliseconds}ms) - bildirim paneli olabilir, reklam gösterilmeyecek');
+            _isShortPause = true;
+          } else if (backgroundDuration >= _minBackgroundTime) {
             // 3 saniyeden fazla arka plandaysa reklam göster
             _backgroundToForegroundCount++;
             debugPrint('✅ [LIFECYCLE] 3 saniye kuralı sağlandı - Arka plandan dönüş #$_backgroundToForegroundCount - REKLAM GÖSTERİLECEK!');
@@ -389,39 +392,56 @@ class AdMobService {
           } else {
             debugPrint('⏳ [LIFECYCLE] 3 saniye dolmadı (${backgroundDuration.inSeconds}s) - reklam gösterilmeyecek');
           }
-          
-          _wasActuallyInBackground = false;
-          _lastPausedTime = null;
-        } else if (!_wasActuallyInBackground && _previousState != null) {
-          // Arka plandan gelmiyor ama önceki state var - bu normal app geçişi olabilir
-          debugPrint('ℹ️ [LIFECYCLE] Normal resume - arka plandan gelmiyor ($_previousState -> resumed)');
+        } else if (_isShortPause) {
+          debugPrint('📱 [LIFECYCLE] Kısa pause tespit edildi (bildirim paneli gibi) - reklam gösterilmeyecek');
         } else {
-          debugPrint('⚠️ [LIFECYCLE] Resume ama arka plandan gelmiyor veya pause zamanı yok');
+          debugPrint('ℹ️ [LIFECYCLE] Resume - arka plandan gelmiyor veya pause zamanı yok (normal durum)');
         }
+        
+        // Resume durumunda değişkenleri sıfırla
+        _wasActuallyInBackground = false;
+        _lastPausedTime = null;
+        _isShortPause = false;
         break;
         
       case AppLifecycleState.paused:
-        // Pause = arka plana geçti
+        // Pause durumunda hemen background olarak kabul et
         debugPrint('⏸️ [LIFECYCLE] Pause - arka plana geçti');
-        _wasActuallyInBackground = true;
         _lastPausedTime = DateTime.now();
+        _wasActuallyInBackground = true;
+        _isShortPause = false;
+        
+        // Timer'ı iptal et (eğer varsa)
+        _pauseTimer?.cancel();
+        _pauseTimer = null;
         break;
         
       case AppLifecycleState.inactive:
+        // Inactive durumunda hemen background olarak kabul et (eğer henüz pause zamanı yoksa)
+        if (_lastPausedTime == null) {
+          debugPrint('📵 [LIFECYCLE] Inactive - arka plana geçti');
+          _lastPausedTime = DateTime.now();
+          _wasActuallyInBackground = true;
+          _isShortPause = false;
+        }
+        break;
+        
       case AppLifecycleState.detached:
       case AppLifecycleState.hidden:
-        // Bu durumlar da arka plan demektir
-        debugPrint('📵 [LIFECYCLE] $state - arka plan durumu');
+        // Bu durumlar kesin arka plan demektir
+        debugPrint('📵 [LIFECYCLE] $state - kesin arka plan durumu');
+        _pauseTimer?.cancel();
+        _pauseTimer = null;
         if (_lastPausedTime == null) {
-          // Eğer pause olmadıysa şimdi zamanı kaydet
           _lastPausedTime = DateTime.now();
         }
         _wasActuallyInBackground = true;
+        _isShortPause = false;
         break;
     }
     
     _previousState = state;
-    debugPrint('🔍 [LIFECYCLE] Güncellendi: firstLaunch=$_isFirstLaunch, wasBackground=$_wasActuallyInBackground, lastPaused=$_lastPausedTime');
+    debugPrint('🔍 [LIFECYCLE] Güncellendi: wasBackground=$_wasActuallyInBackground, lastPaused=$_lastPausedTime, shortPause=$_isShortPause');
   }
   
   // Mounted kontrolü için helper
@@ -478,10 +498,11 @@ class AdMobService {
   // Reklam durumunu detaylı göster (debug için)
   void debugAdStatus() {
     debugPrint('🔍 === INTERSTITIAL AD DEBUG STATUS ===');
-    debugPrint('🔍 _isFirstLaunch: $_isFirstLaunch');
     debugPrint('🔍 _wasActuallyInBackground: $_wasActuallyInBackground');
     debugPrint('🔍 _backgroundToForegroundCount: $_backgroundToForegroundCount');
     debugPrint('🔍 _lastPausedTime: $_lastPausedTime');
+    debugPrint('🔍 _isShortPause: $_isShortPause');
+    debugPrint('🔍 _pauseTimer active: ${_pauseTimer?.isActive ?? false}');
     debugPrint('🔍 _creditsServiceInitialized: $_creditsServiceInitialized');
     debugPrint('🔍 isPremium: ${_creditsService.isPremium}');
     debugPrint('🔍 isLifetimeAdsFree: ${_creditsService.isLifetimeAdsFree}');
@@ -498,5 +519,7 @@ class AdMobService {
   void dispose() {
     _interstitialAd?.dispose();
     _interstitialAd = null;
+    _pauseTimer?.cancel();
+    _pauseTimer = null;
   }
 } 
