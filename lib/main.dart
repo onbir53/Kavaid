@@ -15,6 +15,7 @@ import 'services/firebase_options.dart';
 import 'services/saved_words_service.dart';
 import 'services/admob_service.dart';
 import 'widgets/banner_ad_widget.dart';
+import 'widgets/native_ad_widget.dart';
 import 'services/credits_service.dart';
 import 'services/one_time_purchase_service.dart';
 import 'services/global_config_service.dart';
@@ -354,6 +355,7 @@ class _KavaidAppState extends State<KavaidApp> with WidgetsBindingObserver {
     _creditsService.removeListener(() {});
     _usageTimer?.cancel();
     _appUsageService.endSession();
+    
     super.dispose();
   }
 

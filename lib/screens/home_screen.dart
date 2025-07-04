@@ -579,24 +579,16 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
     }
 
     if (_isSearching && _searchResults.isNotEmpty) {
-      // Native reklam gösterme mantığı - optimize edilmiş UX için
-      final int minCardsBeforeAd = 5; // En az 5 kart geçildikten sonra reklam göster
-      final int adFrequency = 12; // Her 12 sonuçtan sonra 1 reklam
-      final int maxAds = 3; // Maksimum 3 reklam göster (uzun listeler için)
+      // Native reklam gösterme mantığı - Sadece 4. sonuçtan sonra
+      final int maxAds = 1; // Maksimum 1 reklam göster
       
-      // Reklam pozisyonlarını hesapla
+      // Reklam pozisyonlarını hesapla - Sadece 4+ sonuç varsa
       final List<int> adPositions = [];
-      if (_searchResults.length > minCardsBeforeAd) {
-        // İlk reklam 5. pozisyonda (5 kart sonra)
-        int nextAdPosition = minCardsBeforeAd;
-        int adCount = 0;
-        
-        while (nextAdPosition < _searchResults.length && adCount < maxAds) {
-          adPositions.add(nextAdPosition);
-          nextAdPosition += adFrequency + 1; // 12 kart + 1 reklam
-          adCount++;
-        }
+      if (_searchResults.length >= 4) {
+        // 4 veya daha fazla sonuç varsa 4. pozisyonda reklam göster
+        adPositions.add(4);
       }
+      // 4'ten az sonuç varsa reklam gösterme
       
       final int totalAds = adPositions.length;
       
@@ -604,9 +596,10 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
       if (kDebugMode) {
         debugPrint('📊 [NATIVE ADS] Arama sonuçları: ${_searchResults.length}');
         debugPrint('📊 [NATIVE ADS] Reklam pozisyonları: $adPositions');
-        debugPrint('📊 [NATIVE ADS] Toplam reklam sayısı: $totalAds');
-        debugPrint('📊 [NATIVE ADS] İlk reklam pozisyonu: ${adPositions.isNotEmpty ? adPositions.first : 'yok'}');
-        debugPrint('🚀 [PERFORMANCE] Native ads - Performans modu aktif, visibility-based loading');
+        debugPrint('📊 [NATIVE ADS] Toplam reklam sayısı: $totalAds (MAX: 1)');
+        debugPrint('📊 [NATIVE ADS] Reklam pozisyonu: ${adPositions.isNotEmpty ? adPositions.first : 'yok'}');
+        debugPrint('🎯 [NATIVE ADS] Sabit pozisyon: 4. sonuçtan sonra');
+        debugPrint('✅ [NATIVE ADS] Sadece 4+ sonuç varsa reklam gösteriliyor');
       }
       
       slivers.add(
@@ -623,9 +616,7 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
                 if (adPositions.contains(index)) {
                   return RepaintBoundary(
                     key: ValueKey('ad_$index'),
-                    child: const NativeAdWidget(
-                      enablePerformanceMode: false, // Direkt yükleme modu
-                    ),
+                    child: const NativeAdWidget(),
                   );
                 }
                 
@@ -652,8 +643,8 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
                 return const SizedBox.shrink();
               },
               childCount: _searchResults.length + totalAds,
-              // 🚀 PERFORMANCE: Widget state'lerini koruma ve RepaintBoundary'leri kapat
-              addAutomaticKeepAlives: false,
+              // ✅ SCROLL: Reklam state'i koruması için KeepAlive aktif
+              addAutomaticKeepAlives: true,
               addRepaintBoundaries: false,
               // 🚀 PERFORMANCE: Semantic index'leri kapat
               addSemanticIndexes: false,

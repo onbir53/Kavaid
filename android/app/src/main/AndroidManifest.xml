@@ -39,6 +39,43 @@
             android:name="com.google.android.gms.ads.DELAY_APP_MEASUREMENT_INIT"
             android:value="true"/>
             
+        <!-- ⚡ FPS OPTIMIZATION: AdMob Performance Flags -->
+        <!-- Background thread'de ad initialization (Main thread'i bloklamaz) -->
+        <meta-data
+            android:name="com.google.android.gms.ads.flag.OPTIMIZE_INITIALIZATION"
+            android:value="true"/>
+        
+        <!-- Background thread'de ad loading (UI jank'ini önler) -->
+        <meta-data
+            android:name="com.google.android.gms.ads.flag.OPTIMIZE_AD_LOADING"
+            android:value="true"/>
+            
+        <!-- Native ad rendering optimizasyonu -->
+        <meta-data
+            android:name="com.google.android.gms.ads.flag.NATIVE_AD_PERFORMANCE_MODE"
+            android:value="true"/>
+            
+        <!-- WebView hardware acceleration -->
+        <meta-data
+            android:name="com.google.android.gms.ads.flag.WEBVIEW_ACCELERATION"
+            android:value="true"/>
+            
+        <!-- ⚡ ADVANCED WebView Performance -->
+        <!-- WebView process isolation (UI jank'ini önler) -->
+        <meta-data
+            android:name="android.webkit.WebView.ProcessIsolationEnabled"
+            android:value="true"/>
+            
+        <!-- GPU rasterization for WebView -->
+        <meta-data
+            android:name="android.webkit.WebView.EnableGPURasterization"
+            android:value="true"/>
+            
+        <!-- Smooth scrolling for WebView -->
+        <meta-data
+            android:name="android.webkit.WebView.SmoothScrollingEnabled"
+            android:value="true"/>
+            
         <!-- 🚀 PERFORMANCE FIX: Impeller'ı düşük performanslı cihazlarda devre dışı bırak -->
         <meta-data
             android:name="io.flutter.embedding.android.EnableImpeller"
