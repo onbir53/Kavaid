@@ -291,4 +291,9 @@ class CreditsService extends ChangeNotifier {
       await cancelPremium();
     }
   }
+  
+  // DEBUG: Reklamsız durumunu test için toggle et
+  Future<void> toggleAdsFreeForTest() async {
+    await togglePremiumStatus();
+  }
 } 

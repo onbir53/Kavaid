@@ -122,7 +122,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Kullanıcı bilgileri - daha küçük
+            // Profil bilgileri - tema switch ile
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
@@ -143,35 +143,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     width: 40,
                     height: 40,
                     decoration: BoxDecoration(
-                      color: _creditsService.isLifetimeAdsFree
-                          ? const Color(0xFF007AFF)
-                          : const Color(0xFF007AFF),
+                      color: const Color(0xFF007AFF),
                       shape: BoxShape.circle,
                     ),
                     child: Icon(
-                      _creditsService.isLifetimeAdsFree
-                          ? Icons.workspace_premium
-                          : Icons.person,
+                      Icons.person,
                       color: Colors.white,
                       size: 20,
                     ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          _creditsService.isLifetimeAdsFree
-                              ? 'Reklamsız Kullanıcı'
-                              : 'Ücretsiz Kullanıcı',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: isDarkMode ? Colors.white : Colors.black,
-                          ),
-                        ),
-                      ],
+                    child: Text(
+                      'Kavaid',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: isDarkMode ? Colors.white : Colors.black,
+                      ),
                     ),
                   ),
                   // Tema değiştirme - custom switch
@@ -372,11 +361,53 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ],
                     ),
                     const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: () async {
+                              // Reklam kaldırma durumunu toggle et
+                              await _creditsService.toggleAdsFreeForTest();
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(_creditsService.isLifetimeAdsFree
+                                        ? 'Reklamsız kullanım aktif'
+                                        : 'Reklamsız kullanım deaktif'),
+                                    backgroundColor: _creditsService.isLifetimeAdsFree
+                                        ? Colors.green
+                                        : Colors.orange,
+                                  ),
+                                );
+                              }
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: _creditsService.isLifetimeAdsFree
+                                  ? Colors.green
+                                  : Colors.blue,
+                            ),
+                            child: Text(
+                              _creditsService.isLifetimeAdsFree ? 'Premium AÇ' : 'Premium KAP',
+                              style: TextStyle(fontSize: 10),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
                     Text(
                       'Mevcut kullanım: ${_appUsageService.totalUsageMinutes} dakika',
                       style: TextStyle(
                         fontSize: 11,
                         color: Colors.red,
+                      ),
+                    ),
+                    Text(
+                      'Reklamsız durumu: ${_creditsService.isLifetimeAdsFree ? "AKTİF" : "DEAKTİF"}',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: _creditsService.isLifetimeAdsFree ? Colors.green : Colors.red,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
                   ],
@@ -428,27 +459,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                       const SizedBox(width: 12),
                       Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Reklamları Kaldır',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              'Ömür boyu reklamsız kullanım',
-                              style: TextStyle(
-                                fontSize: 12,
-                                height: 1.3,
-                                color: Colors.white.withOpacity(0.9),
-                              ),
-                            ),
-                          ],
+                        child: Text(
+                          'Reklamları Kaldır',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
                         ),
                       ),
                       Container(
@@ -503,25 +520,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ),
                         const SizedBox(width: 12),
                         Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Reklamsız Kullanıcı',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
-                                ),
-                              ),
-                              Text(
-                                'Ömür boyu reklamsız kullanım',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.white.withOpacity(0.9),
-                                ),
-                              ),
-                            ],
+                          child: Text(
+                            'Reklamsız Kullanım',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
                           ),
                         ),
                       ],
@@ -637,7 +642,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Ömür boyu reklamsız kullanım için tek seferlik satın alın.'),
+              const Text('Ömür boyu reklamsız kullanım'),
               const SizedBox(height: 16),
               Container(
                 padding: EdgeInsets.all(12),
