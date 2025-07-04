@@ -579,22 +579,35 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
     }
 
     if (_isSearching && _searchResults.isNotEmpty) {
-      // Native reklam gösterme mantığı
+      // Native reklam gösterme mantığı - optimize edilmiş UX için
       final int minCardsBeforeAd = 5; // En az 5 kart geçildikten sonra reklam göster
-      final int adFrequency = 10; // Her 10 sonuçtan sonra 1 reklam
+      final int adFrequency = 12; // Her 12 sonuçtan sonra 1 reklam
+      final int maxAds = 3; // Maksimum 3 reklam göster (uzun listeler için)
       
       // Reklam pozisyonlarını hesapla
       final List<int> adPositions = [];
       if (_searchResults.length > minCardsBeforeAd) {
         // İlk reklam 5. pozisyonda (5 kart sonra)
         int nextAdPosition = minCardsBeforeAd;
-        while (nextAdPosition < _searchResults.length) {
+        int adCount = 0;
+        
+        while (nextAdPosition < _searchResults.length && adCount < maxAds) {
           adPositions.add(nextAdPosition);
-          nextAdPosition += adFrequency + 1; // 10 kart + 1 reklam
+          nextAdPosition += adFrequency + 1; // 12 kart + 1 reklam
+          adCount++;
         }
       }
       
       final int totalAds = adPositions.length;
+      
+      // Debug bilgileri
+      if (kDebugMode) {
+        debugPrint('📊 [NATIVE ADS] Arama sonuçları: ${_searchResults.length}');
+        debugPrint('📊 [NATIVE ADS] Reklam pozisyonları: $adPositions');
+        debugPrint('📊 [NATIVE ADS] Toplam reklam sayısı: $totalAds');
+        debugPrint('📊 [NATIVE ADS] İlk reklam pozisyonu: ${adPositions.isNotEmpty ? adPositions.first : 'yok'}');
+        debugPrint('🚀 [PERFORMANCE] Native ads - Performans modu aktif, visibility-based loading');
+      }
       
       slivers.add(
         SliverPadding(
@@ -610,7 +623,9 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
                 if (adPositions.contains(index)) {
                   return RepaintBoundary(
                     key: ValueKey('ad_$index'),
-                    child: const NativeAdWidget(),
+                    child: const NativeAdWidget(
+                      enablePerformanceMode: false, // Direkt yükleme modu
+                    ),
                   );
                 }
                 

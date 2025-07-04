@@ -1,16 +1,153 @@
 import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/rendering.dart';
 import '../services/admob_service.dart';
 import '../services/credits_service.dart';
 import '../services/analytics_service.dart';
 
+// 🚀 PERFORMANCE: Static template style cache
+class _NativeAdStyleCache {
+  static NativeTemplateStyle? _cachedLightStyle;
+  static NativeTemplateStyle? _cachedDarkStyle;
+  
+  static NativeTemplateStyle getLightStyle() {
+    _cachedLightStyle ??= NativeTemplateStyle(
+      templateType: TemplateType.medium,
+      cornerRadius: 8,
+      callToActionTextStyle: NativeTemplateTextStyle(
+        textColor: Colors.white,
+        backgroundColor: const Color(0xFF007AFF),
+        style: NativeTemplateFontStyle.normal,
+        size: 14,
+      ),
+      primaryTextStyle: NativeTemplateTextStyle(
+        textColor: Colors.black87,
+        style: NativeTemplateFontStyle.bold,
+        size: 16,
+      ),
+      secondaryTextStyle: NativeTemplateTextStyle(
+        textColor: Colors.black54,
+        style: NativeTemplateFontStyle.normal,
+        size: 14,
+      ),
+      tertiaryTextStyle: NativeTemplateTextStyle(
+        textColor: Colors.black54,
+        style: NativeTemplateFontStyle.normal,
+        size: 12,
+      ),
+    );
+    return _cachedLightStyle!;
+  }
+  
+  static NativeTemplateStyle getDarkStyle() {
+    _cachedDarkStyle ??= NativeTemplateStyle(
+      templateType: TemplateType.medium,
+      cornerRadius: 8,
+      callToActionTextStyle: NativeTemplateTextStyle(
+        textColor: Colors.white,
+        backgroundColor: const Color(0xFF007AFF),
+        style: NativeTemplateFontStyle.normal,
+        size: 14,
+      ),
+      primaryTextStyle: NativeTemplateTextStyle(
+        textColor: Colors.white,
+        style: NativeTemplateFontStyle.bold,
+        size: 16,
+      ),
+      secondaryTextStyle: NativeTemplateTextStyle(
+        textColor: Colors.white70,
+        style: NativeTemplateFontStyle.normal,
+        size: 14,
+      ),
+      tertiaryTextStyle: NativeTemplateTextStyle(
+        textColor: Colors.white60,
+        style: NativeTemplateFontStyle.normal,
+        size: 12,
+      ),
+    );
+    return _cachedDarkStyle!;
+  }
+}
+
+// 🚀 PERFORMANCE: Visibility detector widget
+class _VisibilityDetector extends StatefulWidget {
+  final Widget child;
+  final VoidCallback onVisible;
+  final String tag;
+  
+  const _VisibilityDetector({
+    required this.child,
+    required this.onVisible,
+    required this.tag,
+  });
+
+  @override
+  State<_VisibilityDetector> createState() => _VisibilityDetectorState();
+}
+
+class _VisibilityDetectorState extends State<_VisibilityDetector> {
+  bool _hasTriggered = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Widget build edildikten sonra visibility kontrolü yap
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkVisibility();
+    });
+  }
+
+  void _checkVisibility() {
+    if (!_hasTriggered && mounted) {
+      final renderObject = context.findRenderObject() as RenderBox?;
+      if (renderObject != null && renderObject.hasSize) {
+        final position = renderObject.localToGlobal(Offset.zero);
+        final size = renderObject.size;
+        final screenHeight = MediaQuery.of(context).size.height;
+        
+        // Widget ekranda görünüyorsa
+        if (position.dy < screenHeight && position.dy + size.height > 0) {
+          _hasTriggered = true;
+          debugPrint('🔍 [VISIBILITY] Native ad görünür oldu, yükleme tetikleniyor...');
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            widget.onVisible();
+          });
+        } else {
+          debugPrint('🔍 [VISIBILITY] Native ad henüz görünür değil, bekliyor...');
+          // 500ms sonra tekrar kontrol et
+          Future.delayed(const Duration(milliseconds: 500), () {
+            if (mounted && !_hasTriggered) {
+              _checkVisibility();
+            }
+          });
+        }
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return NotificationListener<ScrollNotification>(
+      onNotification: (scrollNotification) {
+        if (!_hasTriggered) {
+          _checkVisibility();
+        }
+        return false;
+      },
+      child: widget.child,
+    );
+  }
+}
+
 class NativeAdWidget extends StatefulWidget {
-  final String? adUnitId; // Özel ad unit ID kullanmak için
+  final String? adUnitId;
+  final bool enablePerformanceMode; // Performans modu
   
   const NativeAdWidget({
     super.key,
     this.adUnitId,
+    this.enablePerformanceMode = false, // Varsayılan olarak kapalı - direkt yükleme
   });
 
   @override
@@ -21,21 +158,67 @@ class _NativeAdWidgetState extends State<NativeAdWidget> with AutomaticKeepAlive
   NativeAd? _nativeAd;
   bool _nativeAdIsLoaded = false;
   bool _isLoading = false;
+  bool _isVisible = false;
+  bool _hasLoadStarted = false;
   int _retryCount = 0;
-  static const int _maxRetries = 2;
-  static const Duration _retryDelay = Duration(seconds: 2);
+  static const int _maxRetries = 1; // Retry sayısını azalttım
+  static const Duration _retryDelay = Duration(seconds: 3);
   final CreditsService _creditsService = CreditsService();
+  Widget? _cachedAdWidget; // 🚀 PERFORMANCE: AdWidget cache
 
   @override
-  bool get wantKeepAlive => _nativeAdIsLoaded; // Yüklü reklamı canlı tut
+  bool get wantKeepAlive => false; // 🚀 PERFORMANCE: KeepAlive'ı kapattım, gereksiz memory kullanımı
 
   @override
   void initState() {
     super.initState();
-    if (!kIsWeb && (defaultTargetPlatform == TargetPlatform.android || 
-        defaultTargetPlatform == TargetPlatform.iOS) && !_creditsService.isPremium && !_creditsService.isLifetimeAdsFree) {
-      // Widget görünür olduğunda reklamı yükle (lazy loading)
-      WidgetsBinding.instance.addPostFrameCallback((_) {
+    
+    debugPrint('🔄 [NATIVE AD] InitState - Performance mode: ${widget.enablePerformanceMode}');
+    
+    // 🚀 PERFORMANCE: Sadece premium değilse ve platform uygunsa devam et
+    if (_shouldShowAd()) {
+      if (!widget.enablePerformanceMode) {
+        // Performance mode kapalıysa direkt yükle
+        debugPrint('📱 [NATIVE AD] Direkt yükleme modu - hemen yükleniyor...');
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            _loadNativeAd();
+          }
+        });
+      } else {
+        debugPrint('⏱️ [NATIVE AD] Performans modu - visibility detection bekleniyor...');
+        // Performance mode açıksa visibility detection bekler
+      }
+    } else {
+      debugPrint('🚫 [NATIVE AD] Reklam gösterilmeyecek - Premium/Web/UnsupportedPlatform');
+    }
+  }
+
+  bool _shouldShowAd() {
+    if (kIsWeb) {
+      debugPrint('🚫 [NATIVE AD] Web platformunda reklam gösterilmez');
+      return false;
+    }
+    if (defaultTargetPlatform != TargetPlatform.android && 
+        defaultTargetPlatform != TargetPlatform.iOS) {
+      debugPrint('🚫 [NATIVE AD] Desteklenmeyen platform: $defaultTargetPlatform');
+      return false;
+    }
+    if (_creditsService.isPremium || _creditsService.isLifetimeAdsFree) {
+      debugPrint('🚫 [NATIVE AD] Premium/Reklamsız kullanıcı - reklam gösterilmez');
+      return false;
+    }
+    debugPrint('✅ [NATIVE AD] Reklam gösterilebilir');
+    return true;
+  }
+
+  void _onVisible() {
+    if (!_isVisible && !_hasLoadStarted && _shouldShowAd()) {
+      _isVisible = true;
+      _hasLoadStarted = true;
+      
+      // 🚀 PERFORMANCE: Kısa delay ile yükle (UI thread'i bloklamayalım)
+      Future.delayed(const Duration(milliseconds: 200), () {
         if (mounted) {
           _loadNativeAd();
         }
@@ -44,18 +227,14 @@ class _NativeAdWidgetState extends State<NativeAdWidget> with AutomaticKeepAlive
   }
 
   void _loadNativeAd() {
-    // Premium kullanıcılar ve reklamsız kullanıcılar için reklam yükleme
-    if (_creditsService.isPremium || _creditsService.isLifetimeAdsFree) {
-      debugPrint('👑 Premium/Reklamsız kullanıcı - Native reklam yüklenmeyecek');
-      return;
-    }
-    
-    if (_isLoading || _nativeAdIsLoaded) return;
+    if (!_shouldShowAd() || _isLoading || _nativeAdIsLoaded) return;
     
     setState(() {
       _isLoading = true;
     });
 
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    
     _nativeAd = NativeAd(
       adUnitId: widget.adUnitId ?? AdMobService.nativeAdUnitId,
       request: const AdRequest(
@@ -64,16 +243,18 @@ class _NativeAdWidgetState extends State<NativeAdWidget> with AutomaticKeepAlive
       listener: NativeAdListener(
         onAdLoaded: (Ad ad) {
           if (mounted) {
+            // 🚀 PERFORMANCE: AdWidget'ı cache'le
+            _cachedAdWidget = AdWidget(ad: _nativeAd!);
+            
             setState(() {
               _nativeAdIsLoaded = true;
               _isLoading = false;
               _retryCount = 0;
             });
             
-            // Analytics event'i gönder
             AnalyticsService.logAdImpression('native', adUnitId: widget.adUnitId ?? AdMobService.nativeAdUnitId);
           }
-          debugPrint('✅ Native reklam yüklendi');
+          debugPrint('✅ Native reklam yüklendi (performans modu: ${widget.enablePerformanceMode})');
         },
         onAdFailedToLoad: (Ad ad, LoadAdError error) {
           debugPrint('❌ Native reklam yüklenemedi: ${error.message}');
@@ -83,44 +264,22 @@ class _NativeAdWidgetState extends State<NativeAdWidget> with AutomaticKeepAlive
               _nativeAd = null;
               _nativeAdIsLoaded = false;
               _isLoading = false;
+              _cachedAdWidget = null;
             });
             _handleLoadError();
           }
         },
         onAdClicked: (Ad ad) {
           debugPrint('📱 Native reklama tıklandı');
-          // Analytics event'i gönder
           AnalyticsService.logAdClick('native', adUnitId: widget.adUnitId ?? AdMobService.nativeAdUnitId);
         },
         onAdImpression: (Ad ad) {
           debugPrint('👁️ Native reklam görüntülendi');
         },
       ),
-      nativeTemplateStyle: NativeTemplateStyle(
-        templateType: TemplateType.medium,
-        cornerRadius: 8,
-        callToActionTextStyle: NativeTemplateTextStyle(
-          textColor: Colors.white,
-          backgroundColor: const Color(0xFF007AFF),
-          style: NativeTemplateFontStyle.normal,
-          size: 14,
-        ),
-        primaryTextStyle: NativeTemplateTextStyle(
-          textColor: Colors.black87,
-          style: NativeTemplateFontStyle.bold,
-          size: 16,
-        ),
-        secondaryTextStyle: NativeTemplateTextStyle(
-          textColor: Colors.black54,
-          style: NativeTemplateFontStyle.normal,
-          size: 14,
-        ),
-        tertiaryTextStyle: NativeTemplateTextStyle(
-          textColor: Colors.black54,
-          style: NativeTemplateFontStyle.normal,
-          size: 12,
-        ),
-      ),
+      nativeTemplateStyle: isDarkMode 
+          ? _NativeAdStyleCache.getDarkStyle()
+          : _NativeAdStyleCache.getLightStyle(),
     )..load();
   }
 
@@ -141,23 +300,15 @@ class _NativeAdWidgetState extends State<NativeAdWidget> with AutomaticKeepAlive
   @override
   void dispose() {
     _nativeAd?.dispose();
+    _cachedAdWidget = null;
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    super.build(context); // AutomaticKeepAliveClientMixin için
+    super.build(context);
     
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    
-    // Premium kullanıcılar ve reklamsız kullanıcılar için boş alan döndür
-    if (_creditsService.isPremium || _creditsService.isLifetimeAdsFree) {
-      return const SizedBox.shrink();
-    }
-    
-    // Web'de veya desteklenmeyen platformlarda hiçbir şey gösterme
-    if (kIsWeb || (!kReleaseMode && defaultTargetPlatform != TargetPlatform.android && 
-        defaultTargetPlatform != TargetPlatform.iOS)) {
+    if (!_shouldShowAd()) {
       return const SizedBox.shrink();
     }
     
@@ -166,68 +317,83 @@ class _NativeAdWidgetState extends State<NativeAdWidget> with AutomaticKeepAlive
       return const SizedBox.shrink();
     }
     
-    // RepaintBoundary ile performans optimizasyonu
+    // 🚀 PERFORMANCE: Performans modu açıksa visibility detection kullan
+    if (widget.enablePerformanceMode && !_isVisible) {
+      return _VisibilityDetector(
+        tag: 'native_ad_${widget.adUnitId ?? 'default'}',
+        onVisible: _onVisible,
+        child: Container(
+          height: 126, // Placeholder height
+          margin: const EdgeInsets.only(bottom: 6),
+          decoration: BoxDecoration(
+            color: Theme.of(context).brightness == Brightness.dark 
+                ? const Color(0xFF1C1C1E).withOpacity(0.5)
+                : Colors.grey.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: const Center(
+            child: Text(
+              'Reklam yükleniyor...',
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.grey,
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+    
     return RepaintBoundary(
-      child: _buildAdContent(isDarkMode),
+      child: _buildAdContent(),
     );
   }
   
-  Widget _buildAdContent(bool isDarkMode) {
-    // Reklam yükleniyorsa veya retry devam ediyorsa hiçbir şey gösterme
-    if (!_nativeAdIsLoaded || _nativeAd == null) {
-      // 🚀 PERFORMANCE: Yüklenirken hiçbir şey gösterme
+  Widget _buildAdContent() {
+    if (!_nativeAdIsLoaded || _nativeAd == null || _cachedAdWidget == null) {
       return const SizedBox.shrink();
     }
 
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 6),
-      child: Container(
-        decoration: BoxDecoration(
-          color: isDarkMode ? const Color(0xFF1C1C1E) : Colors.white,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-            color: isDarkMode 
-                ? const Color(0xFF48484A).withOpacity(0.3)
-                : const Color(0xFFE5E5EA).withOpacity(0.5),
-            width: 0.5,
-          ),
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
+    // 🚀 PERFORMANCE: Minimalist widget tree
+    return Container(
+      height: 120,
+      margin: const EdgeInsets.only(bottom: 6),
+      decoration: BoxDecoration(
+        color: isDarkMode ? const Color(0xFF1C1C1E) : Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: isDarkMode 
+              ? const Color(0xFF48484A).withOpacity(0.3)
+              : const Color(0xFFE5E5EA).withOpacity(0.5),
+          width: 0.5,
         ),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(8),
         child: Stack(
           children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: SizedBox(
-                height: 120,
-                child: AdWidget(ad: _nativeAd!),
-              ),
+            // 🚀 PERFORMANCE: Cached AdWidget
+            Positioned.fill(
+              child: _cachedAdWidget!,
             ),
-            // Reklam etiketi - sağ üst köşe
+            // Reklam etiketi - optimized
             Positioned(
               top: 4,
               right: 4,
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: BoxDecoration(
-                  color: isDarkMode 
-                      ? const Color(0xFF007AFF).withOpacity(0.2)
-                      : const Color(0xFF007AFF).withOpacity(0.12),
+                  color: const Color(0xFF007AFF).withOpacity(0.15),
                   borderRadius: BorderRadius.circular(4),
-                  border: Border.all(
-                    color: isDarkMode 
-                        ? const Color(0xFF007AFF).withOpacity(0.3)
-                        : const Color(0xFF007AFF).withOpacity(0.2),
-                    width: 0.5,
-                  ),
                 ),
-                child: Text(
+                child: const Text(
                   'Reklam',
                   style: TextStyle(
                     fontSize: 9,
                     fontWeight: FontWeight.w600,
-                    color: isDarkMode 
-                        ? const Color(0xFF007AFF)
-                        : const Color(0xFF007AFF).withOpacity(0.9),
-                    letterSpacing: 0.2,
+                    color: Color(0xFF007AFF),
                   ),
                 ),
               ),

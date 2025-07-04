@@ -10,6 +10,7 @@ import '../services/analytics_service.dart';
 import '../services/app_usage_service.dart';
 import '../services/global_config_service.dart';
 import '../services/admob_service.dart';
+import '../widgets/fps_counter_widget.dart';
 
 class ProfileScreen extends StatefulWidget {
   final double bottomPadding;
@@ -101,7 +102,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     
-    return Scaffold(
+    return FPSOverlay(
+      showFPS: kDebugMode, // Debug modda FPS göster
+      detailedFPS: true,   // Detaylı FPS bilgileri
+      child: Scaffold(
       backgroundColor: isDarkMode 
           ? const Color(0xFF1C1C1E) 
           : const Color(0xFFF2F2F7),
@@ -547,6 +551,29 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         color: AdMobService().isInterstitialAdAvailable ? Colors.green : Colors.red,
                       ),
                     ),
+                    Text(
+                      'Native Ad Performance: OPTİMİZE',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: Colors.green,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    Text(
+                      'Native Ad Mode: DİREKT YÜKLEME',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: Colors.orange,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    Text(
+                      'Performance Mode: KAPALI (Hızlı Yükleme)',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: Colors.blue,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -675,6 +702,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ],
         ),
       ),
+    ),
     );
   }
 

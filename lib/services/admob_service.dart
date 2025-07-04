@@ -113,9 +113,9 @@ class AdMobService {
     
     // Production ID'leri
     if (Platform.isAndroid) {
-      return 'ca-app-pub-3375249639458473/5517695141'; // Gerçek Android native ID
+      return 'ca-app-pub-3375249639458473/8521867085'; // Yeni Android native ID
     } else if (Platform.isIOS) {
-      return 'ca-app-pub-3375249639458473/9320660047'; // Gerçek iOS native ID
+      return 'ca-app-pub-3375249639458473/8521867085'; // Yeni iOS native ID (aynı birim)
     }
     
     // Fallback
