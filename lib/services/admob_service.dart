@@ -14,12 +14,12 @@ class AdMobService {
   
   final CreditsService _creditsService = CreditsService();
 
-  // App Open reklamı için değişkenler
-  AppOpenAd? _appOpenAd;
-  bool _isLoadingAppOpenAd = false;
-  bool _isShowingAppOpenAd = false;
-  DateTime? _appOpenLoadTime;
-  DateTime? _lastAppOpenShowTime;
+  // Interstitial reklamı için değişkenler
+  InterstitialAd? _interstitialAd;
+  bool _isLoadingInterstitialAd = false;
+  bool _isShowingInterstitialAd = false;
+  DateTime? _interstitialLoadTime;
+  DateTime? _lastInterstitialShowTime;
   
   // Uygulama lifecycle kontrolü için  
   bool _isFirstLaunch = true;
@@ -33,10 +33,10 @@ class AdMobService {
   static const Duration _minBackgroundTime = Duration(seconds: 3);
   
   // Reklam frekans kontrolü için sabitler - 5 dakika minimum aralık
-  static Duration get _minTimeBetweenAppOpenAds => kDebugMode 
+  static Duration get _minTimeBetweenInterstitialAds => kDebugMode 
       ? const Duration(minutes: 5) // Debug modda da 5 dakika minimum
       : const Duration(minutes: 5); // Production'da da 5 dakika minimum
-  static const Duration _appOpenAdExpiration = Duration(hours: 4); // App Open reklam geçerlilik süresi
+  static const Duration _interstitialAdExpiration = Duration(hours: 4); // Interstitial reklam geçerlilik süresi
   static const int _maxAdLoadRetries = 3; // Maksimum reklam yükleme deneme sayısı
   int _currentRetryCount = 0;
 
@@ -44,9 +44,9 @@ class AdMobService {
   static const String _testBannerAdUnitIdAndroid = 'ca-app-pub-3940256099942544/9214589741';
   static const String _testBannerAdUnitIdIOS = 'ca-app-pub-3940256099942544/2435281174';
   
-  // App Open reklamı için test ID'leri
-  static const String _testAppOpenAdUnitIdAndroid = 'ca-app-pub-3940256099942544/9257395921';
-  static const String _testAppOpenAdUnitIdIOS = 'ca-app-pub-3940256099942544/5575463023';
+  // Interstitial reklamı için test ID'leri
+  static const String _testInterstitialAdUnitIdAndroid = 'ca-app-pub-3940256099942544/1033173712';
+  static const String _testInterstitialAdUnitIdIOS = 'ca-app-pub-3940256099942544/4411468910';
   
   // Native reklam için test ID'leri
   static const String _testNativeAdUnitIdAndroid = 'ca-app-pub-3940256099942544/2247696110';
@@ -74,26 +74,26 @@ class AdMobService {
     return _testBannerAdUnitIdAndroid;
   }
 
-  // App Open reklamı için test ID'leri
-  static String get appOpenAdUnitId {
+  // Interstitial reklamı ID'si
+  static String get interstitialAdUnitId {
     if (kDebugMode) {
       // Test ID'leri
       if (Platform.isAndroid) {
-        return _testAppOpenAdUnitIdAndroid;
+        return _testInterstitialAdUnitIdAndroid;
       } else if (Platform.isIOS) {
-        return _testAppOpenAdUnitIdIOS;
+        return _testInterstitialAdUnitIdIOS;
       }
     }
     
     // Production ID'leri
     if (Platform.isAndroid) {
-      return 'ca-app-pub-3375249639458473/6180874278'; // Gerçek Android app open ID
+      return 'ca-app-pub-3375249639458473/1234567890'; // Buraya gerçek Android interstitial ID eklenecek
     } else if (Platform.isIOS) {
-      return 'ca-app-pub-3375249639458473/1633741717'; // Gerçek iOS app open ID
+      return 'ca-app-pub-3375249639458473/1234567890'; // Buraya gerçek iOS interstitial ID eklenecek
     }
     
     // Fallback
-    return _testAppOpenAdUnitIdAndroid;
+    return _testInterstitialAdUnitIdAndroid;
   }
 
   // Native reklam ID'si
@@ -138,8 +138,8 @@ class AdMobService {
         ),
       );
       
-      // App Open reklamı yükleme artık credits service listener'da yapılacak
-      // _instance.loadAppOpenAd(); // KALDIRILDI
+      // Interstitial reklamı yükleme artık credits service listener'da yapılacak
+      // _instance.loadInterstitialAd(); // Credits service listener'da yüklenecek
     } catch (e) {
       debugPrint('❌ AdMob başlatılamadı: $e');
     }
@@ -162,28 +162,28 @@ class AdMobService {
     
     if (_creditsService.isPremium || _creditsService.isLifetimeAdsFree) {
       // Premium/Reklamsız olduysa mevcut reklamı temizle
-      debugPrint('👑 [AdMob] Premium/Reklamsız aktif - App Open reklamı temizleniyor');
-      _appOpenAd?.dispose();
-      _appOpenAd = null;
-      _isShowingAppOpenAd = false;
-      _isLoadingAppOpenAd = false;
-    } else if (!_creditsService.isPremium && !_creditsService.isLifetimeAdsFree && _appOpenAd == null && !_isLoadingAppOpenAd) {
+      debugPrint('👑 [AdMob] Premium/Reklamsız aktif - Interstitial reklamı temizleniyor');
+      _interstitialAd?.dispose();
+      _interstitialAd = null;
+      _isShowingInterstitialAd = false;
+      _isLoadingInterstitialAd = false;
+    } else if (!_creditsService.isPremium && !_creditsService.isLifetimeAdsFree && _interstitialAd == null && !_isLoadingInterstitialAd) {
       // Premium/Reklamsız değilse ve reklam yoksa yükle
-      debugPrint('📱 [AdMob] Premium/Reklamsız değil - App Open reklamı yüklenmeye başlıyor...');
+      debugPrint('📱 [AdMob] Premium/Reklamsız değil - Interstitial reklamı yüklenmeye başlıyor...');
       // Biraz gecikme ile yükle ki servisi stable olsun
       Future.delayed(const Duration(milliseconds: 500), () {
         if (!_creditsService.isPremium && !_creditsService.isLifetimeAdsFree) { // Double check
-          debugPrint('🚀 [AdMob] App Open reklamı yükleme komutu veriliyor...');
-          loadAppOpenAd();
+          debugPrint('🚀 [AdMob] Interstitial reklamı yükleme komutu veriliyor...');
+          loadInterstitialAd();
         }
       });
     } else {
-      debugPrint('📊 [AdMob] Reklam yükleme durumu: reklam mevcut=${_appOpenAd != null}, yükleniyor=$_isLoadingAppOpenAd');
+      debugPrint('📊 [AdMob] Reklam yükleme durumu: reklam mevcut=${_interstitialAd != null}, yükleniyor=$_isLoadingInterstitialAd');
     }
   }
 
-  // App Open reklamını yükle
-  void loadAppOpenAd() {
+  // Interstitial reklamını yükle
+  void loadInterstitialAd() {
     if (kIsWeb || (!Platform.isAndroid && !Platform.isIOS)) {
       return;
     }
@@ -200,34 +200,34 @@ class AdMobService {
       return;
     }
 
-    if (_isLoadingAppOpenAd || isAppOpenAdAvailable) {
+    if (_isLoadingInterstitialAd || isInterstitialAdAvailable) {
       return;
     }
 
-    _isLoadingAppOpenAd = true;
-    debugPrint('🔄 App Open reklamı yükleniyor...');
+    _isLoadingInterstitialAd = true;
+    debugPrint('🔄 Interstitial reklamı yükleniyor...');
 
-    AppOpenAd.load(
-      adUnitId: appOpenAdUnitId,
+    InterstitialAd.load(
+      adUnitId: interstitialAdUnitId,
       request: const AdRequest(),
-      adLoadCallback: AppOpenAdLoadCallback(
-        onAdLoaded: (AppOpenAd ad) {
-          debugPrint('✅ App Open reklamı yüklendi');
-          _appOpenAd = ad;
-          _appOpenLoadTime = DateTime.now();
-          _isLoadingAppOpenAd = false;
+      adLoadCallback: InterstitialAdLoadCallback(
+        onAdLoaded: (InterstitialAd ad) {
+          debugPrint('✅ Interstitial reklamı yüklendi');
+          _interstitialAd = ad;
+          _interstitialLoadTime = DateTime.now();
+          _isLoadingInterstitialAd = false;
           _currentRetryCount = 0; // Başarılı yüklemede retry sayacını sıfırla
         },
         onAdFailedToLoad: (LoadAdError error) {
-          debugPrint('❌ App Open reklamı yüklenemedi: ${error.message}');
-          _isLoadingAppOpenAd = false;
+          debugPrint('❌ Interstitial reklamı yüklenemedi: ${error.message}');
+          _isLoadingInterstitialAd = false;
           
           // Retry mantığı
           _currentRetryCount++;
           if (_currentRetryCount < _maxAdLoadRetries) {
-            debugPrint('🔄 App Open reklamı tekrar denenecek (${_currentRetryCount}/$_maxAdLoadRetries)');
+            debugPrint('🔄 Interstitial reklamı tekrar denenecek (${_currentRetryCount}/$_maxAdLoadRetries)');
             Future.delayed(Duration(seconds: 2 * _currentRetryCount), () {
-              loadAppOpenAd();
+              loadInterstitialAd();
             });
           }
         },
@@ -235,9 +235,9 @@ class AdMobService {
     );
   }
 
-  // App Open reklamını göster - iyileştirilmiş versiyon
-  void showAppOpenAd() {
-    debugPrint('🎯 showAppOpenAd() çağırıldı - detaylı kontroller başlıyor...');
+  // Interstitial reklamını göster - iyileştirilmiş versiyon
+  void showInterstitialAd() {
+    debugPrint('🎯 showInterstitialAd() çağırıldı - detaylı kontroller başlıyor...');
     
     // Credits service başlatılmadıysa bekle
     if (!_creditsServiceInitialized) {
@@ -252,89 +252,89 @@ class AdMobService {
     }
     
     // Reklam durumu kontrolü
-    debugPrint('📊 Reklam durumu: mevcut=${_appOpenAd != null}, gösteriliyor=$_isShowingAppOpenAd, yükleniyor=$_isLoadingAppOpenAd');
+    debugPrint('📊 Reklam durumu: mevcut=${_interstitialAd != null}, gösteriliyor=$_isShowingInterstitialAd, yükleniyor=$_isLoadingInterstitialAd');
     
-    if (_appOpenAd == null) {
-      debugPrint('⚠️ App Open reklamı mevcut değil, yeni reklam yükleniyor...');
-      loadAppOpenAd();
+    if (_interstitialAd == null) {
+      debugPrint('⚠️ Interstitial reklamı mevcut değil, yeni reklam yükleniyor...');
+      loadInterstitialAd();
       return;
     }
     
-    if (_isShowingAppOpenAd) {
-      debugPrint('⚠️ App Open reklamı zaten gösteriliyor, atlanıyor');
+    if (_isShowingInterstitialAd) {
+      debugPrint('⚠️ Interstitial reklamı zaten gösteriliyor, atlanıyor');
       return;
     }
     
-    if (!isAppOpenAdAvailable) {
-      debugPrint('⚠️ App Open reklamı kullanılamaz durumda, yeni reklam yükleniyor...');
-      loadAppOpenAd();
+    if (!isInterstitialAdAvailable) {
+      debugPrint('⚠️ Interstitial reklamı kullanılamaz durumda, yeni reklam yükleniyor...');
+      loadInterstitialAd();
       return;
     }
     
     // Frekans kontrolü - daha detaylı loglama
-    if (_lastAppOpenShowTime != null) {
-      final timeSinceLastShow = DateTime.now().difference(_lastAppOpenShowTime!);
+    if (_lastInterstitialShowTime != null) {
+      final timeSinceLastShow = DateTime.now().difference(_lastInterstitialShowTime!);
       debugPrint('⏱️ Son reklam gösteriminden bu yana geçen süre: ${timeSinceLastShow.inMinutes} dakika');
-      if (timeSinceLastShow < _minTimeBetweenAppOpenAds) {
-        debugPrint('⏱️ App Open reklamı çok yakın zamanda gösterildi. ${_minTimeBetweenAppOpenAds.inMinutes - timeSinceLastShow.inMinutes} dakika daha beklenecek');
+      if (timeSinceLastShow < _minTimeBetweenInterstitialAds) {
+        debugPrint('⏱️ Interstitial reklamı çok yakın zamanda gösterildi. ${_minTimeBetweenInterstitialAds.inMinutes - timeSinceLastShow.inMinutes} dakika daha beklenecek');
         return;
       }
     } else {
       debugPrint('⏱️ İlk reklam gösterimi - frekans kontrolü yok');
     }
 
-    _isShowingAppOpenAd = true;
-    debugPrint('🚀 App Open reklamı gösteriliyor - tüm kontroller geçildi!');
+    _isShowingInterstitialAd = true;
+    debugPrint('🚀 Interstitial reklamı gösteriliyor - tüm kontroller geçildi!');
 
-    _appOpenAd!.fullScreenContentCallback = FullScreenContentCallback(
-      onAdShowedFullScreenContent: (AppOpenAd ad) {
-        debugPrint('✅ App Open reklamı tam ekran başarıyla gösterildi');
-        _lastAppOpenShowTime = DateTime.now();
+    _interstitialAd!.fullScreenContentCallback = FullScreenContentCallback(
+      onAdShowedFullScreenContent: (InterstitialAd ad) {
+        debugPrint('✅ Interstitial reklamı tam ekran başarıyla gösterildi');
+        _lastInterstitialShowTime = DateTime.now();
       },
-      onAdDismissedFullScreenContent: (AppOpenAd ad) {
-        debugPrint('👋 App Open reklamı kullanıcı tarafından kapatıldı');
-        _isShowingAppOpenAd = false;
+      onAdDismissedFullScreenContent: (InterstitialAd ad) {
+        debugPrint('👋 Interstitial reklamı kullanıcı tarafından kapatıldı');
+        _isShowingInterstitialAd = false;
         ad.dispose();
-        _appOpenAd = null;
+        _interstitialAd = null;
         // Bir sonraki gösterim için yeni reklam yükle
         Future.delayed(const Duration(seconds: 1), () {
-          loadAppOpenAd();
+          loadInterstitialAd();
         });
       },
-      onAdFailedToShowFullScreenContent: (AppOpenAd ad, AdError error) {
-        debugPrint('❌ App Open reklamı gösterim hatası: ${error.code} - ${error.message}');
-        _isShowingAppOpenAd = false;
+      onAdFailedToShowFullScreenContent: (InterstitialAd ad, AdError error) {
+        debugPrint('❌ Interstitial reklamı gösterim hatası: ${error.code} - ${error.message}');
+        _isShowingInterstitialAd = false;
         ad.dispose();
-        _appOpenAd = null;
+        _interstitialAd = null;
         // Hata durumunda yeni reklam yükle
         Future.delayed(const Duration(seconds: 2), () {
-          loadAppOpenAd();
+          loadInterstitialAd();
         });
       },
     );
 
     try {
-      _appOpenAd!.show();
-      debugPrint('📱 App Open reklamı show() komutu çalıştırıldı');
+      _interstitialAd!.show();
+      debugPrint('📱 Interstitial reklamı show() komutu çalıştırıldı');
     } catch (e) {
-      debugPrint('💥 App Open reklamı gösterim exception: $e');
-      _isShowingAppOpenAd = false;
-      _appOpenAd?.dispose();
-      _appOpenAd = null;
-      loadAppOpenAd();
+      debugPrint('💥 Interstitial reklamı gösterim exception: $e');
+      _isShowingInterstitialAd = false;
+      _interstitialAd?.dispose();
+      _interstitialAd = null;
+      loadInterstitialAd();
     }
   }
 
-  // App Open reklamının kullanılabilir olup olmadığını kontrol et
-  bool get isAppOpenAdAvailable {
-    if (_appOpenAd == null) return false;
+  // Interstitial reklamının kullanılabilir olup olmadığını kontrol et
+  bool get isInterstitialAdAvailable {
+    if (_interstitialAd == null) return false;
     
     // Reklam süresi dolmuş mu kontrol et
-    if (_appOpenLoadTime != null && 
-        DateTime.now().difference(_appOpenLoadTime!) > _appOpenAdExpiration) {
-      debugPrint('⏰ App Open reklamı süresi dolmuş, dispose ediliyor');
-      _appOpenAd?.dispose();
-      _appOpenAd = null;
+    if (_interstitialLoadTime != null && 
+        DateTime.now().difference(_interstitialLoadTime!) > _interstitialAdExpiration) {
+      debugPrint('⏰ Interstitial reklamı süresi dolmuş, dispose ediliyor');
+      _interstitialAd?.dispose();
+      _interstitialAd = null;
       return false;
     }
     
@@ -366,7 +366,7 @@ class AdMobService {
           
           // 100ms gecikme ile reklam göster (UI stable olsun)
           Future.delayed(const Duration(milliseconds: 100), () {
-            showAppOpenAd();
+            showInterstitialAd();
           });
           } else {
             debugPrint('⏳ [LIFECYCLE] 3 saniye dolmadı (${backgroundDuration.inSeconds}s) - reklam gösterilmeyecek');
@@ -406,14 +406,14 @@ class AdMobService {
   // Mounted kontrolü için helper
   bool get mounted => _creditsServiceInitialized;
   
-  // TEST FONKSIYONU: Zorla app open reklam göster (debug için)
-  void forceShowAppOpenAd() {
-    debugPrint('🧪 [TEST] ForceShowAppOpenAd çağırıldı');
+  // TEST FONKSIYONU: Zorla interstitial reklam göster (debug için)
+  void forceShowInterstitialAd() {
+    debugPrint('🧪 [TEST] ForceShowInterstitialAd çağırıldı');
     debugPrint('🧪 [TEST] Credits initialized: $_creditsServiceInitialized');
     debugPrint('🧪 [TEST] Premium durumu: ${_creditsService.isPremium}');
-    debugPrint('🧪 [TEST] App Open Ad mevcut: ${_appOpenAd != null}');
-    debugPrint('🧪 [TEST] App Open Ad yükleniyor: $_isLoadingAppOpenAd');
-    debugPrint('🧪 [TEST] App Open Ad gösteriliyor: $_isShowingAppOpenAd');
+    debugPrint('🧪 [TEST] Interstitial Ad mevcut: ${_interstitialAd != null}');
+    debugPrint('🧪 [TEST] Interstitial Ad yükleniyor: $_isLoadingInterstitialAd');
+    debugPrint('🧪 [TEST] Interstitial Ad gösteriliyor: $_isShowingInterstitialAd');
     
     if (!_creditsServiceInitialized) {
       debugPrint('🧪 [TEST] Credits service başlatılmamış, başlatılıyor...');
@@ -421,42 +421,43 @@ class AdMobService {
       return;
     }
     
-    if (_creditsService.isPremium) {
-      debugPrint('🧪 [TEST] Premium kullanıcı - reklam gösterilmeyecek');
+    if (_creditsService.isPremium || _creditsService.isLifetimeAdsFree) {
+      debugPrint('🧪 [TEST] Premium/Reklamsız kullanıcı - reklam gösterilmeyecek');
       return;
     }
     
-    if (_appOpenAd == null) {
+    if (_interstitialAd == null) {
       debugPrint('🧪 [TEST] Reklam mevcut değil, yükleniyor...');
-      loadAppOpenAd();
+      loadInterstitialAd();
       return;
     }
     
     debugPrint('🧪 [TEST] Tüm kontroller geçildi, reklam gösterilecek!');
-    showAppOpenAd();
+    showInterstitialAd();
   }
   
   // Reklam durumunu detaylı göster (debug için)
   void debugAdStatus() {
-    debugPrint('🔍 === APP OPEN AD DEBUG STATUS ===');
+    debugPrint('🔍 === INTERSTITIAL AD DEBUG STATUS ===');
     debugPrint('🔍 _isFirstLaunch: $_isFirstLaunch');
     debugPrint('🔍 _wasActuallyInBackground: $_wasActuallyInBackground');
     debugPrint('🔍 _backgroundToForegroundCount: $_backgroundToForegroundCount');
     debugPrint('🔍 _lastPausedTime: $_lastPausedTime');
     debugPrint('🔍 _creditsServiceInitialized: $_creditsServiceInitialized');
     debugPrint('🔍 isPremium: ${_creditsService.isPremium}');
-    debugPrint('🔍 _appOpenAd != null: ${_appOpenAd != null}');
-    debugPrint('🔍 _isLoadingAppOpenAd: $_isLoadingAppOpenAd');
-    debugPrint('🔍 _isShowingAppOpenAd: $_isShowingAppOpenAd');
-    debugPrint('🔍 isAppOpenAdAvailable: $isAppOpenAdAvailable');
-    debugPrint('🔍 _lastAppOpenShowTime: $_lastAppOpenShowTime');
+    debugPrint('🔍 isLifetimeAdsFree: ${_creditsService.isLifetimeAdsFree}');
+    debugPrint('🔍 _interstitialAd != null: ${_interstitialAd != null}');
+    debugPrint('🔍 _isLoadingInterstitialAd: $_isLoadingInterstitialAd');
+    debugPrint('🔍 _isShowingInterstitialAd: $_isShowingInterstitialAd');
+    debugPrint('🔍 isInterstitialAdAvailable: $isInterstitialAdAvailable');
+    debugPrint('🔍 _lastInterstitialShowTime: $_lastInterstitialShowTime');
     debugPrint('🔍 _previousState: $_previousState');
-    debugPrint('🔍 ================================');
+    debugPrint('🔍 ======================================');
   }
   
   // Tüm reklamları dispose et (uygulama kapanırken kullan)
   void dispose() {
-    _appOpenAd?.dispose();
-    _appOpenAd = null;
+    _interstitialAd?.dispose();
+    _interstitialAd = null;
   }
 } 

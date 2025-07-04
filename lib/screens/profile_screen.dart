@@ -9,6 +9,7 @@ import '../services/one_time_purchase_service.dart';
 import '../services/analytics_service.dart';
 import '../services/app_usage_service.dart';
 import '../services/global_config_service.dart';
+import '../services/admob_service.dart';
 
 class ProfileScreen extends StatefulWidget {
   final double bottomPadding;
@@ -423,6 +424,46 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             ),
                             child: Text(
                               'Ürün Test',
+                              style: TextStyle(fontSize: 10),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: () async {
+                              // Interstitial reklam testi
+                              try {
+                                final AdMobService adService = AdMobService();
+                                adService.forceShowInterstitialAd();
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text('Interstitial reklam test edildi'),
+                                      backgroundColor: Colors.green,
+                                    ),
+                                  );
+                                }
+                              } catch (e) {
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text('Reklam test hatası: $e'),
+                                      backgroundColor: Colors.red,
+                                    ),
+                                  );
+                                }
+                              }
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.cyan,
+                            ),
+                            child: Text(
+                              'Reklam Test',
                               style: TextStyle(fontSize: 10),
                             ),
                           ),
