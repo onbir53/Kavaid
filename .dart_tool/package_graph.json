@@ -5,7 +5,7 @@
   "packages": [
     {
       "name": "kavaid",
-      "version": "2.1.0+2052",
+      "version": "2.1.1+2054",
       "dependencies": [
         "connectivity_plus",
         "cupertino_icons",
