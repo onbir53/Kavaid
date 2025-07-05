@@ -33,6 +33,10 @@ class AdMobService {
   bool _isNotificationPanel = false; // Bildirim paneli tespiti için
   Timer? _pauseTimer; // Pause süresini kontrol etmek için timer
   
+  // Uygulama içi işlemler için flag'ler
+  bool _isInAppAction = false; // Paylaşım, satın alma gibi uygulama içi işlemler
+  String _inAppActionType = ''; // İşlem tipi (debug için)
+  
   // Background time kuralı - Debug modda kısa, production'da normal
   static Duration get _minBackgroundTime => kDebugMode 
       ? const Duration(seconds: 2) // Debug modda 2 saniye - test için
@@ -401,6 +405,10 @@ class AdMobService {
           if (isLikelyNotificationPanel) {
             debugPrint('🚫 [LIFECYCLE] BİLDİRİM PANELİ tespit edildi - reklam gösterilmeyecek');
             _isShortPause = true;
+          } else if (_isInAppAction) {
+            debugPrint('🚫 [LIFECYCLE] Uygulama içi işlem aktif ($_inAppActionType) - reklam gösterilmeyecek');
+            // Uygulama içi işlem flagini temizle (tek seferlik)
+            clearInAppActionFlag();
           } else if (backgroundDuration >= _minBackgroundTime) {
             // 3 saniyeden fazla arka plandaysa reklam göster
             _backgroundToForegroundCount++;
@@ -489,6 +497,20 @@ class AdMobService {
   // Mounted kontrolü için helper
   bool get mounted => _creditsServiceInitialized;
   
+  // Uygulama içi işlem flag'lerini yönet
+  void setInAppActionFlag(String actionType) {
+    _isInAppAction = true;
+    _inAppActionType = actionType;
+    debugPrint('🔒 [AdMob] Uygulama içi işlem başladı: $actionType - Reklam geçici olarak devre dışı');
+  }
+  
+  void clearInAppActionFlag() {
+    final previousAction = _inAppActionType;
+    _isInAppAction = false;
+    _inAppActionType = '';
+    debugPrint('🔓 [AdMob] Uygulama içi işlem tamamlandı: $previousAction - Reklam tekrar aktif');
+  }
+  
   // TEST FONKSIYONU: Zorla interstitial reklam göster (debug için)
   void forceShowInterstitialAd() {
     debugPrint('🧪 [TEST] ForceShowInterstitialAd çağırıldı');
@@ -547,6 +569,8 @@ class AdMobService {
     debugPrint('🔍 _isShortPause: $_isShortPause');
     debugPrint('🔍 _isNotificationPanel: $_isNotificationPanel');
     debugPrint('🔍 _pauseTimer active: ${_pauseTimer?.isActive ?? false}');
+    debugPrint('🔍 _isInAppAction: $_isInAppAction');
+    debugPrint('🔍 _inAppActionType: $_inAppActionType');
     debugPrint('🔍 _creditsServiceInitialized: $_creditsServiceInitialized');
     debugPrint('🔍 isPremium: ${_creditsService.isPremium}');
     debugPrint('🔍 isLifetimeAdsFree: ${_creditsService.isLifetimeAdsFree}');

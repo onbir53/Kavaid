@@ -7,6 +7,7 @@ import 'package:firebase_database/firebase_database.dart';
 import 'device_data_service.dart';
 import 'credits_service.dart';
 import 'turkce_analytics_service.dart';
+import 'admob_service.dart';
 
 class OneTimePurchaseService extends ChangeNotifier {
   static const String _removeAdsProductId = 'kavaid_remove_ads_lifetime';
@@ -199,6 +200,7 @@ class OneTimePurchaseService extends ChangeNotifier {
       if (_isLifetimeAdsFree) {
         _lastError = 'Bu cihaz zaten ömür boyu reklamsız';
         debugPrint('⚠️ [ONE-TIME] $_lastError');
+        AdMobService().clearInAppActionFlag();
         notifyListeners();
         return false;
       }
@@ -206,6 +208,7 @@ class OneTimePurchaseService extends ChangeNotifier {
       if (!_isAvailable) {
         _lastError = 'Store kullanılamıyor';
         debugPrint('❌ [ONE-TIME] $_lastError');
+        AdMobService().clearInAppActionFlag();
         notifyListeners();
         return false;
       }
@@ -215,6 +218,7 @@ class OneTimePurchaseService extends ChangeNotifier {
         await loadProducts();
         if (_products.isEmpty) {
           _lastError = 'Reklam kaldırma ürünü bulunamadı';
+          AdMobService().clearInAppActionFlag();
           notifyListeners();
           return false;
         }
@@ -249,6 +253,7 @@ class OneTimePurchaseService extends ChangeNotifier {
         debugPrint('❌ [ONE-TIME] Satın alma komutu gönderilemedi');
         _purchasePending = false;
         _lastError = 'Satın alma başlatılamadı';
+        AdMobService().clearInAppActionFlag();
         notifyListeners();
         return false;
       }
@@ -257,6 +262,7 @@ class OneTimePurchaseService extends ChangeNotifier {
       debugPrint('❌ [ONE-TIME] Satın alma exception: $e');
       _purchasePending = false;
       _lastError = 'Satın alma hatası: $e';
+      AdMobService().clearInAppActionFlag();
       notifyListeners();
       return false;
     }
@@ -291,6 +297,9 @@ class OneTimePurchaseService extends ChangeNotifier {
         } else {
           _lastError = 'Bilinmeyen satın alma hatası';
         }
+        
+        // Satın alma hatası, uygulama içi işlem flag'ini temizle
+        AdMobService().clearInAppActionFlag();
         notifyListeners();
         
       } else if (purchaseDetails.status == PurchaseStatus.purchased ||
@@ -304,6 +313,9 @@ class OneTimePurchaseService extends ChangeNotifier {
         debugPrint('🔴 [ONE-TIME] Satın alma iptal edildi');
         _purchasePending = false;
         _lastError = 'Satın alma iptal edildi';
+        
+        // Satın alma iptal edildi, uygulama içi işlem flag'ini temizle
+        AdMobService().clearInAppActionFlag();
         notifyListeners();
       }
       
@@ -393,9 +405,14 @@ class OneTimePurchaseService extends ChangeNotifier {
       debugPrint('✅ [ONE-TIME] Ömür boyu reklamsız özellik başarıyla aktifleştirildi!');
       debugPrint('🔒 [ONE-TIME] Cihaz ID güvenli şekilde kaydedildi: $deviceId');
       
+      // Satın alma işlemi tamamlandı, uygulama içi işlem flag'ini temizle
+      AdMobService().clearInAppActionFlag();
+      
     } catch (e) {
       debugPrint('❌ [ONE-TIME] Ömür boyu reklamsız aktifleştirme hatası: $e');
       _lastError = 'Ömür boyu reklamsız aktifleştirilemedi: $e';
+      // Hata durumunda da flag'i temizle
+      AdMobService().clearInAppActionFlag();
       throw e;
     }
   }

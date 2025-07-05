@@ -82,6 +82,9 @@ dependencies:
   
   # In-App Review for native rating dialog
   in_app_review: ^2.0.9
+  
+  # Share functionality
+  share_plus: ^10.1.2
 
 dev_dependencies:
   flutter_test:

@@ -584,6 +584,18 @@
       "languageVersion": "3.6"
     },
     {
+      "name": "share_plus",
+      "rootUri": "file:///C:/Users/kul/AppData/Local/Pub/Cache/hosted/pub.dev/share_plus-10.1.4",
+      "packageUri": "lib/",
+      "languageVersion": "3.4"
+    },
+    {
+      "name": "share_plus_platform_interface",
+      "rootUri": "file:///C:/Users/kul/AppData/Local/Pub/Cache/hosted/pub.dev/share_plus_platform_interface-5.0.2",
+      "packageUri": "lib/",
+      "languageVersion": "2.18"
+    },
+    {
       "name": "shared_preferences",
       "rootUri": "file:///C:/Users/kul/AppData/Local/Pub/Cache/hosted/pub.dev/shared_preferences-2.5.3",
       "packageUri": "lib/",
@@ -660,6 +672,12 @@
       "rootUri": "file:///C:/Users/kul/AppData/Local/Pub/Cache/hosted/pub.dev/source_span-1.10.1",
       "packageUri": "lib/",
       "languageVersion": "3.1"
+    },
+    {
+      "name": "sprintf",
+      "rootUri": "file:///C:/Users/kul/AppData/Local/Pub/Cache/hosted/pub.dev/sprintf-7.0.0",
+      "packageUri": "lib/",
+      "languageVersion": "2.12"
     },
     {
       "name": "sqflite",
@@ -798,6 +816,12 @@
       "rootUri": "file:///C:/Users/kul/AppData/Local/Pub/Cache/hosted/pub.dev/url_launcher_windows-3.1.4",
       "packageUri": "lib/",
       "languageVersion": "3.4"
+    },
+    {
+      "name": "uuid",
+      "rootUri": "file:///C:/Users/kul/AppData/Local/Pub/Cache/hosted/pub.dev/uuid-4.5.1",
+      "packageUri": "lib/",
+      "languageVersion": "3.0"
     },
     {
       "name": "vector_math",

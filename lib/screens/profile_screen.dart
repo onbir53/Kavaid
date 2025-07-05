@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:in_app_review/in_app_review.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:share_plus/share_plus.dart';
 import '../services/credits_service.dart';
 import '../services/one_time_purchase_service.dart';
 import '../services/turkce_analytics_service.dart';
@@ -579,7 +580,73 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
               const SizedBox(height: 16),
             ],
-
+            
+            const SizedBox(height: 16),
+            
+            // Paylaşım butonu - UI ile uyumlu
+            GestureDetector(
+              onTap: _shareApp,
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: isDarkMode 
+                      ? const Color(0xFF2C2C2E) 
+                      : Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: isDarkMode 
+                        ? const Color(0xFF3A3A3C)
+                        : const Color(0xFFE5E5EA),
+                    width: 1,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: isDarkMode
+                          ? Colors.black.withOpacity(0.2)
+                          : Colors.black.withOpacity(0.05),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF007AFF).withOpacity(0.2),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Icons.share_rounded,
+                        color: const Color(0xFF007AFF),
+                        size: 24,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'Uygulamayı Paylaş',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: isDarkMode ? Colors.white : Colors.black,
+                        ),
+                      ),
+                    ),
+                    Icon(
+                      Icons.arrow_forward_ios,
+                      size: 16,
+                      color: isDarkMode 
+                          ? const Color(0xFF8E8E93)
+                          : const Color(0xFF6D6D70),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            
             const SizedBox(height: 16),
             
             // Reklam kaldırma önerisi veya durumu
@@ -786,6 +853,38 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+  Future<void> _shareApp() async {
+    try {
+      // Uygulama içi işlem flag'ini set et - reklam engellemek için
+      AdMobService().setInAppActionFlag('paylaşım');
+      
+      // Analytics event'i gönder
+      await TurkceAnalyticsService.uygulamaPaylasildi();
+      
+      const String packageName = 'com.onbir.kavaid';
+      const String playStoreUrl = 'https://play.google.com/store/apps/details?id=$packageName';
+      
+      await Share.share(
+        playStoreUrl,
+        subject: 'Kavaid - Arapça Sözlük Uygulaması',
+      );
+      
+      debugPrint('✅ Uygulama başarıyla paylaşıldı');
+    } catch (e) {
+      debugPrint('❌ Paylaşım hatası: $e');
+      // Hata durumunda da flag'i temizle
+      AdMobService().clearInAppActionFlag();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Paylaşım sırasında bir hata oluştu'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
   void _showPurchaseDialog() {
     // Güçlü klavye kapatma - dialog açılmadan önce
     FocusManager.instance.primaryFocus?.unfocus();
@@ -854,16 +953,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
             ElevatedButton(
               onPressed: () async {
-                // Güçlü klavye kapatma
-                FocusManager.instance.primaryFocus?.unfocus();
-                SystemChannels.textInput.invokeMethod('TextInput.hide');
-                Navigator.of(context).pop();
-                // Çoklu kontrol
-                WidgetsBinding.instance.addPostFrameCallback((_) {
+                // Uygulama içi işlem flag'ini set et - reklam engellemek için
+                AdMobService().setInAppActionFlag('satın_alma');
+                
+                try {
+                  // Güçlü klavye kapatma
                   FocusManager.instance.primaryFocus?.unfocus();
                   SystemChannels.textInput.invokeMethod('TextInput.hide');
-                });
-                await _purchaseService.buyRemoveAds();
+                  Navigator.of(context).pop();
+                  // Çoklu kontrol
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    FocusManager.instance.primaryFocus?.unfocus();
+                    SystemChannels.textInput.invokeMethod('TextInput.hide');
+                  });
+                  await _purchaseService.buyRemoveAds();
+                } catch (e) {
+                  // Hata durumunda flag'i temizle
+                  AdMobService().clearInAppActionFlag();
+                  rethrow;
+                }
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF007AFF),
