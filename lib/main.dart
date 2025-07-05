@@ -478,7 +478,11 @@ class _KavaidAppState extends State<KavaidApp> with WidgetsBindingObserver {
               child: FPSOverlay(
                 showFPS: false, // Debug mesajlarını önlemek için tamamen kapalı
                 detailedFPS: false,
-                child: child!,
+                child: SafeArea(
+                  // 🔧 ANDROID 15 FIX: Global SafeArea - Navigation bar overlap fix
+                  bottom: true,
+                  child: child!,
+                ),
               ),
             ),
           ),
@@ -729,6 +733,8 @@ class _MainScreenState extends State<MainScreen> {
     final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
     final hasSystemKeyboard = keyboardHeight > 0;
     const navBarHeight = 56.0;
+    // 🔧 ANDROID 15 FIX: System navigation bar yüksekliğini hesapla
+    final systemNavBarHeight = MediaQuery.of(context).viewPadding.bottom;
 
     return Scaffold(
       resizeToAvoidBottomInset: false,
@@ -741,7 +747,7 @@ class _MainScreenState extends State<MainScreen> {
                 index: _currentIndex,
                 children: [
                   HomeScreen(
-                    bottomPadding: _bannerHeight + navBarHeight,
+                    bottomPadding: _bannerHeight + navBarHeight + systemNavBarHeight,
                     isDarkMode: widget.isDarkMode,
                     onThemeToggle: widget.onThemeToggle,
                     onArabicKeyboardStateChanged: _setArabicKeyboardState,
@@ -751,11 +757,11 @@ class _MainScreenState extends State<MainScreen> {
                     },
                   ),
                   SavedWordsScreen(
-                    bottomPadding: _bannerHeight + navBarHeight,
+                    bottomPadding: _bannerHeight + navBarHeight + systemNavBarHeight,
                     onRefreshCallback: (callback) => _refreshSavedWords = callback,
                   ),
                   ProfileScreen(
-                    bottomPadding: _bannerHeight + navBarHeight,
+                    bottomPadding: _bannerHeight + navBarHeight + systemNavBarHeight,
                     isDarkMode: widget.isDarkMode,
                     onThemeToggle: widget.onThemeToggle,
                   ),
@@ -770,7 +776,7 @@ class _MainScreenState extends State<MainScreen> {
                 ? keyboardHeight
                 : _showArabicKeyboard
                     ? 280.0
-                    : navBarHeight,
+                    : navBarHeight + MediaQuery.of(context).viewPadding.bottom,
             left: 0,
             right: 0,
             height: _bannerHeight,
@@ -792,59 +798,61 @@ class _MainScreenState extends State<MainScreen> {
             bottom: (hasSystemKeyboard || _showArabicKeyboard) ? -navBarHeight : 0,
             left: 0,
             right: 0,
-            height: navBarHeight,
+            height: navBarHeight + MediaQuery.of(context).viewPadding.bottom,
             child: RepaintBoundary(
               child: Container(
-              decoration: BoxDecoration(
-                color: widget.isDarkMode ? const Color(0xFF1C1C1E) : Colors.white,
-                boxShadow: [
-                  BoxShadow(
-                    color: widget.isDarkMode
-                        ? Colors.black.withOpacity(0.3)
-                        : Colors.black.withOpacity(0.08),
-                    blurRadius: 10,
-                    offset: const Offset(0, -2),
-                  ),
-                ],
-              ),
-              child: BottomNavigationBar(
-                currentIndex: _currentIndex,
-                onTap: _onTabTapped,
-                type: BottomNavigationBarType.fixed,
-                backgroundColor: Colors.transparent, // Arka planı parent container'dan alır
-                selectedItemColor: const Color(0xFF007AFF),
-                unselectedItemColor: widget.isDarkMode
-                    ? const Color(0xFF8E8E93)
-                    : const Color(0xFF8E8E93),
-                selectedLabelStyle: const TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: 0.2,
+                // 🔧 ANDROID 15 FIX: System navigation bar padding eklendi
+                padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewPadding.bottom),
+                decoration: BoxDecoration(
+                  color: widget.isDarkMode ? const Color(0xFF1C1C1E) : Colors.white,
+                  boxShadow: [
+                    BoxShadow(
+                      color: widget.isDarkMode
+                          ? Colors.black.withOpacity(0.3)
+                          : Colors.black.withOpacity(0.08),
+                      blurRadius: 10,
+                      offset: const Offset(0, -2),
+                    ),
+                  ],
                 ),
-                unselectedLabelStyle: const TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w400,
+                child: BottomNavigationBar(
+                  currentIndex: _currentIndex,
+                  onTap: _onTabTapped,
+                  type: BottomNavigationBarType.fixed,
+                  backgroundColor: Colors.transparent, // Arka planı parent container'dan alır
+                  selectedItemColor: const Color(0xFF007AFF),
+                  unselectedItemColor: widget.isDarkMode
+                      ? const Color(0xFF8E8E93)
+                      : const Color(0xFF8E8E93),
+                  selectedLabelStyle: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.2,
+                  ),
+                  unselectedLabelStyle: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w400,
+                  ),
+                  elevation: 0,
+                  iconSize: 24,
+                  items: [
+                    BottomNavigationBarItem(
+                      icon: const Icon(Icons.menu_book_outlined),
+                      activeIcon: const Icon(Icons.menu_book),
+                      label: 'Sözlük',
+                    ),
+                    BottomNavigationBarItem(
+                      icon: const Icon(Icons.bookmark_border),
+                      activeIcon: const Icon(Icons.bookmark),
+                      label: 'Kaydedilenler',
+                    ),
+                    BottomNavigationBarItem(
+                      icon: const Icon(Icons.person_outline),
+                      activeIcon: const Icon(Icons.person),
+                      label: 'Profil',
+                    ),
+                  ],
                 ),
-                elevation: 0,
-                iconSize: 24,
-                items: [
-                  BottomNavigationBarItem(
-                    icon: const Icon(Icons.menu_book_outlined),
-                    activeIcon: const Icon(Icons.menu_book),
-                    label: 'Sözlük',
-                  ),
-                  BottomNavigationBarItem(
-                    icon: const Icon(Icons.bookmark_border),
-                    activeIcon: const Icon(Icons.bookmark),
-                    label: 'Kaydedilenler',
-                  ),
-                  BottomNavigationBarItem(
-                    icon: const Icon(Icons.person_outline),
-                    activeIcon: const Icon(Icons.person),
-                    label: 'Profil',
-                  ),
-                ],
-              ),
               ),
             ),
           ),

@@ -353,9 +353,11 @@ class _RecentWordsSectionState extends State<RecentWordsSection> {
     // Kelime detaylarını normal dialog ile göster
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(word.kelime),
-        content: SingleChildScrollView(
+      builder: (context) => SafeArea(
+        // 🔧 ANDROID 15 FIX: Dialog safe area padding
+        child: AlertDialog(
+          title: Text(word.kelime),
+          content: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -406,6 +408,7 @@ class _RecentWordsSectionState extends State<RecentWordsSection> {
             child: const Text('Kapat'),
           ),
         ],
+        ),
       ),
     );
   }
@@ -416,11 +419,13 @@ class _RecentWordsSectionState extends State<RecentWordsSection> {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        backgroundColor: isDarkMode ? const Color(0xFF1C1C1E) : Colors.white,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
+      builder: (context) => SafeArea(
+        // 🔧 ANDROID 15 FIX: Dialog safe area padding
+        child: AlertDialog(
+          backgroundColor: isDarkMode ? const Color(0xFF1C1C1E) : Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
         title: Row(
           children: [
             Container(
@@ -518,6 +523,7 @@ class _RecentWordsSectionState extends State<RecentWordsSection> {
             child: const Text('Premium\'a Bak'),
           ),
         ],
+        ),
       ),
     );
   }

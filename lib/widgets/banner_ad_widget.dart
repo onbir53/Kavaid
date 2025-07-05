@@ -244,14 +244,16 @@ class BannerAdWidgetState extends State<BannerAdWidget>
     showDialog(
       context: context,
       barrierDismissible: false, // Dışarı tıklayarak kapatmayı engelle
-      builder: (context) => WillPopScope(
-        onWillPop: () async {
-          // Güçlü klavye kapatma - geri tuşu
-          FocusManager.instance.primaryFocus?.unfocus();
-          SystemChannels.textInput.invokeMethod('TextInput.hide');
-          return true;
-        },
-        child: AlertDialog(
+      builder: (context) => SafeArea(
+        // 🔧 ANDROID 15 FIX: Dialog safe area padding
+        child: WillPopScope(
+          onWillPop: () async {
+            // Güçlü klavye kapatma - geri tuşu
+            FocusManager.instance.primaryFocus?.unfocus();
+            SystemChannels.textInput.invokeMethod('TextInput.hide');
+            return true;
+          },
+          child: AlertDialog(
           title: const Text('Premium'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
@@ -320,6 +322,7 @@ class BannerAdWidgetState extends State<BannerAdWidget>
               child: const Text('Abone Ol'),
             ),
           ],
+          ),
         ),
       ),
     );

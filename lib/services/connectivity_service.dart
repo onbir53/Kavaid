@@ -57,9 +57,11 @@ class ConnectivityService {
       builder: (BuildContext context) {
         final isDarkMode = Theme.of(context).brightness == Brightness.dark;
         
-        return WillPopScope(
-          onWillPop: () async => false,
-          child: AlertDialog(
+        return SafeArea(
+          // 🔧 ANDROID 15 FIX: Dialog safe area padding
+          child: WillPopScope(
+            onWillPop: () async => false,
+            child: AlertDialog(
             backgroundColor: isDarkMode ? const Color(0xFF2C2C2E) : Colors.white,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
@@ -126,6 +128,7 @@ class ConnectivityService {
                 ),
               ),
             ],
+            ),
           ),
         );
       },

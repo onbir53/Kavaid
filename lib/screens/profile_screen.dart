@@ -794,14 +794,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
     showDialog(
       context: context,
       barrierDismissible: false, // Dışarı tıklayarak kapatmayı engelle
-      builder: (context) => WillPopScope(
-        onWillPop: () async {
-          // Güçlü klavye kapatma - geri tuşu
-          FocusManager.instance.primaryFocus?.unfocus();
-          SystemChannels.textInput.invokeMethod('TextInput.hide');
-          return true;
-        },
-        child: AlertDialog(
+      builder: (context) => SafeArea(
+        // 🔧 ANDROID 15 FIX: Dialog safe area padding
+        child: WillPopScope(
+          onWillPop: () async {
+            // Güçlü klavye kapatma - geri tuşu
+            FocusManager.instance.primaryFocus?.unfocus();
+            SystemChannels.textInput.invokeMethod('TextInput.hide');
+            return true;
+          },
+          child: AlertDialog(
           title: const Text('Reklamları Kaldır'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
@@ -870,6 +872,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               child: const Text('Satın Al'),
             ),
           ],
+          ),
         ),
       ),
     );

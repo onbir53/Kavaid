@@ -219,25 +219,28 @@ class _SavedWordsScreenState extends State<SavedWordsScreen> with AutomaticKeepA
   Future<void> _clearAllWords() async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Tümünü Temizle'),
-        content: const Text('Tüm kaydedilen kelimeleri silmek istediğinizden emin misiniz?'),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(15),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('İptal'),
+      builder: (context) => SafeArea(
+        // 🔧 ANDROID 15 FIX: Dialog safe area padding
+        child: AlertDialog(
+          title: const Text('Tümünü Temizle'),
+          content: const Text('Tüm kaydedilen kelimeleri silmek istediğinizden emin misiniz?'),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(15),
           ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: TextButton.styleFrom(
-              foregroundColor: Colors.red,
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('İptal'),
             ),
-            child: const Text('Sil'),
-          ),
-        ],
+            TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              style: TextButton.styleFrom(
+                foregroundColor: Colors.red,
+              ),
+              child: const Text('Sil'),
+            ),
+          ],
+        ),
       ),
     );
 
