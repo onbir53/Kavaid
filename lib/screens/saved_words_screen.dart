@@ -313,8 +313,8 @@ class _SavedWordsScreenState extends State<SavedWordsScreen> with AutomaticKeepA
               slivers: <Widget>[
                 SliverAppBar(
                   backgroundColor: isDarkMode 
-                      ? const Color(0xFF1C1C1E)
-                      : const Color(0xFF007AFF),
+                      ? const Color(0xFF1C1C1E)  // Dark tema için siyah
+                      : const Color(0xFF007AFF), // Light tema için mavi
                   elevation: 0,
                   pinned: true,
                   floating: true,

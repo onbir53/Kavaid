@@ -183,20 +183,20 @@ void main() async {
     // Sistem power management'a göre dinamik olarak ayarlanır
   }
   
-  // 📱 STATUS BAR: Tema uyumlu mavi renk ayarları - Global
+  // 📱 STATUS BAR: Başlangıç için şeffaf ayar - tema değişikliği main screen'de yapılacak
   if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
     SystemChrome.setSystemUIOverlayStyle(
       const SystemUiOverlayStyle(
-        // Status bar tema mavisi
-        statusBarColor: Color(0xFF007AFF), // Ana tema mavi
-        statusBarIconBrightness: Brightness.light, // Mavi arka planda beyaz iconlar
-        statusBarBrightness: Brightness.dark, // iOS için
+        // Başlangıç için şeffaf status bar
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.dark,
+        statusBarBrightness: Brightness.light, // iOS için
         // System navigation bar şeffaf bırak
         systemNavigationBarColor: Colors.transparent,
         systemNavigationBarIconBrightness: Brightness.dark,
       ),
     );
-    debugPrint('✅ Status bar tema mavisi olarak ayarlandı');
+    debugPrint('✅ Status bar şeffaf olarak ayarlandı');
   }
   
   // 🚀 PERFORMANCE MOD: Memory ve GC optimizasyonları
@@ -638,7 +638,7 @@ class _KavaidAppState extends State<KavaidApp> with WidgetsBindingObserver {
         type: BottomNavigationBarType.fixed,
         selectedItemColor: Color(0xFF007AFF),
         unselectedItemColor: Color(0xFF8E8E93),
-        backgroundColor: Color(0xFF2C2C2E),
+        backgroundColor: Color(0xFF1C1C1E), // Karanlık tema için siyah navigation bar
       ),
     );
   }
@@ -754,14 +754,20 @@ class _MainScreenState extends State<MainScreen> {
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle(
-        // 📱 STATUS BAR: Tema uyumlu mavi renk ayarları
+        // 📱 STATUS BAR: Tema uyumlu renk ayarları
         statusBarColor: widget.isDarkMode 
-            ? const Color(0xFF0A84FF)  // Dark tema için açık mavi
+            ? const Color(0xFF1C1C1E)  // Dark tema için siyah
             : const Color(0xFF007AFF), // Light tema için ana mavi
-        statusBarIconBrightness: Brightness.light, // Mavi arka planda beyaz iconlar
-        statusBarBrightness: Brightness.dark, // iOS için
+        statusBarIconBrightness: widget.isDarkMode 
+            ? Brightness.light       // Dark tema için beyaz iconlar
+            : Brightness.light,      // Light tema için beyaz iconlar (mavi arka planda)
+        statusBarBrightness: widget.isDarkMode 
+            ? Brightness.dark        // iOS için - dark tema
+            : Brightness.dark,       // iOS için - light tema
         // System navigation bar ayarları
-        systemNavigationBarColor: Colors.transparent,
+        systemNavigationBarColor: widget.isDarkMode 
+            ? const Color(0xFF1C1C1E)  // Dark tema için siyah
+            : Colors.white,            // Light tema için beyaz
         systemNavigationBarIconBrightness: widget.isDarkMode ? Brightness.light : Brightness.dark,
       ),
       child: Scaffold(

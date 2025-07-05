@@ -103,144 +103,49 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     
-    return FPSOverlay(
-      showFPS: kDebugMode, // Debug modda FPS göster
-      detailedFPS: true,   // Detaylı FPS bilgileri
-      child: Scaffold(
-      backgroundColor: isDarkMode 
-          ? const Color(0xFF1C1C1E) 
-          : const Color(0xFFF2F2F7),
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF007AFF),
-        elevation: 0,
-        title: const Text(
-          'Profil',
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.w600,
-            color: Colors.white,
-          ),
-        ),
-        centerTitle: true,
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle(
+        // 📱 STATUS BAR: Profil ekranında her iki temada da mavi
+        statusBarColor: const Color(0xFF007AFF),
+        statusBarIconBrightness: Brightness.light, // Mavi arka planda beyaz iconlar
+        statusBarBrightness: Brightness.dark, // iOS için
+        // System navigation bar tema uyumlu ayarlar
+        systemNavigationBarColor: isDarkMode 
+            ? const Color(0xFF1C1C1E)  // Dark tema için siyah
+            : Colors.white,            // Light tema için beyaz
+        systemNavigationBarIconBrightness: isDarkMode ? Brightness.light : Brightness.dark,
       ),
-      body: SingleChildScrollView(
-        padding: EdgeInsets.fromLTRB(16, 16, 16, widget.bottomPadding),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Profil bilgileri - tema switch ile
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: isDarkMode 
-                    ? const Color(0xFF1C1C1E) 
-                    : Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: isDarkMode 
-                      ? const Color(0xFF3A3A3C)
-                      : const Color(0xFFE5E5EA),
-                  width: 1,
-                ),
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF007AFF),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      Icons.person,
-                      color: Colors.white,
-                      size: 20,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      'Kavaid',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: isDarkMode ? Colors.white : Colors.black,
-                      ),
-                    ),
-                  ),
-                  // Tema değiştirme - custom switch
-                  Container(
-                    width: 50,
-                    height: 30,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(15),
-                      color: widget.isDarkMode 
-                          ? const Color(0xFF007AFF).withOpacity(0.3)
-                          : Colors.orange.withOpacity(0.3),
-                    ),
-                    child: Stack(
-                      children: [
-                        AnimatedPositioned(
-                          duration: const Duration(milliseconds: 200),
-                          curve: Curves.easeInOut,
-                          left: widget.isDarkMode ? 22 : 2,
-                          top: 2,
-                          child: GestureDetector(
-                            onTap: widget.onThemeToggle,
-                            child: Container(
-                              width: 26,
-                              height: 26,
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(13),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withOpacity(0.2),
-                                    blurRadius: 4,
-                                    offset: const Offset(0, 2),
-                                  ),
-                                ],
-                              ),
-                              child: Center(
-                                child: Icon(
-                                  widget.isDarkMode ? Icons.dark_mode : Icons.light_mode,
-                                  size: 16,
-                                  color: widget.isDarkMode 
-                                      ? const Color(0xFF007AFF)
-                                      : Colors.orange,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                        // Tıklanabilir alan
-                        Positioned.fill(
-                          child: GestureDetector(
-                            onTap: widget.onThemeToggle,
-                            child: Container(
-                              color: Colors.transparent,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
+      child: FPSOverlay(
+        showFPS: kDebugMode, // Debug modda FPS göster
+        detailedFPS: true,   // Detaylı FPS bilgileri
+        child: Scaffold(
+          backgroundColor: isDarkMode 
+              ? const Color(0xFF1C1C1E) 
+              : const Color(0xFFF2F2F7),
+          appBar: AppBar(
+            backgroundColor: const Color(0xFF007AFF),
+            elevation: 0,
+            title: const Text(
+              'Profil',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w600,
+                color: Colors.white,
               ),
             ),
-            
-            const SizedBox(height: 16),
-            
-            // Google Play Değerlendirme Butonu - değerlendirme yapılmamışsa göster
-            if (!_hasRatedApp) ...[
-              GestureDetector(
-                onTap: _openInAppReview,
-                child: Container(
-                  padding: const EdgeInsets.all(16),
+            centerTitle: true,
+          ),
+          body: SingleChildScrollView(
+            padding: EdgeInsets.fromLTRB(16, 16, 16, widget.bottomPadding),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Profil bilgileri - tema switch ile
+                Container(
+                  padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
                     color: isDarkMode 
-                        ? const Color(0xFF2C2C2E) 
+                        ? const Color(0xFF1C1C1E) 
                         : Colors.white,
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
@@ -256,518 +161,626 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         width: 40,
                         height: 40,
                         decoration: BoxDecoration(
-                          color: const Color(0xFFFFD700).withOpacity(0.2),
+                          color: const Color(0xFF007AFF),
                           shape: BoxShape.circle,
                         ),
                         child: Icon(
-                          Icons.star_rounded,
-                          color: const Color(0xFFFFD700),
-                          size: 24,
+                          Icons.person,
+                          color: Colors.white,
+                          size: 20,
                         ),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
                         child: Text(
-                          'Uygulamayı Değerlendir',
+                          'Kavaid',
                           style: TextStyle(
-                            fontSize: 16,
+                            fontSize: 14,
                             fontWeight: FontWeight.w600,
                             color: isDarkMode ? Colors.white : Colors.black,
                           ),
                         ),
                       ),
-                      Icon(
-                        Icons.arrow_forward_ios,
-                        size: 16,
-                        color: isDarkMode 
-                            ? const Color(0xFF8E8E93)
-                            : const Color(0xFF6D6D70),
+                      // Tema değiştirme - custom switch
+                      Container(
+                        width: 50,
+                        height: 30,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(15),
+                          color: widget.isDarkMode 
+                              ? const Color(0xFF007AFF).withOpacity(0.3)
+                              : Colors.orange.withOpacity(0.3),
+                        ),
+                        child: Stack(
+                          children: [
+                            AnimatedPositioned(
+                              duration: const Duration(milliseconds: 200),
+                              curve: Curves.easeInOut,
+                              left: widget.isDarkMode ? 22 : 2,
+                              top: 2,
+                              child: GestureDetector(
+                                onTap: widget.onThemeToggle,
+                                child: Container(
+                                  width: 26,
+                                  height: 26,
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(13),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withOpacity(0.2),
+                                        blurRadius: 4,
+                                        offset: const Offset(0, 2),
+                                      ),
+                                    ],
+                                  ),
+                                  child: Center(
+                                    child: Icon(
+                                      widget.isDarkMode ? Icons.dark_mode : Icons.light_mode,
+                                      size: 16,
+                                      color: widget.isDarkMode 
+                                          ? const Color(0xFF007AFF)
+                                          : Colors.orange,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            // Tıklanabilir alan
+                            Positioned.fill(
+                              child: GestureDetector(
+                                onTap: widget.onThemeToggle,
+                                child: Container(
+                                  color: Colors.transparent,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ],
                   ),
                 ),
-              ),
-              const SizedBox(height: 16),
-            ],
-            
-            // TEST: Debug butonları (sadece debug modda)
-            if (!kReleaseMode) ...[
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.red.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: Colors.red.withOpacity(0.3),
-                    width: 1,
-                  ),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'DEBUG PANEL',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.red,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: ElevatedButton(
-                            onPressed: () async {
-                              await _appUsageService.setUsageTimeForTest(31);
-                              if (mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text('Kullanım süresi 31 dakikaya ayarlandı'),
-                                    backgroundColor: Colors.green,
-                                  ),
-                                );
-                              }
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.green,
-                            ),
-                            child: const Text(
-                              '31 dakika',
-                              style: TextStyle(fontSize: 12),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: ElevatedButton(
-                            onPressed: () async {
-                              await _appUsageService.resetUsageStats();
-                              final prefs = await SharedPreferences.getInstance();
-                              await prefs.setBool('has_rated_app', false);
-                              await _checkRatingStatus();
-                              if (mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text('Tüm veriler sıfırlandı'),
-                                    backgroundColor: Colors.orange,
-                                  ),
-                                );
-                              }
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.orange,
-                            ),
-                            child: const Text(
-                              'Sıfırla',
-                              style: TextStyle(fontSize: 12),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: ElevatedButton(
-                            onPressed: () async {
-                              // Reklam kaldırma durumunu toggle et
-                              await _creditsService.toggleAdsFreeForTest();
-                              if (mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text(_creditsService.isLifetimeAdsFree
-                                        ? 'Reklamsız kullanım aktif'
-                                        : 'Reklamsız kullanım deaktif'),
-                                    backgroundColor: _creditsService.isLifetimeAdsFree
-                                        ? Colors.green
-                                        : Colors.orange,
-                                  ),
-                                );
-                              }
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: _creditsService.isLifetimeAdsFree
-                                  ? Colors.green
-                                  : Colors.blue,
-                            ),
-                            child: Text(
-                              _creditsService.isLifetimeAdsFree ? 'Premium AÇ' : 'Premium KAP',
-                              style: TextStyle(fontSize: 10),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: ElevatedButton(
-                            onPressed: () async {
-                              // Gerçek satın alma testi
-                              try {
-                                await _purchaseService.loadProducts();
-                                if (mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text('Ürünler yüklendi: ${_purchaseService.products.length}'),
-                                      backgroundColor: Colors.blue,
-                                    ),
-                                  );
-                                }
-                              } catch (e) {
-                                if (mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text('Ürün yükleme hatası: $e'),
-                                      backgroundColor: Colors.red,
-                                    ),
-                                  );
-                                }
-                              }
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.purple,
-                            ),
-                            child: Text(
-                              'Ürün Test',
-                              style: TextStyle(fontSize: 10),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: ElevatedButton(
-                            onPressed: () async {
-                              // Interstitial reklam testi
-                              try {
-                                final AdMobService adService = AdMobService();
-                                adService.forceShowInterstitialAd();
-                                if (mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text('Interstitial reklam test edildi'),
-                                      backgroundColor: Colors.green,
-                                    ),
-                                  );
-                                }
-                              } catch (e) {
-                                if (mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text('Reklam test hatası: $e'),
-                                      backgroundColor: Colors.red,
-                                    ),
-                                  );
-                                }
-                              }
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.cyan,
-                            ),
-                            child: Text(
-                              'Reklam Test',
-                              style: TextStyle(fontSize: 10),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: ElevatedButton(
-                            onPressed: () async {
-                              // Debug durumunu göster
-                              final AdMobService adService = AdMobService();
-                              adService.debugAdStatus();
-                              if (mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text('Debug bilgileri console\'da'),
-                                    backgroundColor: Colors.purple,
-                                  ),
-                                );
-                              }
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.indigo,
-                            ),
-                            child: Text(
-                              'Debug Info',
-                              style: TextStyle(fontSize: 10),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      'Mevcut kullanım: ${_appUsageService.totalUsageMinutes} dakika',
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: Colors.red,
-                      ),
-                    ),
-                    Text(
-                      'Reklamsız durumu: ${_creditsService.isLifetimeAdsFree ? "AKTİF" : "DEAKTİF"}',
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: _creditsService.isLifetimeAdsFree ? Colors.green : Colors.red,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    Text(
-                      'Play Console: ${_purchaseService.isAvailable ? "BAĞLI" : "BAĞLI DEĞİL"}',
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: _purchaseService.isAvailable ? Colors.green : Colors.red,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    Text(
-                      'Ürün sayısı: ${_purchaseService.products.length}',
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: _purchaseService.products.isEmpty ? Colors.red : Colors.green,
-                      ),
-                    ),
-                    Text(
-                      'Fiyat: ${_purchaseService.removeAdsPrice}',
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: Colors.blue,
-                      ),
-                    ),
-                    Text(
-                      'AdMob Credits: ${AdMobService().mounted ? "HAZIR" : "BEKLİYOR"}',
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: AdMobService().mounted ? Colors.green : Colors.orange,
-                      ),
-                    ),
-                    Text(
-                      'Interstitial Ad: ${AdMobService().isInterstitialAdAvailable ? "MEVCUT" : "YOK"}',
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: AdMobService().isInterstitialAdAvailable ? Colors.green : Colors.red,
-                      ),
-                    ),
-                    Text(
-                      'Native Ad Performance: OPTİMİZE',
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: Colors.green,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    Text(
-                      'Native Ad Mode: DİREKT YÜKLEME',
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: Colors.orange,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    Text(
-                      'Performance Mode: KAPALI (Hızlı Yükleme)',
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: Colors.blue,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 16),
-            ],
-            
-            // Paylaşım butonu - UI ile uyumlu
-            GestureDetector(
-              onTap: _shareApp,
-              child: Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: isDarkMode 
-                      ? const Color(0xFF2C2C2E) 
-                      : Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: isDarkMode 
-                        ? const Color(0xFF3A3A3C)
-                        : const Color(0xFFE5E5EA),
-                    width: 1,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: isDarkMode
-                          ? Colors.black.withOpacity(0.2)
-                          : Colors.black.withOpacity(0.05),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 40,
-                      height: 40,
+                
+                const SizedBox(height: 16),
+                
+                // Google Play Değerlendirme Butonu - değerlendirme yapılmamışsa göster
+                if (!_hasRatedApp) ...[
+                  GestureDetector(
+                    onTap: _openInAppReview,
+                    child: Container(
+                      padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF007AFF).withOpacity(0.2),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(
-                        Icons.share_rounded,
-                        color: const Color(0xFF007AFF),
-                        size: 24,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        'Uygulamayı Paylaş',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: isDarkMode ? Colors.white : Colors.black,
+                        color: isDarkMode 
+                            ? const Color(0xFF2C2C2E) 
+                            : Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: isDarkMode 
+                              ? const Color(0xFF3A3A3C)
+                              : const Color(0xFFE5E5EA),
+                          width: 1,
                         ),
                       ),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 40,
+                            height: 40,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFFFD700).withOpacity(0.2),
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(
+                              Icons.star_rounded,
+                              color: const Color(0xFFFFD700),
+                              size: 24,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              'Uygulamayı Değerlendir',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                                color: isDarkMode ? Colors.white : Colors.black,
+                              ),
+                            ),
+                          ),
+                          Icon(
+                            Icons.arrow_forward_ios,
+                            size: 16,
+                            color: isDarkMode 
+                                ? const Color(0xFF8E8E93)
+                                : const Color(0xFF6D6D70),
+                          ),
+                        ],
+                      ),
                     ),
-                    Icon(
-                      Icons.arrow_forward_ios,
-                      size: 16,
-                      color: isDarkMode 
-                          ? const Color(0xFF8E8E93)
-                          : const Color(0xFF6D6D70),
+                  ),
+                  const SizedBox(height: 16),
+                ],
+                
+                // TEST: Debug butonları (sadece debug modda)
+                if (!kReleaseMode) ...[
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.red.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: Colors.red.withOpacity(0.3),
+                        width: 1,
+                      ),
                     ),
-                  ],
-                ),
-              ),
-            ),
-            
-            const SizedBox(height: 16),
-            
-            // Reklam kaldırma önerisi veya durumu
-            if (!_creditsService.isLifetimeAdsFree) ...[
-              // Reklam kaldırma önerisi
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'DEBUG PANEL',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.red,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: ElevatedButton(
+                                onPressed: () async {
+                                  await _appUsageService.setUsageTimeForTest(31);
+                                  if (mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text('Kullanım süresi 31 dakikaya ayarlandı'),
+                                        backgroundColor: Colors.green,
+                                      ),
+                                    );
+                                  }
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.green,
+                                ),
+                                child: const Text(
+                                  '31 dakika',
+                                  style: TextStyle(fontSize: 12),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: ElevatedButton(
+                                onPressed: () async {
+                                  await _appUsageService.resetUsageStats();
+                                  final prefs = await SharedPreferences.getInstance();
+                                  await prefs.setBool('has_rated_app', false);
+                                  await _checkRatingStatus();
+                                  if (mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text('Tüm veriler sıfırlandı'),
+                                        backgroundColor: Colors.orange,
+                                      ),
+                                    );
+                                  }
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.orange,
+                                ),
+                                child: const Text(
+                                  'Sıfırla',
+                                  style: TextStyle(fontSize: 12),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: ElevatedButton(
+                                onPressed: () async {
+                                  // Reklam kaldırma durumunu toggle et
+                                  await _creditsService.toggleAdsFreeForTest();
+                                  if (mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text(_creditsService.isLifetimeAdsFree
+                                            ? 'Reklamsız kullanım aktif'
+                                            : 'Reklamsız kullanım deaktif'),
+                                        backgroundColor: _creditsService.isLifetimeAdsFree
+                                            ? Colors.green
+                                            : Colors.orange,
+                                      ),
+                                    );
+                                  }
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: _creditsService.isLifetimeAdsFree
+                                      ? Colors.green
+                                      : Colors.blue,
+                                ),
+                                child: Text(
+                                  _creditsService.isLifetimeAdsFree ? 'Premium AÇ' : 'Premium KAP',
+                                  style: TextStyle(fontSize: 10),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: ElevatedButton(
+                                onPressed: () async {
+                                  // Gerçek satın alma testi
+                                  try {
+                                    await _purchaseService.loadProducts();
+                                    if (mounted) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(
+                                          content: Text('Ürünler yüklendi: ${_purchaseService.products.length}'),
+                                          backgroundColor: Colors.blue,
+                                        ),
+                                      );
+                                    }
+                                  } catch (e) {
+                                    if (mounted) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(
+                                          content: Text('Ürün yükleme hatası: $e'),
+                                          backgroundColor: Colors.red,
+                                        ),
+                                      );
+                                    }
+                                  }
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.purple,
+                                ),
+                                child: Text(
+                                  'Ürün Test',
+                                  style: TextStyle(fontSize: 10),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: ElevatedButton(
+                                onPressed: () async {
+                                  // Interstitial reklam testi
+                                  try {
+                                    final AdMobService adService = AdMobService();
+                                    adService.forceShowInterstitialAd();
+                                    if (mounted) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(
+                                          content: Text('Interstitial reklam test edildi'),
+                                          backgroundColor: Colors.green,
+                                        ),
+                                      );
+                                    }
+                                  } catch (e) {
+                                    if (mounted) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(
+                                          content: Text('Reklam test hatası: $e'),
+                                          backgroundColor: Colors.red,
+                                        ),
+                                      );
+                                    }
+                                  }
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.cyan,
+                                ),
+                                child: Text(
+                                  'Reklam Test',
+                                  style: TextStyle(fontSize: 10),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: ElevatedButton(
+                                onPressed: () async {
+                                  // Debug durumunu göster
+                                  final AdMobService adService = AdMobService();
+                                  adService.debugAdStatus();
+                                  if (mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text('Debug bilgileri console\'da'),
+                                        backgroundColor: Colors.purple,
+                                      ),
+                                    );
+                                  }
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.indigo,
+                                ),
+                                child: Text(
+                                  'Debug Info',
+                                  style: TextStyle(fontSize: 10),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'Mevcut kullanım: ${_appUsageService.totalUsageMinutes} dakika',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Colors.red,
+                          ),
+                        ),
+                        Text(
+                          'Reklamsız durumu: ${_creditsService.isLifetimeAdsFree ? "AKTİF" : "DEAKTİF"}',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: _creditsService.isLifetimeAdsFree ? Colors.green : Colors.red,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Text(
+                          'Play Console: ${_purchaseService.isAvailable ? "BAĞLI" : "BAĞLI DEĞİL"}',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: _purchaseService.isAvailable ? Colors.green : Colors.red,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Text(
+                          'Ürün sayısı: ${_purchaseService.products.length}',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: _purchaseService.products.isEmpty ? Colors.red : Colors.green,
+                          ),
+                        ),
+                        Text(
+                          'Fiyat: ${_purchaseService.removeAdsPrice}',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Colors.blue,
+                          ),
+                        ),
+                        Text(
+                          'AdMob Credits: ${AdMobService().mounted ? "HAZIR" : "BEKLİYOR"}',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: AdMobService().mounted ? Colors.green : Colors.orange,
+                          ),
+                        ),
+                        Text(
+                          'Interstitial Ad: ${AdMobService().isInterstitialAdAvailable ? "MEVCUT" : "YOK"}',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: AdMobService().isInterstitialAdAvailable ? Colors.green : Colors.red,
+                          ),
+                        ),
+                        Text(
+                          'Native Ad Performance: OPTİMİZE',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Colors.green,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Text(
+                          'Native Ad Mode: DİREKT YÜKLEME',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Colors.orange,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Text(
+                          'Performance Mode: KAPALI (Hızlı Yükleme)',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Colors.blue,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                ],
+                
+                // Paylaşım butonu - UI ile uyumlu
                 GestureDetector(
-                onTap: () {
-                  FocusScope.of(context).unfocus();
-                  _showPurchaseDialog();
-                },
-                child: Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [Color(0xFF007AFF), Color(0xFF0051D5)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
+                  onTap: _shareApp,
+                  child: Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: isDarkMode 
+                          ? const Color(0xFF2C2C2E) 
+                          : Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: isDarkMode 
+                            ? const Color(0xFF3A3A3C)
+                            : const Color(0xFFE5E5EA),
+                        width: 1,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: isDarkMode
+                              ? Colors.black.withOpacity(0.2)
+                              : Colors.black.withOpacity(0.05),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
                     ),
-                    borderRadius: BorderRadius.circular(12),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Color(0xFF007AFF).withOpacity(0.3),
-                        blurRadius: 10,
-                        offset: Offset(0, 5),
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        padding: EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Icon(
-                          Icons.block,
-                          color: Colors.white,
-                          size: 24,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          'Reklamları Kaldır',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ),
-                      Container(
-                        padding: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Text(
-                          _purchaseService.removeAdsPrice,
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF007AFF),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ] else ...[
-              // Reklamsız durumu - daha küçük
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF007AFF),
-                  borderRadius: BorderRadius.circular(12),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Color(0xFF007AFF).withOpacity(0.3),
-                      blurRadius: 10,
-                      offset: Offset(0, 5),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  children: [
-                    Row(
+                    child: Row(
                       children: [
                         Container(
-                          padding: EdgeInsets.all(10),
+                          width: 40,
+                          height: 40,
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.2),
-                            borderRadius: BorderRadius.circular(10),
+                            color: const Color(0xFF007AFF).withOpacity(0.2),
+                            shape: BoxShape.circle,
                           ),
                           child: Icon(
-                            Icons.all_inclusive,
-                            color: Colors.white,
+                            Icons.share_rounded,
+                            color: const Color(0xFF007AFF),
                             size: 24,
                           ),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
                           child: Text(
-                            'Reklamsız Kullanım',
+                            'Uygulamayı Paylaş',
                             style: TextStyle(
                               fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
+                              fontWeight: FontWeight.w600,
+                              color: isDarkMode ? Colors.white : Colors.black,
                             ),
                           ),
                         ),
+                        Icon(
+                          Icons.arrow_forward_ios,
+                          size: 16,
+                          color: isDarkMode 
+                              ? const Color(0xFF8E8E93)
+                              : const Color(0xFF6D6D70),
+                        ),
                       ],
                     ),
-                  ],
+                  ),
                 ),
-              ),
-            ],
-          ],
+                
+                const SizedBox(height: 16),
+                
+                // Reklam kaldırma önerisi veya durumu
+                if (!_creditsService.isLifetimeAdsFree) ...[
+                  // Reklam kaldırma önerisi
+                    GestureDetector(
+                    onTap: () {
+                      FocusScope.of(context).unfocus();
+                      _showPurchaseDialog();
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [Color(0xFF007AFF), Color(0xFF0051D5)],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Color(0xFF007AFF).withOpacity(0.3),
+                            blurRadius: 10,
+                            offset: Offset(0, 5),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Icon(
+                              Icons.block,
+                              color: Colors.white,
+                              size: 24,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              'Reklamları Kaldır',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                          Container(
+                            padding: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              _purchaseService.removeAdsPrice,
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF007AFF),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ] else ...[
+                  // Reklamsız durumu - daha küçük
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF007AFF),
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Color(0xFF007AFF).withOpacity(0.3),
+                          blurRadius: 10,
+                          offset: Offset(0, 5),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              padding: EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.2),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Icon(
+                                Icons.all_inclusive,
+                                color: Colors.white,
+                                size: 24,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                'Reklamsız Kullanım',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
         ),
       ),
-    ),
     );
   }
 

@@ -278,8 +278,8 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
                   slivers: <Widget>[
                     SliverAppBar(
                     backgroundColor: widget.isDarkMode 
-                        ? const Color(0xFF1C1C1E)
-                        : const Color(0xFF007AFF),
+                        ? const Color(0xFF1C1C1E)  // Dark tema için siyah
+                        : const Color(0xFF007AFF), // Light tema için mavi
                     elevation: 0,
                     pinned: true,
                     floating: true,
