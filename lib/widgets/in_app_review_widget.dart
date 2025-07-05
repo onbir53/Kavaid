@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../services/turkce_analytics_service.dart';
+import '../services/admob_service.dart';
 
 class InAppReviewWidget extends StatefulWidget {
   final VoidCallback onReviewSubmitted;
@@ -21,9 +23,29 @@ class _InAppReviewWidgetState extends State<InAppReviewWidget> {
   bool _isSubmitting = false;
   
   @override
+  void initState() {
+    super.initState();
+    // Değerlendirme dialog'u açıldığında reklam engellemesini aktif et
+    AdMobService().setInAppActionFlag('review');
+  }
+  
+  @override
   void dispose() {
     _commentController.dispose();
+    // Dialog kapatıldığında reklam engellemesini kaldır
+    AdMobService().clearInAppActionFlag();
     super.dispose();
+  }
+  
+  void _closeDialog() {
+    // Dialog kapatılmadan önce reklam engellemesini kaldır
+    AdMobService().clearInAppActionFlag();
+    widget.onClose();
+  }
+  
+  Future<void> _setRatedApp() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('has_rated_app', true);
   }
   
   Future<void> _submitReview() async {
@@ -56,6 +78,12 @@ class _InAppReviewWidgetState extends State<InAppReviewWidget> {
           backgroundColor: Colors.green,
         ),
       );
+      
+      // Gerçek değerlendirme yapıldığını işaretle
+      await _setRatedApp();
+      
+      // Reklam engellemesini kaldır (değerlendirme tamamlandı)
+      AdMobService().clearInAppActionFlag();
       
       // Callback'i çağır
       widget.onReviewSubmitted();
@@ -96,7 +124,7 @@ class _InAppReviewWidgetState extends State<InAppReviewWidget> {
                 ),
               ),
               IconButton(
-                onPressed: widget.onClose,
+                onPressed: _closeDialog,
                 icon: Icon(
                   Icons.close,
                   color: isDarkMode ? Colors.white70 : Colors.black54,

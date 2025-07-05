@@ -33,22 +33,23 @@ flutter build appbundle --release ^
 
 echo.
 echo [7/7] AAB kopyalaniyor...
-copy build\app\outputs\bundle\release\app-release.aab kavaid-v2.1.0-build2047-play-store.aab
+copy build\app\outputs\bundle\release\app-release.aab kavaid-v2.1.0-build2052-play-store.aab
 
 echo.
 echo ===================================================
 echo Play Store Upload Hazir!
 echo ===================================================
 echo.
-echo AAB dosyasi: kavaid-v2.1.0-build2047-play-store.aab
-echo Surum: 2.1.0 (Build 2047)
+echo AAB dosyasi: kavaid-v2.1.0-build2052-play-store.aab
+echo Surum: 2.1.0 (Build 2052)
 echo.
 echo Ozellikler:
-echo - Firebase Analytics eklendi
+echo - Uygulama degerlendirme butonu eklendi
+echo - Reklam engellemesi sistemi (review sirasinda)
+echo - In-app review entegrasyonu
+echo - UI iyilestirmeleri ve buton stili guncellendi
+echo - Firebase Analytics optimizasyonu
 echo - Yuksek FPS optimizasyonu
-echo - UI iyilestirmeleri
-echo - Kullanilmayan servisler kaldirildi
-echo - Guncellenmis app ikonu
 echo.
 echo Play Console'a yuklemeye hazir!
 

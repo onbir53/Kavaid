@@ -232,8 +232,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
             
             const SizedBox(height: 16),
             
-            // Google Play Değerlendirme Butonu - 30 dakika kullanım sonrası ve değerlendirme yapılmamışsa göster
-            if (!_hasRatedApp && _appUsageService.shouldShowRating) ...[
+            // Google Play Değerlendirme Butonu - değerlendirme yapılmamışsa göster
+            if (!_hasRatedApp) ...[
               GestureDetector(
                 onTap: _openInAppReview,
                 child: Container(
@@ -270,7 +270,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         child: Text(
                           'Uygulamayı Değerlendir',
                           style: TextStyle(
-                            fontSize: 14,
+                            fontSize: 16,
                             fontWeight: FontWeight.w600,
                             color: isDarkMode ? Colors.white : Colors.black,
                           ),
@@ -773,29 +773,53 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _openInAppReview() async {
     try {
+      // Uygulama içi işlem flag'ini set et - reklam engellemek için
+      AdMobService().setInAppActionFlag('review');
+      
       // Analytics event'i gönder
       await TurkceAnalyticsService.uygulamaDegerlendirmeAcildi();
       
       final InAppReview inAppReview = InAppReview.instance;
       
-      // Önce uygulama içi değerlendirme mevcut mu kontrol et
-      if (await inAppReview.isAvailable()) {
+      debugPrint('🔍 [Review] Uygulama içi değerlendirme kontrol ediliyor...');
+      
+      // Uygulama içi değerlendirme mevcut mu kontrol et
+      final isAvailable = await inAppReview.isAvailable();
+      debugPrint('📱 [Review] isAvailable() sonucu: $isAvailable');
+      
+      if (isAvailable) {
+        debugPrint('✅ [Review] Uygulama içi değerlendirme mevcut - requestReview() çağrılacak');
+        
         // Uygulama içinde değerlendirme penceresi aç
         await inAppReview.requestReview();
-        debugPrint('✅ Uygulama içi değerlendirme açıldı');
+        debugPrint('🌟 [Review] requestReview() başarıyla çağrıldı - Sistem değerlendirme ekranı açılmalı');
         
-        // Değerlendirme açıldığında flag'i set et
-        await _setRatedApp();
-        
-        // AppUsageService'e de bildir
+        // Sadece AppUsageService'e bildir (UI gösterildi)
         await _appUsageService.markRatingUIShown();
+        
+        // Başarılı durumda flag'i 1 dakika sonra temizle
+        Future.delayed(const Duration(minutes: 1), () {
+          AdMobService().clearInAppActionFlag();
+          debugPrint('🔓 [Review] Değerlendirme işlemi sonrası 1 dakika flag temizlendi');
+        });
+        
+
       } else {
+        debugPrint('⚠️ [Review] Uygulama içi değerlendirme mevcut değil - Google Play açılacak');
+        
+
+        
         // Mevcut değilse store sayfasını aç
-        debugPrint('⚠️ Uygulama içi değerlendirme mevcut değil, store sayfası açılıyor');
         await _openGooglePlayRating();
       }
     } catch (e) {
-      debugPrint('❌ Uygulama içi değerlendirme hatası: $e');
+      debugPrint('❌ [Review] Uygulama içi değerlendirme hatası: $e');
+      
+      // Hata durumunda flag'i temizle
+      AdMobService().clearInAppActionFlag();
+      
+
+      
       // Hata durumunda fallback olarak store sayfasını aç
       await _openGooglePlayRating();
     }
@@ -807,28 +831,46 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final Uri webUrl = Uri.parse('https://play.google.com/store/apps/details?id=$packageName');
     
     try {
+      // Uygulama içi işlem flag'ini set et - reklam engellemek için
+      AdMobService().setInAppActionFlag('review');
+      
       // Önce Google Play uygulamasını açmayı dene
       if (await canLaunchUrl(googlePlayUrl)) {
         await launchUrl(
           googlePlayUrl,
           mode: LaunchMode.externalApplication,
         );
-        // Google Play açıldığında da flag'i set et
-        await _setRatedApp();
-        // AppUsageService'e de bildir
+        // Sadece AppUsageService'e bildir (UI gösterildi)
         await _appUsageService.markRatingUIShown();
+        
+        // NOT: _setRatedApp() çağrısını kaldırdık çünkü 
+        // kullanıcı Google Play'e gidip değerlendirme yapmayabilir
+        
+        // 1 dakika sonra flag'i temizle - değerlendirme tamamlandıktan sonra
+        Future.delayed(const Duration(minutes: 1), () {
+          AdMobService().clearInAppActionFlag();
+          debugPrint('🔓 Google Play değerlendirme işlemi sonrası 1 dakika flag temizlendi');
+        });
       } else if (await canLaunchUrl(webUrl)) {
         // Google Play uygulaması yoksa web'de aç
         await launchUrl(
           webUrl,
           mode: LaunchMode.externalApplication,
         );
-        // Web açıldığında da flag'i set et
-        await _setRatedApp();
-        // AppUsageService'e de bildir
+        // Sadece AppUsageService'e bildir (UI gösterildi)
         await _appUsageService.markRatingUIShown();
+        
+        // NOT: _setRatedApp() çağrısını kaldırdık çünkü 
+        // kullanıcı web sayfasına gidip değerlendirme yapmayabilir
+        
+        // 1 dakika sonra flag'i temizle - değerlendirme tamamlandıktan sonra
+        Future.delayed(const Duration(minutes: 1), () {
+          AdMobService().clearInAppActionFlag();
+          debugPrint('🔓 Web değerlendirme işlemi sonrası 1 dakika flag temizlendi');
+        });
       } else {
-        // Hiçbiri açılamazsa hata göster
+        // Hiçbiri açılamazsa hata göster - flag'i temizle
+        AdMobService().clearInAppActionFlag();
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -840,6 +882,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
       }
     } catch (e) {
       debugPrint('❌ Google Play değerlendirme hatası: $e');
+      // Hata durumunda flag'i temizle
+      AdMobService().clearInAppActionFlag();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(

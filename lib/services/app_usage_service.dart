@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:async';
 
 class AppUsageService extends ChangeNotifier {
   static const String _totalUsageKey = 'total_app_usage_minutes';
@@ -10,6 +11,7 @@ class AppUsageService extends ChangeNotifier {
   int _totalUsageMinutes = 0;
   DateTime? _sessionStartTime;
   bool _hasShownRatingUI = false;
+  Timer? _updateTimer;
   
   // Singleton
   static final AppUsageService _instance = AppUsageService._internal();
@@ -17,8 +19,30 @@ class AppUsageService extends ChangeNotifier {
   AppUsageService._internal();
   
   int get totalUsageMinutes => _totalUsageMinutes;
-  bool get shouldShowRating => _totalUsageMinutes >= 5 && !_hasShownRatingUI;
+  bool get shouldShowRating => _totalUsageMinutes >= 1 && !_hasShownRatingUI; // 1 dakika = 10 saniye test için
   bool get hasShownRatingUI => _hasShownRatingUI;
+  
+  // 5 dakika kullanım sonrası rating göster
+  bool get shouldShowRatingForTest {
+    return _totalUsageMinutes >= 5 && !_hasShownRatingUI;
+  }
+  
+  // Rating koşulunu kontrol et ve UI'ı güncelle
+  void _checkRatingCondition() {
+    if (_sessionStartTime == null) return;
+    
+    final currentSessionMinutes = DateTime.now().difference(_sessionStartTime!).inMinutes;
+    final totalMinutes = _totalUsageMinutes + currentSessionMinutes;
+    
+    // 5 dakika dolduğunda ve henüz rating UI gösterilmemişse bildir
+    if (totalMinutes >= 5 && !_hasShownRatingUI) {
+      debugPrint('⭐ [AppUsage] 5 dakika kullanım süresi doldu! Rating butonu gösterilebilir.');
+      notifyListeners();
+      // Timer'ı durdur, artık gerek yok
+      _updateTimer?.cancel();
+      _updateTimer = null;
+    }
+  }
   
   // Uygulama başlatıldığında çağrılacak
   Future<void> startSession() async {
@@ -31,6 +55,12 @@ class AppUsageService extends ChangeNotifier {
     // Yeni oturum başlat
     _sessionStartTime = DateTime.now();
     await prefs.setString(_sessionStartKey, _sessionStartTime!.toIso8601String());
+    
+    // Timer başlat - her dakika kontrol et
+    _updateTimer?.cancel();
+    _updateTimer = Timer.periodic(const Duration(minutes: 1), (timer) {
+      _checkRatingCondition();
+    });
     
     debugPrint('📱 [AppUsage] Oturum başladı. Toplam kullanım: $_totalUsageMinutes dakika');
     notifyListeners();
@@ -57,6 +87,11 @@ class AppUsageService extends ChangeNotifier {
     }
     
     _sessionStartTime = null;
+    
+    // Timer'ı durdur
+    _updateTimer?.cancel();
+    _updateTimer = null;
+    
     notifyListeners();
   }
   
@@ -98,6 +133,10 @@ class AppUsageService extends ChangeNotifier {
     _hasShownRatingUI = false;
     _sessionStartTime = null;
     
+    // Timer'ı temizle
+    _updateTimer?.cancel();
+    _updateTimer = null;
+    
     debugPrint('🔄 [AppUsage] Kullanım istatistikleri sıfırlandı');
     notifyListeners();
   }
@@ -110,5 +149,12 @@ class AppUsageService extends ChangeNotifier {
     
     debugPrint('🧪 [AppUsage] TEST: Kullanım süresi $minutes dakikaya ayarlandı');
     notifyListeners();
+  }
+  
+  // Dispose metodu - timer'ı güvenli şekilde temizle
+  void dispose() {
+    _updateTimer?.cancel();
+    _updateTimer = null;
+    super.dispose();
   }
 } 
