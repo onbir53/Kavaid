@@ -514,7 +514,7 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          'Ara',
+                          'Kelime ara',
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
@@ -535,24 +535,25 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
     
     if (_isLoading) {
       slivers.add(
-        const SliverFillRemaining(
-          hasScrollBody: false,
-          child: Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                CircularProgressIndicator(
-                  color: Color(0xFF007AFF),
-                ),
-                SizedBox(height: 16),
-                Text(
-                  'Aranıyor...',
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Color(0xFF8E8E93),
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.only(top: 180),
+            child: Center(
+              child: Column(
+                children: [
+                  CircularProgressIndicator(
+                    color: Color(0xFF007AFF),
                   ),
-                ),
-              ],
+                  const SizedBox(height: 16),
+                  Text(
+                    'Aranıyor...',
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Color(0xFF8E8E93),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -684,32 +685,21 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
 
     if (_showNotFound) {
       slivers.add(
-        const SliverFillRemaining(
-          hasScrollBody: false,
-          child: Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.search_off,
-                  size: 64,
-                  color: Color(0xFF8E8E93),
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Center(
+              child: Text(
+                'kelime bulunamadı',
+                style: TextStyle(
+                  fontSize: 16,
+                  color: widget.isDarkMode ? Colors.white70 : const Color(0xFF8E8E93),
                 ),
-                SizedBox(height: 16),
-                Text(
-                  'Kelime bulunamadı',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF8E8E93),
-                  ),
-                ),
-              ],
+              ),
             ),
           ),
         ),
       );
-      return slivers;
     }
 
     // Boş durum - görseldeki gibi temiz alan
