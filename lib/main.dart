@@ -183,6 +183,22 @@ void main() async {
     // Sistem power management'a göre dinamik olarak ayarlanır
   }
   
+  // 📱 STATUS BAR: Tema uyumlu mavi renk ayarları - Global
+  if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
+    SystemChrome.setSystemUIOverlayStyle(
+      const SystemUiOverlayStyle(
+        // Status bar tema mavisi
+        statusBarColor: Color(0xFF007AFF), // Ana tema mavi
+        statusBarIconBrightness: Brightness.light, // Mavi arka planda beyaz iconlar
+        statusBarBrightness: Brightness.dark, // iOS için
+        // System navigation bar şeffaf bırak
+        systemNavigationBarColor: Colors.transparent,
+        systemNavigationBarIconBrightness: Brightness.dark,
+      ),
+    );
+    debugPrint('✅ Status bar tema mavisi olarak ayarlandı');
+  }
+  
   // 🚀 PERFORMANCE MOD: Memory ve GC optimizasyonları
   if (!kIsWeb) {
     // Image cache optimizasyonu
@@ -736,7 +752,19 @@ class _MainScreenState extends State<MainScreen> {
     // 🔧 ANDROID 15 FIX: System navigation bar yüksekliğini hesapla
     final systemNavBarHeight = MediaQuery.of(context).viewPadding.bottom;
 
-    return Scaffold(
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle(
+        // 📱 STATUS BAR: Tema uyumlu mavi renk ayarları
+        statusBarColor: widget.isDarkMode 
+            ? const Color(0xFF0A84FF)  // Dark tema için açık mavi
+            : const Color(0xFF007AFF), // Light tema için ana mavi
+        statusBarIconBrightness: Brightness.light, // Mavi arka planda beyaz iconlar
+        statusBarBrightness: Brightness.dark, // iOS için
+        // System navigation bar ayarları
+        systemNavigationBarColor: Colors.transparent,
+        systemNavigationBarIconBrightness: widget.isDarkMode ? Brightness.light : Brightness.dark,
+      ),
+      child: Scaffold(
       resizeToAvoidBottomInset: false,
       body: Stack(
         children: [
@@ -857,6 +885,7 @@ class _MainScreenState extends State<MainScreen> {
             ),
           ),
         ],
+      ),
       ),
     );
   }
