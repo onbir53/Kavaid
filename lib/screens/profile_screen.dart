@@ -313,7 +313,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         color: Colors.red,
                       ),
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 16),
                     Row(
                       children: [
                         Expanded(
@@ -338,7 +338,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             ),
                           ),
                         ),
-                        const SizedBox(width: 8),
+                        const SizedBox(width: 16),
                         Expanded(
                           child: ElevatedButton(
                             onPressed: () async {
@@ -366,7 +366,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 16),
                     Row(
                       children: [
                         Expanded(
@@ -398,7 +398,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             ),
                           ),
                         ),
-                        const SizedBox(width: 8),
+                        const SizedBox(width: 16),
                         Expanded(
                           child: ElevatedButton(
                             onPressed: () async {
@@ -435,7 +435,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 16),
                     Row(
                       children: [
                         Expanded(
@@ -473,7 +473,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             ),
                           ),
                         ),
-                        const SizedBox(width: 8),
+                        const SizedBox(width: 16),
                         Expanded(
                           child: ElevatedButton(
                             onPressed: () async {
@@ -500,7 +500,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 16),
                     Text(
                       'Mevcut kullanım: ${_appUsageService.totalUsageMinutes} dakika',
                       style: TextStyle(
@@ -580,8 +580,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
               const SizedBox(height: 16),
             ],
-            
-            const SizedBox(height: 16),
             
             // Paylaşım butonu - UI ile uyumlu
             GestureDetector(
@@ -870,6 +868,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
       );
       
       debugPrint('✅ Uygulama başarıyla paylaşıldı');
+      
+      // Paylaşım tamamlandıktan 1 dakika sonra flag'i temizle
+      // (1 dakika boyunca hiçbir şekilde geçiş reklamı gösterilmesin)
+      Future.delayed(const Duration(minutes: 1), () {
+        AdMobService().clearInAppActionFlag();
+        debugPrint('🔓 Paylaşım işlemi sonrası 1 dakika flag temizlendi');
+      });
+      
     } catch (e) {
       debugPrint('❌ Paylaşım hatası: $e');
       // Hata durumunda da flag'i temizle
@@ -967,6 +973,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     SystemChannels.textInput.invokeMethod('TextInput.hide');
                   });
                   await _purchaseService.buyRemoveAds();
+                  
+                  // Satın alma işlemi tamamlandıktan 1 dakika sonra flag'i temizle
+                  Future.delayed(const Duration(minutes: 1), () {
+                    AdMobService().clearInAppActionFlag();
+                    debugPrint('🔓 Satın alma işlemi sonrası 1 dakika flag temizlendi');
+                  });
+                  
                 } catch (e) {
                   // Hata durumunda flag'i temizle
                   AdMobService().clearInAppActionFlag();

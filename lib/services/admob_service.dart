@@ -36,6 +36,8 @@ class AdMobService {
   // Uygulama içi işlemler için flag'ler
   bool _isInAppAction = false; // Paylaşım, satın alma gibi uygulama içi işlemler
   String _inAppActionType = ''; // İşlem tipi (debug için)
+  DateTime? _inAppActionSetTime; // Flag set edilme zamanı
+  Timer? _inAppActionTimer; // Otomatik temizleme timer'ı
   
   // Background time kuralı - Debug modda kısa, production'da normal
   static Duration get _minBackgroundTime => kDebugMode 
@@ -406,9 +408,21 @@ class AdMobService {
             debugPrint('🚫 [LIFECYCLE] BİLDİRİM PANELİ tespit edildi - reklam gösterilmeyecek');
             _isShortPause = true;
           } else if (_isInAppAction) {
-            debugPrint('🚫 [LIFECYCLE] Uygulama içi işlem aktif ($_inAppActionType) - reklam gösterilmeyecek');
-            // Uygulama içi işlem flagini temizle (tek seferlik)
-            clearInAppActionFlag();
+            // Uygulama içi işlem süresini kontrol et
+            if (_inAppActionSetTime != null) {
+              final actionDuration = DateTime.now().difference(_inAppActionSetTime!);
+              debugPrint('🚫 [LIFECYCLE] Uygulama içi işlem aktif ($_inAppActionType) - ${actionDuration.inSeconds} saniye geçti - reklam gösterilmeyecek');
+              
+              // Eğer 1 dakikadan fazla geçtiyse flag'i temizle (güvenlik önlemi)
+              if (actionDuration >= const Duration(minutes: 1)) {
+                debugPrint('⏰ [LIFECYCLE] Uygulama içi işlem 1 dakikayı geçti, flag temizleniyor');
+                clearInAppActionFlag();
+              }
+            } else {
+              debugPrint('🚫 [LIFECYCLE] Uygulama içi işlem aktif ($_inAppActionType) - reklam gösterilmeyecek');
+              // Zaman bilgisi yoksa flag'i temizle
+              clearInAppActionFlag();
+            }
           } else if (backgroundDuration >= _minBackgroundTime) {
             // 3 saniyeden fazla arka plandaysa reklam göster
             _backgroundToForegroundCount++;
@@ -501,13 +515,32 @@ class AdMobService {
   void setInAppActionFlag(String actionType) {
     _isInAppAction = true;
     _inAppActionType = actionType;
-    debugPrint('🔒 [AdMob] Uygulama içi işlem başladı: $actionType - Reklam geçici olarak devre dışı');
+    _inAppActionSetTime = DateTime.now();
+    
+    // Önceki timer'ı iptal et
+    _inAppActionTimer?.cancel();
+    
+    // 1 dakika sonra otomatik olarak flag'i temizle (güvenlik önlemi)
+    _inAppActionTimer = Timer(const Duration(minutes: 1), () {
+      if (_isInAppAction && _inAppActionType == actionType) {
+        debugPrint('⏰ [AdMob] Uygulama içi işlem ($actionType) 1 dakika sonra otomatik temizlendi');
+        clearInAppActionFlag();
+      }
+    });
+    
+    debugPrint('🔒 [AdMob] Uygulama içi işlem başladı: $actionType - Reklam 1 dakika boyunca devre dışı');
   }
   
   void clearInAppActionFlag() {
     final previousAction = _inAppActionType;
     _isInAppAction = false;
     _inAppActionType = '';
+    _inAppActionSetTime = null;
+    
+    // Timer'ı iptal et
+    _inAppActionTimer?.cancel();
+    _inAppActionTimer = null;
+    
     debugPrint('🔓 [AdMob] Uygulama içi işlem tamamlandı: $previousAction - Reklam tekrar aktif');
   }
   
@@ -571,6 +604,8 @@ class AdMobService {
     debugPrint('🔍 _pauseTimer active: ${_pauseTimer?.isActive ?? false}');
     debugPrint('🔍 _isInAppAction: $_isInAppAction');
     debugPrint('🔍 _inAppActionType: $_inAppActionType');
+    debugPrint('🔍 _inAppActionSetTime: $_inAppActionSetTime');
+    debugPrint('🔍 _inAppActionTimer active: ${_inAppActionTimer?.isActive ?? false}');
     debugPrint('🔍 _creditsServiceInitialized: $_creditsServiceInitialized');
     debugPrint('🔍 isPremium: ${_creditsService.isPremium}');
     debugPrint('🔍 isLifetimeAdsFree: ${_creditsService.isLifetimeAdsFree}');
@@ -589,6 +624,8 @@ class AdMobService {
     _interstitialAd = null;
     _pauseTimer?.cancel();
     _pauseTimer = null;
+    _inAppActionTimer?.cancel();
+    _inAppActionTimer = null;
     
     // Lifecycle değişkenlerini sıfırla
     _wasActuallyInBackground = false;
@@ -597,5 +634,8 @@ class AdMobService {
     _isShortPause = false;
     _isNotificationPanel = false;
     _backgroundToForegroundCount = 0;
+    _isInAppAction = false;
+    _inAppActionType = '';
+    _inAppActionSetTime = null;
   }
 } 

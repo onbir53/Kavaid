@@ -228,7 +228,7 @@ class BannerAdWidgetState extends State<BannerAdWidget>
       return Container(
         width: _adSize!.width.toDouble(),
         height: _adSize!.height.toDouble(),
-        color: Theme.of(context).scaffoldBackgroundColor,
+        color: Colors.transparent, // Arka plandan gelince siyah kalma sorununu çözer
         child: AdWidget(ad: _bannerAd!),
       );
     }
