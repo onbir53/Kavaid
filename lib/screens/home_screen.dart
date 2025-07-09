@@ -122,8 +122,8 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
         _searchResults = results; // Tüm sonuçlar gösterilecek
         _isLoading = false;
         _selectedWord = null;
-        _showAIButton = results.isEmpty; // Sonuç yoksa AI butonunu göster
-        _showNotFound = false;
+        _showAIButton = true; // Her arama sonrası AI butonunu göster
+        _showNotFound = results.isEmpty;
       });
     } catch (e) {
       debugPrint('Arama hatası: $e');
@@ -517,31 +517,19 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
 
     if (_isSearching) {
       // 0 sonuç durumunda native reklam göster
-      if (_searchResults.isEmpty && _showAIButton) {
+      if (_searchResults.isEmpty && _showNotFound) {
         slivers.add(
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(8, 12, 8, 8),
-              child: Column(
-                children: [
-                  // Bulunamadı mesajı
-                  Padding(
-                    padding: const EdgeInsets.all(20),
-                    child: Center(
-                      child: Text(
-                        'Sonuç bulunamadı',
-                        style: TextStyle(
-                          fontSize: 16,
-                          color: widget.isDarkMode ? Colors.white70 : const Color(0xFF8E8E93),
-                        ),
-                      ),
-                    ),
+              padding: const EdgeInsets.all(20.0),
+              child: Center(
+                child: Text(
+                  'Sonuç bulunamadı',
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: widget.isDarkMode ? Colors.white70 : const Color(0xFF8E8E93),
                   ),
-                  // Native reklam - 0 sonuç durumunda göster
-                  RepaintBoundary(
-                    child: const NativeAdWidget(),
-                  ),
-                ],
+                ),
               ),
             ),
           ),
@@ -572,7 +560,7 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
         
         slivers.add(
           SliverPadding(
-            padding: EdgeInsets.fromLTRB(8, 12, 8, 8),
+            padding: EdgeInsets.fromLTRB(8, 12, 8, 0),
             sliver: SliverList(
               delegate: SliverChildBuilderDelegate(
                 (context, index) {
@@ -643,12 +631,12 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
         );
       }
       
-      // AI ile kelime ara butonu - listenin sonunda
-      if (_showAIButton) {
+      // AI ile kelime ara butonu - sadece arama sonuçları varsa en altta göster
+      if (_showAIButton && _searchResults.isNotEmpty) {
         slivers.add(
           SliverToBoxAdapter(
             child: Padding(
-              padding: EdgeInsets.fromLTRB(8, 12, 8, widget.bottomPadding + 20),
+              padding: EdgeInsets.fromLTRB(8, 4, 8, widget.bottomPadding + 20),
               child: Container(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
@@ -679,13 +667,13 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Icon(
-                            Icons.auto_awesome,
+                            Icons.search,
                             color: Colors.white,
                             size: 20,
                           ),
                           const SizedBox(width: 8),
                           Text(
-                            'AI ile Kelime Ara',
+                            'Kelimeyi Ara',
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w600,
@@ -724,7 +712,7 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
       return slivers;
     }
 
-    if (_showNotFound) {
+    if (_showNotFound && !_isSearching) {
       slivers.add(
         SliverToBoxAdapter(
           child: Padding(

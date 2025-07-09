@@ -349,134 +349,77 @@ class _SearchResultCardState extends State<SearchResultCard> with SingleTickerPr
       borderRadius: BorderRadius.circular(6),
       child: Container(
         padding: const EdgeInsets.all(12),
-        child: Column(
+        child: Row(
           children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          // 🚀 PERFORMANCE: Cache'lenmiş font stili
-                          Flexible(
-                            child: Container(
-                              constraints: BoxConstraints(
-                                maxWidth: MediaQuery.of(context).size.width * 0.4,
-                              ),
-                              child: Text(
-                                widget.word.harekeliKelime?.isNotEmpty == true 
-                                    ? widget.word.harekeliKelime! 
-                                    : widget.word.kelime,
-                                style: _FontCache.getArabicStyle().copyWith(
-                                  color: isDarkMode ? Colors.white : const Color(0xFF1C1C1E),
-                                ),
-                                textDirection: TextDirection.rtl,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                softWrap: false,
-                              ),
+                      // 🚀 PERFORMANCE: Cache'lenmiş font stili
+                      Flexible(
+                        child: Container(
+                          constraints: BoxConstraints(
+                            maxWidth: MediaQuery.of(context).size.width * 0.4,
+                          ),
+                          child: Text(
+                            widget.word.harekeliKelime?.isNotEmpty == true 
+                                ? widget.word.harekeliKelime! 
+                                : widget.word.kelime,
+                            style: _FontCache.getArabicStyle().copyWith(
+                              color: isDarkMode ? Colors.white : const Color(0xFF1C1C1E),
                             ),
+                            textDirection: TextDirection.rtl,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            softWrap: false,
                           ),
-                          const SizedBox(width: 8),
-                          // Kelime türü chip'i
-                          Flexible(
-                            child: Wrap(
-                              spacing: 6,
-                              runSpacing: 4,
-                              children: _buildWordInfoChips(isDarkMode),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 4),
-                      // Türkçe anlam
-                      if (widget.word.anlam?.isNotEmpty == true) ...[
-                        Text(
-                          widget.word.anlam!,
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: isDarkMode 
-                                ? const Color(0xFF8E8E93) 
-                                : const Color(0xFF6D6D70),
-                            height: 1.3,
-                            fontWeight: FontWeight.w400,
-                          ),
-                          maxLines: _isExpanded ? null : 2,
-                          overflow: _isExpanded ? null : TextOverflow.ellipsis,
                         ),
-                      ],
+                      ),
+                      const SizedBox(width: 8),
+                      // Kelime türü chip'i
+                      Flexible(
+                        child: Wrap(
+                          spacing: 6,
+                          runSpacing: 4,
+                          children: _buildWordInfoChips(isDarkMode),
+                        ),
+                      ),
                     ],
                   ),
-                ),
-                const SizedBox(width: 8),
-                // Butonlar: Telaffuz, Kaydetme, Paylaşma
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Telaffuz butonu
-                    _buildSpeakButton(isDarkMode),
-                    // Kaydetme butonu
-                    _buildBookmarkButton(isDarkMode),
-                    // Paylaşma butonu
-                    _buildShareButton(isDarkMode),
-                  ],
-                ),
-              ],
-            ),
-            // Expand butonu orta altta
-            const SizedBox(height: 8),
-            Center(
-              child: GestureDetector(
-                onTap: _toggleExpanded,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 16),
-                  decoration: BoxDecoration(
-                    color: isDarkMode
-                        ? const Color(0xFF2C2C2E)
-                        : const Color(0xFFF2F2F7),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: isDarkMode
-                          ? const Color(0xFF48484A).withOpacity(0.3)
-                          : const Color(0xFFE5E5EA).withOpacity(0.5),
-                      width: 0.5,
+                  const SizedBox(height: 4),
+                  // Türkçe anlam
+                  if (widget.word.anlam?.isNotEmpty == true) ...[
+                    Text(
+                      widget.word.anlam!,
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: isDarkMode 
+                            ? const Color(0xFF8E8E93) 
+                            : const Color(0xFF6D6D70),
+                        height: 1.3,
+                        fontWeight: FontWeight.w400,
+                      ),
+                      maxLines: _isExpanded ? null : 2,
+                      overflow: _isExpanded ? null : TextOverflow.ellipsis,
                     ),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      if (!_hasEverExpanded && !_isExpanded) ...[
-                        Text(
-                          'Detayları görmek için tıklayın',
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: isDarkMode
-                                ? const Color(0xFF8E8E93)
-                                : const Color(0xFF6D6D70),
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        const SizedBox(width: 4),
-                      ],
-                      AnimatedRotation(
-                        turns: _isExpanded ? 0.5 : 0,
-                        duration: const Duration(milliseconds: 100),
-                        child: Icon(
-                          Icons.expand_more,
-                          color: isDarkMode
-                              ? const Color(0xFF8E8E93)
-                              : const Color(0xFF6D6D70),
-                          size: 16,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+                  ],
+                ],
               ),
+            ),
+            const SizedBox(width: 8),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _buildSpeakButton(isDarkMode),
+                const SizedBox(width: 2),
+                _buildBookmarkButton(isDarkMode),
+                const SizedBox(width: 2),
+                _buildExpandButton(isDarkMode),
+              ],
             ),
           ],
         ),
@@ -489,24 +432,17 @@ class _SearchResultCardState extends State<SearchResultCard> with SingleTickerPr
     return ValueListenableBuilder<bool>(
       valueListenable: _savedWordsService.isWordSavedNotifier(widget.word),
       builder: (context, isSaved, child) {
-        return Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: () => _toggleSaved(isSaved),
-            borderRadius: BorderRadius.circular(16),
-            child: Container(
-              width: 32,
-              height: 32,
-              padding: const EdgeInsets.all(6),
-              child: Icon(
-                isSaved ? Icons.bookmark : Icons.bookmark_border,
-                color: isSaved 
-                    ? const Color(0xFF007AFF)
-                    : (isDarkMode ? const Color(0xFF8E8E93) : const Color(0xFF6D6D70)),
-                size: 20,
-              ),
-            ),
+        return IconButton(
+          onPressed: () => _toggleSaved(isSaved),
+          icon: Icon(
+            isSaved ? Icons.bookmark : Icons.bookmark_border,
+            color: isSaved 
+                ? const Color(0xFF007AFF)
+                : (isDarkMode ? const Color(0xFF8E8E93) : const Color(0xFF6D6D70)),
           ),
+          iconSize: 20,
+          padding: EdgeInsets.zero,
+          constraints: const BoxConstraints(),
         );
       },
     );
@@ -514,22 +450,15 @@ class _SearchResultCardState extends State<SearchResultCard> with SingleTickerPr
   
   // Telaffuz butonu
   Widget _buildSpeakButton(bool isDarkMode) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: _speakArabic,
-        borderRadius: BorderRadius.circular(16),
-        child: Container(
-          width: 32,
-          height: 32,
-          padding: const EdgeInsets.all(6),
-          child: Icon(
-            Icons.volume_up,
-            color: isDarkMode ? const Color(0xFF8E8E93) : const Color(0xFF6D6D70),
-            size: 20,
-          ),
-        ),
+    return IconButton(
+      onPressed: _speakArabic,
+      icon: Icon(
+        Icons.volume_up,
+        color: isDarkMode ? const Color(0xFF8E8E93) : const Color(0xFF6D6D70),
       ),
+      iconSize: 20,
+      padding: EdgeInsets.zero,
+      constraints: const BoxConstraints(),
     );
   }
   
@@ -551,6 +480,25 @@ class _SearchResultCardState extends State<SearchResultCard> with SingleTickerPr
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildExpandButton(bool isDarkMode) {
+    return IconButton(
+      onPressed: _toggleExpanded,
+      icon: AnimatedRotation(
+        turns: _isExpanded ? 0.5 : 0,
+        duration: const Duration(milliseconds: 200),
+        child: Icon(
+          Icons.expand_more,
+          color: isDarkMode
+              ? const Color(0xFF8E8E93)
+              : const Color(0xFF6D6D70),
+        ),
+      ),
+      iconSize: 20,
+      padding: EdgeInsets.zero,
+      constraints: const BoxConstraints(),
     );
   }
 

@@ -76,35 +76,38 @@ class _WordCardState extends State<WordCard> {
         child: ValueListenableBuilder<bool>(
           valueListenable: savedWordsService.isWordSavedNotifier(widget.word),
           builder: (context, isSaved, child) {
-            return Container(
-              width: double.infinity,
-              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                // 🚀 PERFORMANCE: Gradient kaldırıldı, solid renk kullanıldı
-                color: isDarkMode 
-                    ? const Color(0xFF2C2C2E) 
-                    : Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(
+            return GestureDetector(
+              onTap: _toggleExpanded,
+              child: Container(
+                width: double.infinity,
+                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  // 🚀 PERFORMANCE: Gradient kaldırıldı, solid renk kullanıldı
                   color: isDarkMode 
-                      ? const Color(0xFF3A3A3C)
-                      : const Color(0xFFE5E5EA),
-                  width: 1,
-                ),
-                // 🚀 PERFORMANCE: Shadow optimizasyonu
-                boxShadow: PerformanceUtils.enableShadows ? [
-                  BoxShadow(
+                      ? const Color(0xFF2C2C2E) 
+                      : Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
                     color: isDarkMode 
-                        ? Colors.black.withOpacity(0.2)
-                        : Colors.black.withOpacity(0.05),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
+                        ? const Color(0xFF3A3A3C)
+                        : const Color(0xFFE5E5EA),
+                    width: 1,
                   ),
-                ] : null,
+                  // 🚀 PERFORMANCE: Shadow optimizasyonu
+                  boxShadow: PerformanceUtils.enableShadows ? [
+                    BoxShadow(
+                      color: isDarkMode 
+                          ? Colors.black.withOpacity(0.2)
+                          : Colors.black.withOpacity(0.05),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ] : null,
+                ),
+                // 🚀 PERFORMANCE: Basitleştirilmiş widget tree
+                child: _buildCardContent(isDarkMode, isSaved, savedWordsService),
               ),
-              // 🚀 PERFORMANCE: Basitleştirilmiş widget tree
-              child: _buildCardContent(isDarkMode, isSaved, savedWordsService),
             );
           },
         ),
@@ -268,100 +271,27 @@ class _WordCardState extends State<WordCard> {
                     Icons.volume_up,
                     color: isDarkMode ? const Color(0xFF8E8E93) : const Color(0xFF6D6D70),
                   ),
-                  iconSize: 24,
-                  padding: const EdgeInsets.all(8),
-                  constraints: const BoxConstraints(
-                    minWidth: 40,
-                    minHeight: 40,
-                  ),
+                  iconSize: 20,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
                 ),
-                
+
                 // Kaydetme butonu
                 IconButton(
                   onPressed: () => _toggleSaved(savedWordsService, isSaved),
                   icon: Icon(
                     isSaved ? Icons.bookmark : Icons.bookmark_border,
-                    color: isSaved 
+                    color: isSaved
                         ? const Color(0xFF007AFF)
                         : (isDarkMode ? const Color(0xFF8E8E93) : const Color(0xFF6D6D70)),
                   ),
-                  iconSize: 24,
-                  padding: const EdgeInsets.all(8),
-                  constraints: const BoxConstraints(
-                    minWidth: 40,
-                    minHeight: 40,
-                  ),
-                ),
-                
-                // Paylaşma butonu
-                IconButton(
-                  onPressed: _shareWordCard,
-                  icon: Icon(
-                    Icons.share,
-                    color: isDarkMode ? const Color(0xFF8E8E93) : const Color(0xFF6D6D70),
-                  ),
-                  iconSize: 24,
-                  padding: const EdgeInsets.all(8),
-                  constraints: const BoxConstraints(
-                    minWidth: 40,
-                    minHeight: 40,
-                  ),
+                  iconSize: 20,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
                 ),
               ],
             ),
           ],
-        ),
-        
-        // Genişletme butonu - orta alt
-        const SizedBox(height: 12),
-        Center(
-          child: GestureDetector(
-            onTap: _toggleExpanded,
-            child: Container(
-              padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 20),
-              decoration: BoxDecoration(
-                color: isDarkMode
-                    ? const Color(0xFF3A3A3C).withOpacity(0.5)
-                    : const Color(0xFFF2F2F7),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: isDarkMode
-                      ? const Color(0xFF48484A).withOpacity(0.3)
-                      : const Color(0xFFE5E5EA).withOpacity(0.5),
-                  width: 0.5,
-                ),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (!_hasEverExpanded && !_isExpanded) ...[
-                    Text(
-                      'Detayları görmek için tıklayın',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: isDarkMode
-                            ? const Color(0xFF8E8E93)
-                            : const Color(0xFF6D6D70),
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    const SizedBox(width: 6),
-                  ],
-                  AnimatedRotation(
-                    turns: _isExpanded ? 0.5 : 0,
-                    duration: const Duration(milliseconds: 200),
-                    child: Icon(
-                      Icons.expand_more,
-                      color: isDarkMode
-                          ? const Color(0xFF8E8E93)
-                          : const Color(0xFF6D6D70),
-                      size: 20,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
         ),
         
         // 🚀 PERFORMANCE: Örnek cümle widget'ını optimize et

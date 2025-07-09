@@ -147,54 +147,59 @@ emirForm (string): Emir, 2. tekil eril, harekeli.
 
   // Retry mekanizması ile API key al
   Future<String> _getApiKey() async {
-    return await _getConfigWithRetry('gemini_api', _defaultApiKey);
+    return await _getConfigWithRetry('gemini_api');
   }
 
   // Retry mekanizması ile model al
   Future<String> _getModel() async {
-    return await _getConfigWithRetry('gemini_model', _defaultModel);
+    return await _getConfigWithRetry('gemini_model');
   }
 
   // Retry mekanizması ile prompt al
   Future<String> _getPrompt() async {
-    return await _getConfigWithRetry('gemini_prompt', _defaultPrompt);
+    return await _getConfigWithRetry('gemini_prompt');
   }
 
   // Retry mekanizması ile config değeri al
-  Future<String> _getConfigWithRetry(String configKey, String defaultValue) async {
+  Future<String> _getConfigWithRetry(String configKey) async {
     for (int i = 0; i < _maxRetries; i++) {
+      DataSnapshot snapshot;
       try {
         debugPrint('🔄 Firebase config okunuyor (${i + 1}/$_maxRetries): $configKey');
         
         final database = FirebaseDatabase.instance;
         final configRef = database.ref('config/$configKey');
-        
-        final snapshot = await configRef.get();
-        
-        if (snapshot.exists && snapshot.value != null) {
-          final value = snapshot.value.toString().trim();
-          
-          if (value.isNotEmpty && value != 'null') {
-            debugPrint('✅ Firebase config başarıyla okundu: $configKey');
-            return value;
-          }
-        }
-        
-        debugPrint('⚠️ Firebase config boş veya bulunamadı: $configKey');
-        return defaultValue;
+        snapshot = await configRef.get();
         
       } catch (e) {
-        debugPrint('❌ Firebase config okuma hatası (${i + 1}/$_maxRetries): $configKey - $e');
-        
+        debugPrint('❌ Firebase ağ hatası (${i + 1}/$_maxRetries): $configKey - $e');
         if (i < _maxRetries - 1) {
           debugPrint('🔄 ${_retryDelay.inSeconds} saniye beklenip tekrar denenecek...');
           await Future.delayed(_retryDelay);
+          continue; // Sonraki denemeye geç
+        } else {
+          // Bu son deneme, ağ hatasıyla ilgili kesin bir hata fırlat.
+          throw Exception('Firebase config okunamadı ($configKey) ve tüm ağ denemeleri başarısız oldu: $e');
         }
       }
+
+      // Ağ isteği başarılı, şimdi veriyi kontrol et.
+      if (snapshot.exists && snapshot.value != null) {
+        final value = snapshot.value.toString().trim();
+        if (value.isNotEmpty && value != 'null') {
+          debugPrint('✅ Firebase config başarıyla okundu: $configKey');
+          return value; // Başarılı, değeri döndür.
+        } else {
+           // Değer boş, bu bir konfigürasyon hatası. Yeniden deneme yok.
+           throw Exception('Firebase config değeri boş veya geçersiz: $configKey');
+        }
+      } else {
+          // Anahtar bulunamadı, bu bir konfigürasyon hatası. Yeniden deneme yok.
+          throw Exception('Firebase config anahtarı bulunamadı: $configKey');
+      }
     }
-    
-    debugPrint('❌ Firebase config okuma başarısız, varsayılan kullanılıyor: $configKey');
-    return defaultValue;
+    // Bu kod normalde ulaşılamaz olmalı.
+    throw Exception('Beklenmedik durum: _getConfigWithRetry döngüsü tamamlandı.');
   }
 
   // Config alanını database'de oluştur (geliştirilmiş)

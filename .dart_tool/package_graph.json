@@ -145,6 +145,14 @@
       ]
     },
     {
+      "name": "flutter_tts",
+      "version": "4.2.3",
+      "dependencies": [
+        "flutter",
+        "flutter_web_plugins"
+      ]
+    },
+    {
       "name": "share_plus",
       "version": "10.1.4",
       "dependencies": [
@@ -884,6 +892,18 @@
       ]
     },
     {
+      "name": "flutter_web_plugins",
+      "version": "0.0.0",
+      "dependencies": [
+        "characters",
+        "collection",
+        "flutter",
+        "material_color_utilities",
+        "meta",
+        "vector_math"
+      ]
+    },
+    {
       "name": "win32",
       "version": "5.14.0",
       "dependencies": [
@@ -948,18 +968,6 @@
         "path_provider",
         "plugin_platform_interface",
         "uuid"
-      ]
-    },
-    {
-      "name": "flutter_web_plugins",
-      "version": "0.0.0",
-      "dependencies": [
-        "characters",
-        "collection",
-        "flutter",
-        "material_color_utilities",
-        "meta",
-        "vector_math"
       ]
     },
     {
@@ -1506,14 +1514,6 @@
         "ffi",
         "meta",
         "path"
-      ]
-    },
-    {
-      "name": "flutter_tts",
-      "version": "4.2.3",
-      "dependencies": [
-        "flutter",
-        "flutter_web_plugins"
       ]
     }
   ],
