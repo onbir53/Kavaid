@@ -13,6 +13,10 @@ import '../widgets/arabic_keyboard.dart';
 import '../widgets/banner_ad_widget.dart';
 import '../widgets/native_ad_widget.dart';
 import '../utils/performance_utils.dart';
+import 'package:flutter/foundation.dart' show defaultTargetPlatform, kIsWeb;
+import 'package:flutter/material.dart' show TemplateType;
+import 'package:google_mobile_ads/google_mobile_ads.dart';
+import '../services/admob_service.dart';
 
 
 class HomeScreen extends StatefulWidget {
@@ -53,6 +57,9 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
   bool _showArabicKeyboard = false;
   StreamSubscription<List<WordModel>>? _searchSubscription;
 
+  NativeAd? _nativeAd;
+  bool _isAdLoaded = false;
+
   @override
   bool get wantKeepAlive => true; // Widget state'ini koru
 
@@ -60,6 +67,7 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
   void initState() {
     super.initState();
     _searchController.addListener(_onSearchChanged);
+    _loadNativeAd();
     
     // Uygulama açılınca 0.5 saniye bekle sonra focus yap
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -83,7 +91,36 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
     _searchController.dispose();
     _searchFocusNode.dispose();
     _searchSubscription?.cancel();
+    _nativeAd?.dispose();
     super.dispose();
+  }
+
+  void _loadNativeAd() {
+    if (kIsWeb || (defaultTargetPlatform != TargetPlatform.android && defaultTargetPlatform != TargetPlatform.iOS)) {
+      return;
+    }
+
+    _nativeAd = NativeAd(
+      adUnitId: AdMobService.nativeAdUnitId,
+      request: const AdRequest(),
+      listener: NativeAdListener(
+        onAdLoaded: (Ad ad) {
+          debugPrint('✅ [HomeScreen] Native ad loaded successfully.');
+          if (mounted) {
+            setState(() {
+              _isAdLoaded = true;
+            });
+          }
+        },
+        onAdFailedToLoad: (Ad ad, LoadAdError error) {
+          debugPrint('❌ [HomeScreen] Native ad failed to load: ${error.message}');
+          ad.dispose();
+        },
+      ),
+      nativeTemplateStyle: NativeTemplateStyle(
+        templateType: TemplateType.medium,
+      ),
+    )..load();
   }
 
   void _onSearchChanged() {
@@ -107,8 +144,8 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
     setState(() {
       _isSearching = true;
       _isLoading = true;
-      _showAIButton = false;
-      _showNotFound = false;
+      _showAIButton = true; // Her arama sonrası AI butonunu göster
+      _showNotFound = false; // "Sonuç bulunamadı" yazısını gösterme
     });
 
     try {
@@ -123,7 +160,7 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
         _isLoading = false;
         _selectedWord = null;
         _showAIButton = true; // Her arama sonrası AI butonunu göster
-        _showNotFound = results.isEmpty;
+        _showNotFound = false; // "Sonuç bulunamadı" yazısını gösterme
       });
     } catch (e) {
       debugPrint('Arama hatası: $e');
@@ -516,48 +553,42 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
     }
 
     if (_isSearching) {
-      // 0 sonuç durumunda native reklam göster
-      if (_searchResults.isEmpty && _showNotFound) {
+      if (_searchResults.isEmpty) {
+        // hiç yoksa kelimey ara butonundan öcne cıksın
         slivers.add(
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.all(20.0),
-              child: Center(
-                child: Text(
-                  'Sonuç bulunamadı',
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: widget.isDarkMode ? Colors.white70 : const Color(0xFF8E8E93),
-                  ),
-                ),
+              padding: const EdgeInsets.fromLTRB(8, 4, 8, 8),
+              child: RepaintBoundary(
+                child: _isAdLoaded && _nativeAd != null 
+                    ? NativeAdWidget(ad: _nativeAd!)
+                    : const SizedBox(height: 120),
               ),
             ),
           ),
         );
-      } else if (_searchResults.isNotEmpty) {
-        // Native reklam gösterme mantığı - Sadece 4. sonuçtan sonra
-        final int maxAds = 1; // Maksimum 1 reklam göster
-        
-        // Reklam pozisyonlarını hesapla - Sadece 4+ sonuç varsa
+      } else {
+        // Native reklam gösterme mantığı
+        final int maxAds = 1;
         final List<int> adPositions = [];
-        if (_searchResults.length >= 4) {
-          // 4 veya daha fazla sonuç varsa 4. pozisyonda reklam göster
-          adPositions.add(4);
+        final int resultCount = _searchResults.length;
+
+        if (resultCount == 1) {
+          adPositions.add(1); // 1.den sonra
+        } else if (resultCount == 2) {
+          adPositions.add(2); // 2.den sonra
+        } else if (resultCount >= 3) {
+          adPositions.add(3); // 3.den ve sonrasından sonra
         }
-        // 4'ten az sonuç varsa reklam gösterme
-        
+
         final int totalAds = adPositions.length;
-        
+
         // Debug bilgileri
         if (kDebugMode) {
-          debugPrint('📊 [NATIVE ADS] Arama sonuçları: ${_searchResults.length}');
+          debugPrint('📊 [NATIVE ADS] Arama sonuçları: $resultCount');
           debugPrint('📊 [NATIVE ADS] Reklam pozisyonları: $adPositions');
-          debugPrint('📊 [NATIVE ADS] Toplam reklam sayısı: $totalAds (MAX: 1)');
-          debugPrint('📊 [NATIVE ADS] Reklam pozisyonu: ${adPositions.isNotEmpty ? adPositions.first : 'yok'}');
-          debugPrint('🎯 [NATIVE ADS] Sabit pozisyon: 4. sonuçtan sonra');
-          debugPrint('✅ [NATIVE ADS] Sadece 4+ sonuç varsa reklam gösteriliyor');
         }
-        
+
         slivers.add(
           SliverPadding(
             padding: EdgeInsets.fromLTRB(8, 12, 8, 0),
@@ -572,7 +603,9 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
                   if (adPositions.contains(index)) {
                     return RepaintBoundary(
                       key: ValueKey('ad_$index'),
-                      child: const NativeAdWidget(),
+                      child: _isAdLoaded && _nativeAd != null 
+                          ? NativeAdWidget(ad: _nativeAd!)
+                          : const SizedBox(height: 120),
                     );
                   }
                   
@@ -631,12 +664,12 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
         );
       }
       
-      // AI ile kelime ara butonu - sadece arama sonuçları varsa en altta göster
-      if (_showAIButton && _searchResults.isNotEmpty) {
+      // AI ile kelime ara butonu - her arama durumunda en altta göster
+      if (_showAIButton) {
         slivers.add(
           SliverToBoxAdapter(
             child: Padding(
-              padding: EdgeInsets.fromLTRB(8, 4, 8, widget.bottomPadding + 20),
+              padding: EdgeInsets.fromLTRB(8, 8, 8, widget.bottomPadding + 20),
               child: Container(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
