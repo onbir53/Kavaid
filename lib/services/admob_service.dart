@@ -53,81 +53,24 @@ class AdMobService {
   int _currentRetryCount = 0;
 
   // Adaptive Banner için test reklamları ID'leri
-  static const String _testBannerAdUnitIdAndroid = 'ca-app-pub-3940256099942544/9214589741';
-  static const String _testBannerAdUnitIdIOS = 'ca-app-pub-3940256099942544/2435281174';
-  
-  // Interstitial reklamı için test ID'leri
-  static const String _testInterstitialAdUnitIdAndroid = 'ca-app-pub-3940256099942544/1033173712';
-  static const String _testInterstitialAdUnitIdIOS = 'ca-app-pub-3940256099942544/4411468910';
-  
-  // Native reklam için test ID'leri
-  static const String _testNativeAdUnitIdAndroid = 'ca-app-pub-3940256099942544/2247696110';
-  static const String _testNativeAdUnitIdIOS = 'ca-app-pub-3940256099942544/3986624511';
-  
-  // Banner reklam ID'si - Adaptive Banner destekli
   static String get bannerAdUnitId {
-    if (kDebugMode) {
-      // Test ID'leri - Adaptive Banner destekli
-      if (Platform.isAndroid) {
-        return _testBannerAdUnitIdAndroid;
-      } else if (Platform.isIOS) {
-        return _testBannerAdUnitIdIOS;
-      }
-    }
-    
-    // Production ID'leri
-    if (Platform.isAndroid) {
-      return 'ca-app-pub-3375249639458473/4451476746'; // Gerçek Android adaptive banner ID
-    } else if (Platform.isIOS) {
-      return 'ca-app-pub-3375249639458473/4569259764'; // Gerçek iOS adaptive banner ID
-    }
-    
-    // Fallback
-    return _testBannerAdUnitIdAndroid;
+    return Platform.isAndroid
+        ? 'ca-app-pub-3375249639458473/4451476746'
+        : 'ca-app-pub-3375249639458473/4569259764'; // iOS ID'si için varsayılan
   }
 
-  // Interstitial reklamı ID'si
+  // Interstitial reklamı için test ID'leri
   static String get interstitialAdUnitId {
-    if (kDebugMode) {
-      // Test ID'leri
-      if (Platform.isAndroid) {
-        return _testInterstitialAdUnitIdAndroid;
-      } else if (Platform.isIOS) {
-        return _testInterstitialAdUnitIdIOS;
-      }
-    }
-    
-    // Production ID'leri
-    if (Platform.isAndroid) {
-      return 'ca-app-pub-3375249639458473/4972153248'; // Geçiş - Android interstitial ID
-    } else if (Platform.isIOS) {
-      return 'ca-app-pub-3375249639458473/4972153248'; // Geçiş - iOS interstitial ID (aynı birim)
-    }
-    
-    // Fallback
-    return _testInterstitialAdUnitIdAndroid;
+    return Platform.isAndroid
+        ? 'ca-app-pub-3375249639458473/4972153248'
+        : 'ca-app-pub-3375249639458473/4972153248'; // iOS ID'si için varsayılan
   }
 
   // Native reklam ID'si
   static String get nativeAdUnitId {
-    if (kDebugMode) {
-      // Test ID'leri
-      if (Platform.isAndroid) {
-        return _testNativeAdUnitIdAndroid;
-      } else if (Platform.isIOS) {
-        return _testNativeAdUnitIdIOS;
-      }
-    }
-    
-    // Production ID'leri
-    if (Platform.isAndroid) {
-      return 'ca-app-pub-3375249639458473/8521867085'; // Yeni Android native ID
-    } else if (Platform.isIOS) {
-      return 'ca-app-pub-3375249639458473/8521867085'; // Yeni iOS native ID (aynı birim)
-    }
-    
-    // Fallback
-    return _testNativeAdUnitIdAndroid;
+    return Platform.isAndroid
+        ? 'ca-app-pub-3375249639458473/8521867085'
+        : 'ca-app-pub-3375249639458473/8521867085'; // iOS ID'si için varsayılan
   }
 
   // AdMob'u başlat - sadece mobil platformlarda

@@ -785,56 +785,31 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _openInAppReview() async {
+    final InAppReview inAppReview = InAppReview.instance;
+
     try {
       // Uygulama içi işlem flag'ini set et - reklam engellemek için
       AdMobService().setInAppActionFlag('review');
-      
       // Analytics event'i gönder
       await TurkceAnalyticsService.uygulamaDegerlendirmeAcildi();
-      
-      final InAppReview inAppReview = InAppReview.instance;
-      
-      debugPrint('🔍 [Review] Uygulama içi değerlendirme kontrol ediliyor...');
-      
-      // Uygulama içi değerlendirme mevcut mu kontrol et
-      final isAvailable = await inAppReview.isAvailable();
-      debugPrint('📱 [Review] isAvailable() sonucu: $isAvailable');
-      
-      if (isAvailable) {
-        debugPrint('✅ [Review] Uygulama içi değerlendirme mevcut - requestReview() çağrılacak');
-        
-        // Uygulama içinde değerlendirme penceresi aç
+
+      if (await inAppReview.isAvailable()) {
+        debugPrint('✅ [Review] Sistem değerlendirme penceresi açılıyor...');
         await inAppReview.requestReview();
-        debugPrint('🌟 [Review] requestReview() başarıyla çağrıldı - Sistem değerlendirme ekranı açılmalı');
-        
-        // Sadece AppUsageService'e bildir (UI gösterildi)
-        await _appUsageService.markRatingUIShown();
-        
-        // Başarılı durumda flag'i 1 dakika sonra temizle
-        Future.delayed(const Duration(minutes: 1), () {
-          AdMobService().clearInAppActionFlag();
-          debugPrint('🔓 [Review] Değerlendirme işlemi sonrası 1 dakika flag temizlendi');
-        });
-        
-
+        // Kullanıcıya bir geri bildirim göstermeye gerek yok, sistem kendi yönetiyor.
       } else {
-        debugPrint('⚠️ [Review] Uygulama içi değerlendirme mevcut değil - Google Play açılacak');
-        
-
-        
-        // Mevcut değilse store sayfasını aç
+        debugPrint('⚠️ [Review] Sistem değerlendirme penceresi mevcut değil, mağaza sayfası açılıyor...');
         await _openGooglePlayRating();
       }
     } catch (e) {
-      debugPrint('❌ [Review] Uygulama içi değerlendirme hatası: $e');
-      
-      // Hata durumunda flag'i temizle
-      AdMobService().clearInAppActionFlag();
-      
-
-      
-      // Hata durumunda fallback olarak store sayfasını aç
-      await _openGooglePlayRating();
+      debugPrint('❌ [Review] Değerlendirme hatası, mağaza sayfası açılıyor: $e');
+      await _openGooglePlayRating(); // Hata durumunda fallback
+    } finally {
+      // Flag'i 1 dakika sonra temizle
+      Future.delayed(const Duration(minutes: 1), () {
+        AdMobService().clearInAppActionFlag();
+        debugPrint('🔓 Değerlendirme işlemi sonrası flag temizlendi');
+      });
     }
   }
 
@@ -844,63 +819,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final Uri webUrl = Uri.parse('https://play.google.com/store/apps/details?id=$packageName');
     
     try {
-      // Uygulama içi işlem flag'ini set et - reklam engellemek için
-      AdMobService().setInAppActionFlag('review');
-      
-      // Önce Google Play uygulamasını açmayı dene
       if (await canLaunchUrl(googlePlayUrl)) {
-        await launchUrl(
-          googlePlayUrl,
-          mode: LaunchMode.externalApplication,
-        );
-        // Sadece AppUsageService'e bildir (UI gösterildi)
-        await _appUsageService.markRatingUIShown();
-        
-        // NOT: _setRatedApp() çağrısını kaldırdık çünkü 
-        // kullanıcı Google Play'e gidip değerlendirme yapmayabilir
-        
-        // 1 dakika sonra flag'i temizle - değerlendirme tamamlandıktan sonra
-        Future.delayed(const Duration(minutes: 1), () {
-          AdMobService().clearInAppActionFlag();
-          debugPrint('🔓 Google Play değerlendirme işlemi sonrası 1 dakika flag temizlendi');
-        });
+        await launchUrl(googlePlayUrl, mode: LaunchMode.externalApplication);
       } else if (await canLaunchUrl(webUrl)) {
-        // Google Play uygulaması yoksa web'de aç
-        await launchUrl(
-          webUrl,
-          mode: LaunchMode.externalApplication,
-        );
-        // Sadece AppUsageService'e bildir (UI gösterildi)
-        await _appUsageService.markRatingUIShown();
-        
-        // NOT: _setRatedApp() çağrısını kaldırdık çünkü 
-        // kullanıcı web sayfasına gidip değerlendirme yapmayabilir
-        
-        // 1 dakika sonra flag'i temizle - değerlendirme tamamlandıktan sonra
-        Future.delayed(const Duration(minutes: 1), () {
-          AdMobService().clearInAppActionFlag();
-          debugPrint('🔓 Web değerlendirme işlemi sonrası 1 dakika flag temizlendi');
-        });
+        await launchUrl(webUrl, mode: LaunchMode.externalApplication);
       } else {
-        // Hiçbiri açılamazsa hata göster - flag'i temizle
-        AdMobService().clearInAppActionFlag();
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Google Play açılamadı'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
+        throw 'Mağaza URL\'si açılamadı.';
       }
     } catch (e) {
-      debugPrint('❌ Google Play değerlendirme hatası: $e');
-      // Hata durumunda flag'i temizle
-      AdMobService().clearInAppActionFlag();
-      if (mounted) {
+       debugPrint('❌ [Review] Google Play açma hatası: $e');
+      if(mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Bir hata oluştu'),
+            content: Text('Mağaza açılamadı. Lütfen daha sonra tekrar deneyin.'),
             backgroundColor: Colors.red,
           ),
         );

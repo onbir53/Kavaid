@@ -231,6 +231,15 @@ void main() async {
     debugPrint('❌ Firebase başlatma hatası: $e');
     // Firebase olmadan devam et - offline modda çalışabilir
   }
+
+  // AdMob'u başlat ve test cihazını yapılandır
+  await MobileAds.instance.initialize();
+  if (kDebugMode) {
+    List<String> testDeviceIds = ['D33EE72DE02BFF9C95BD4F97C3A7EE88'];
+    RequestConfiguration configuration =
+        RequestConfiguration(testDeviceIds: testDeviceIds);
+    MobileAds.instance.updateRequestConfiguration(configuration);
+  }
   
   // Diğer servisleri arka planda başlat
   _initializeServicesInBackground();
