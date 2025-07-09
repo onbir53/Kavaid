@@ -28,6 +28,7 @@ import 'services/turkce_analytics_service.dart';
 import 'models/word_model.dart';
 import 'services/app_usage_service.dart';
 import 'services/gemini_service.dart';
+import 'services/tts_service.dart';
 
 // Custom ScrollBehavior - overscroll glow efektini kaldırmak için
 class NoGlowScrollBehavior extends ScrollBehavior {
@@ -291,6 +292,13 @@ void _initializeServicesInBackground() {
     final appUsageService = AppUsageService();
     await appUsageService.startSession();
     debugPrint('✅ AppUsageService başlatıldı');
+  });
+  
+  // TTS Service'i arka planda başlat
+  Future.delayed(const Duration(milliseconds: 450), () async {
+    final ttsService = TTSService();
+    await ttsService.initialize();
+    debugPrint('✅ TTSService başlatıldı');
   });
   
   // GlobalConfigService'i arka planda başlat

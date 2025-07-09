@@ -5,6 +5,13 @@ import '../models/word_model.dart';
 import '../services/saved_words_service.dart';
 import '../services/credits_service.dart';
 import '../utils/performance_utils.dart';
+import '../services/tts_service.dart';
+import '../services/turkce_analytics_service.dart';
+import 'package:screenshot/screenshot.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:path_provider/path_provider.dart';
+import 'dart:io';
+import 'dart:typed_data';
 
 // 🚀 PERFORMANCE: Font'ları cache'le
 class _FontCache {
@@ -69,7 +76,10 @@ class SearchResultCard extends StatefulWidget {
 class _SearchResultCardState extends State<SearchResultCard> with SingleTickerProviderStateMixin { // 🚀 PERFORMANCE: Single ticker
   final SavedWordsService _savedWordsService = SavedWordsService();
   final CreditsService _creditsService = CreditsService();
+  final TTSService _ttsService = TTSService();
+  final ScreenshotController _screenshotController = ScreenshotController();
   bool _isExpanded = false;
+  bool _hasEverExpanded = false; // İlk defa açılma durumu için
   
   // 🚀 PERFORMANCE: Animasyon controller'ı optimize et
   AnimationController? _animationController;
@@ -146,6 +156,15 @@ class _SearchResultCardState extends State<SearchResultCard> with SingleTickerPr
         return;
       }
       
+      // İlk defa açılıyorsa işaretle ve analytics event gönder
+      if (!_hasEverExpanded) {
+        setState(() {
+          _hasEverExpanded = true;
+        });
+        // Analytics event gönder
+        await TurkceAnalyticsService.kelimeDetayiAcildi(widget.word.kelime);
+      }
+      
       // 🚀 PERFORMANCE: Animasyonu lazy initialize et
       _initializeAnimation();
       
@@ -189,6 +208,89 @@ class _SearchResultCardState extends State<SearchResultCard> with SingleTickerPr
       print('Toggle saved error: $e');
     }
   }
+  
+  Future<void> _speakArabic() async {
+    // Analytics event gönder
+    await TurkceAnalyticsService.kelimeTelaffuzEdildi(widget.word.kelime);
+    
+    // Harekeli kelime varsa onu kullan, yoksa normal kelimeyi kullan
+    final textToSpeak = widget.word.harekeliKelime?.isNotEmpty == true 
+        ? widget.word.harekeliKelime! 
+        : widget.word.kelime;
+    
+    final success = await _ttsService.speak(textToSpeak);
+    if (!success && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Telaffuz özelliği kullanılamıyor'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+    }
+  }
+  
+  Future<void> _shareWordCard() async {
+    try {
+      // Analytics event gönder
+      await TurkceAnalyticsService.kelimePaylasildi(widget.word.kelime);
+      
+      // Kartı genişlet (detayları göster)
+      if (!_isExpanded) {
+        setState(() {
+          _isExpanded = true;
+        });
+        if (_animationController != null) {
+          await _animationController!.forward();
+        }
+        // UI'nin güncellenmesi için bekle
+        await Future.delayed(const Duration(milliseconds: 300));
+      }
+      
+      // Screenshot al
+      final image = await _screenshotController.capture();
+      if (image == null) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Paylaşım için görüntü alınamadı'),
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
+        return;
+      }
+      
+      // Geçici dosya oluştur
+      final directory = await getTemporaryDirectory();
+      final imagePath = '${directory.path}/kavaid_${widget.word.kelime}.png';
+      final imageFile = File(imagePath);
+      await imageFile.writeAsBytes(image);
+      
+      // Paylaş
+      await Share.shareXFiles(
+        [XFile(imagePath)],
+        text: 'Kavaid - Arapça-Türkçe Sözlük\n\n'
+              '${widget.word.harekeliKelime ?? widget.word.kelime}\n'
+              '${widget.word.anlam ?? ""}',
+      );
+      
+      // Geçici dosyayı temizle
+      try {
+        await imageFile.delete();
+      } catch (_) {}
+      
+    } catch (e) {
+      debugPrint('Paylaşım hatası: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Paylaşım başarısız oldu'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -199,38 +301,41 @@ class _SearchResultCardState extends State<SearchResultCard> with SingleTickerPr
       key: ValueKey('search_card_${widget.word.kelime}'),
       child: Padding(
         padding: const EdgeInsets.only(bottom: 3),
-        child: Container(
-          decoration: BoxDecoration(
-            color: isDarkMode ? const Color(0xFF1C1C1E) : Colors.white,
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(
-              color: isDarkMode 
-                  ? const Color(0xFF48484A)
-                  : const Color(0xFFD0D0D0),
-              width: 0.8,
-            ),
-            // 🚀 PERFORMANCE: Shadow optimizasyonu
-            boxShadow: (isDarkMode || !PerformanceUtils.enableShadows) ? null : [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                blurRadius: 6,
-                offset: const Offset(0, 2),
+        child: Screenshot(
+          controller: _screenshotController,
+          child: Container(
+            decoration: BoxDecoration(
+              color: isDarkMode ? const Color(0xFF1C1C1E) : Colors.white,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: isDarkMode 
+                    ? const Color(0xFF48484A)
+                    : const Color(0xFFD0D0D0),
+                width: 0.8,
               ),
-            ],
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min, // 🚀 PERFORMANCE: Column boyutunu minimize et
-            children: [
-              // Ana kart içeriği
-              _buildMainContent(isDarkMode),
-              
-              // 🚀 PERFORMANCE: Genişleyebilir detay alanını optimize et
-              if (_isExpanded && _expandAnimation != null)
-                SizeTransition(
-                  sizeFactor: _expandAnimation!,
-                  child: _buildExpandedContent(isDarkMode),
+              // 🚀 PERFORMANCE: Shadow optimizasyonu
+              boxShadow: (isDarkMode || !PerformanceUtils.enableShadows) ? null : [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 6,
+                  offset: const Offset(0, 2),
                 ),
-            ],
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min, // 🚀 PERFORMANCE: Column boyutunu minimize et
+              children: [
+                // Ana kart içeriği
+                _buildMainContent(isDarkMode),
+                
+                // 🚀 PERFORMANCE: Genişleyebilir detay alanını optimize et
+                if (_isExpanded && _expandAnimation != null)
+                  SizeTransition(
+                    sizeFactor: _expandAnimation!,
+                    child: _buildExpandedContent(isDarkMode),
+                  ),
+              ],
+            ),
           ),
         ),
       ),
@@ -244,72 +349,135 @@ class _SearchResultCardState extends State<SearchResultCard> with SingleTickerPr
       borderRadius: BorderRadius.circular(6),
       child: Container(
         padding: const EdgeInsets.all(12),
-        child: Row(
+        child: Column(
           children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
+            Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      // 🚀 PERFORMANCE: Cache'lenmiş font stili
-                      Flexible(
-                        child: Container(
-                          constraints: BoxConstraints(
-                            maxWidth: MediaQuery.of(context).size.width * 0.4,
-                          ),
-                          child: Text(
-                            widget.word.harekeliKelime?.isNotEmpty == true 
-                                ? widget.word.harekeliKelime! 
-                                : widget.word.kelime,
-                            style: _FontCache.getArabicStyle().copyWith(
-                              color: isDarkMode ? Colors.white : const Color(0xFF1C1C1E),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          // 🚀 PERFORMANCE: Cache'lenmiş font stili
+                          Flexible(
+                            child: Container(
+                              constraints: BoxConstraints(
+                                maxWidth: MediaQuery.of(context).size.width * 0.4,
+                              ),
+                              child: Text(
+                                widget.word.harekeliKelime?.isNotEmpty == true 
+                                    ? widget.word.harekeliKelime! 
+                                    : widget.word.kelime,
+                                style: _FontCache.getArabicStyle().copyWith(
+                                  color: isDarkMode ? Colors.white : const Color(0xFF1C1C1E),
+                                ),
+                                textDirection: TextDirection.rtl,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                softWrap: false,
+                              ),
                             ),
-                            textDirection: TextDirection.rtl,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            softWrap: false,
+                          ),
+                          const SizedBox(width: 8),
+                          // Kelime türü chip'i
+                          Flexible(
+                            child: Wrap(
+                              spacing: 6,
+                              runSpacing: 4,
+                              children: _buildWordInfoChips(isDarkMode),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      // Türkçe anlam
+                      if (widget.word.anlam?.isNotEmpty == true) ...[
+                        Text(
+                          widget.word.anlam!,
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: isDarkMode 
+                                ? const Color(0xFF8E8E93) 
+                                : const Color(0xFF6D6D70),
+                            height: 1.3,
+                            fontWeight: FontWeight.w400,
+                          ),
+                          maxLines: _isExpanded ? null : 2,
+                          overflow: _isExpanded ? null : TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                // Butonlar: Telaffuz, Kaydetme, Paylaşma
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Telaffuz butonu
+                    _buildSpeakButton(isDarkMode),
+                    // Kaydetme butonu
+                    _buildBookmarkButton(isDarkMode),
+                    // Paylaşma butonu
+                    _buildShareButton(isDarkMode),
+                  ],
+                ),
+              ],
+            ),
+            // Expand butonu orta altta
+            const SizedBox(height: 8),
+            Center(
+              child: GestureDetector(
+                onTap: _toggleExpanded,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 16),
+                  decoration: BoxDecoration(
+                    color: isDarkMode
+                        ? const Color(0xFF2C2C2E)
+                        : const Color(0xFFF2F2F7),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: isDarkMode
+                          ? const Color(0xFF48484A).withOpacity(0.3)
+                          : const Color(0xFFE5E5EA).withOpacity(0.5),
+                      width: 0.5,
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (!_hasEverExpanded && !_isExpanded) ...[
+                        Text(
+                          'Detayları görmek için tıklayın',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: isDarkMode
+                                ? const Color(0xFF8E8E93)
+                                : const Color(0xFF6D6D70),
+                            fontWeight: FontWeight.w500,
                           ),
                         ),
-                      ),
-                      const SizedBox(width: 8),
-                      // Kelime türü chip'i
-                      Flexible(
-                        child: Wrap(
-                          spacing: 6,
-                          runSpacing: 4,
-                          children: _buildWordInfoChips(isDarkMode),
+                        const SizedBox(width: 4),
+                      ],
+                      AnimatedRotation(
+                        turns: _isExpanded ? 0.5 : 0,
+                        duration: const Duration(milliseconds: 100),
+                        child: Icon(
+                          Icons.expand_more,
+                          color: isDarkMode
+                              ? const Color(0xFF8E8E93)
+                              : const Color(0xFF6D6D70),
+                          size: 16,
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 4),
-                  // Türkçe anlam
-                  if (widget.word.anlam?.isNotEmpty == true) ...[
-                    Text(
-                      widget.word.anlam!,
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: isDarkMode 
-                            ? const Color(0xFF8E8E93) 
-                            : const Color(0xFF6D6D70),
-                        height: 1.3,
-                        fontWeight: FontWeight.w400,
-                      ),
-                      maxLines: _isExpanded ? null : 2,
-                      overflow: _isExpanded ? null : TextOverflow.ellipsis,
-                    ),
-                  ],
-                ],
+                ),
               ),
             ),
-            const SizedBox(width: 12),
-            // Kaydetme tuşu
-            _buildBookmarkButton(isDarkMode),
-            // Açılır menü ikonu
-            _buildExpandButton(isDarkMode),
           ],
         ),
       ),
@@ -344,33 +512,48 @@ class _SearchResultCardState extends State<SearchResultCard> with SingleTickerPr
     );
   }
   
-  // 🚀 PERFORMANCE: Expand button'ı optimize et
-  Widget _buildExpandButton(bool isDarkMode) {
+  // Telaffuz butonu
+  Widget _buildSpeakButton(bool isDarkMode) {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        onTap: _toggleExpanded,
-        borderRadius: BorderRadius.circular(20),
+        onTap: _speakArabic,
+        borderRadius: BorderRadius.circular(16),
         child: Container(
           width: 32,
           height: 32,
-          padding: const EdgeInsets.all(4),
-          child: AnimatedRotation(
-            turns: _isExpanded ? 0.5 : 0,
-            duration: const Duration(milliseconds: 100), // 🚀 PERFORMANCE: 150ms'den 100ms'ye düşürdüm
-            curve: Curves.easeInOut,
-            child: Icon(
-              Icons.expand_more,
-              color: isDarkMode 
-                  ? const Color(0xFF8E8E93) 
-                  : const Color(0xFF6D6D70),
-              size: 20,
-            ),
+          padding: const EdgeInsets.all(6),
+          child: Icon(
+            Icons.volume_up,
+            color: isDarkMode ? const Color(0xFF8E8E93) : const Color(0xFF6D6D70),
+            size: 20,
           ),
         ),
       ),
     );
   }
+  
+  // Paylaşma butonu
+  Widget _buildShareButton(bool isDarkMode) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: _shareWordCard,
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          width: 32,
+          height: 32,
+          padding: const EdgeInsets.all(6),
+          child: Icon(
+            Icons.share,
+            color: isDarkMode ? const Color(0xFF8E8E93) : const Color(0xFF6D6D70),
+            size: 20,
+          ),
+        ),
+      ),
+    );
+  }
+
   
   // 🚀 PERFORMANCE: Genişletilmiş içeriği optimize et
   Widget _buildExpandedContent(bool isDarkMode) {

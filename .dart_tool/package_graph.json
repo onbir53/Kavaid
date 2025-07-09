@@ -18,6 +18,7 @@
         "flutter_displaymode",
         "flutter_launcher_icons",
         "flutter_spinkit",
+        "flutter_tts",
         "google_fonts",
         "google_mobile_ads",
         "http",
@@ -26,6 +27,7 @@
         "json_annotation",
         "path",
         "path_provider",
+        "screenshot",
         "share_plus",
         "shared_preferences",
         "sqflite",
@@ -133,6 +135,13 @@
         "test_api",
         "vector_math",
         "vm_service"
+      ]
+    },
+    {
+      "name": "screenshot",
+      "version": "3.0.0",
+      "dependencies": [
+        "flutter"
       ]
     },
     {
@@ -1497,6 +1506,14 @@
         "ffi",
         "meta",
         "path"
+      ]
+    },
+    {
+      "name": "flutter_tts",
+      "version": "4.2.3",
+      "dependencies": [
+        "flutter",
+        "flutter_web_plugins"
       ]
     }
   ],

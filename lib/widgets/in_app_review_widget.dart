@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/turkce_analytics_service.dart';
 import '../services/admob_service.dart';
+import 'package:in_app_review/in_app_review.dart';
 
 class InAppReviewWidget extends StatefulWidget {
   final VoidCallback onReviewSubmitted;
@@ -63,30 +64,68 @@ class _InAppReviewWidgetState extends State<InAppReviewWidget> {
       _isSubmitting = true;
     });
     
-    // Analytics event gönder - artık türkçe event ismi kullanmıyoruz çünkü özel bir durum
-    // Bu event internal bir widget event'i olduğu için genel "uygulamaDegerlendirmeAcildi" event'ini kullanıyoruz
+    // Analytics event gönder
     await TurkceAnalyticsService.uygulamaDegerlendirmeAcildi();
     
-    // Biraz bekle (gerçek API çağrısı simülasyonu)
-    await Future.delayed(const Duration(seconds: 1));
-    
-    if (mounted) {
-      // Başarı mesajı göster
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Değerlendirmeniz için teşekkür ederiz! 🙏'),
-          backgroundColor: Colors.green,
-        ),
-      );
+    try {
+      // Eğer 4 veya 5 yıldız verdiyse Google Play değerlendirme ekranını aç
+      if (_rating >= 4) {
+        final InAppReview inAppReview = InAppReview.instance;
+        
+        // Değerlendirme yapıldığını işaretle
+        await _setRatedApp();
+        
+        // Değerlendirme isteğini göster
+        if (await inAppReview.isAvailable()) {
+          await inAppReview.requestReview();
+        } else {
+          // Store sayfasını aç
+          await inAppReview.openStoreListing(
+            appStoreId: '', // iOS için gerekli değil
+          );
+        }
+      } else {
+        // Düşük puan - sadece teşekkür et ve kapat
+        await _setRatedApp();
+        
+        // Geri bildirim varsa kaydet (gelecekte kullanılabilir)
+        if (_commentController.text.isNotEmpty) {
+          debugPrint('📝 Kullanıcı geri bildirimi ($_rating yıldız): ${_commentController.text}');
+        }
+      }
       
-      // Gerçek değerlendirme yapıldığını işaretle
-      await _setRatedApp();
-      
-      // Reklam engellemesini kaldır (değerlendirme tamamlandı)
+      if (mounted) {
+        // Başarı mesajı göster
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(_rating >= 4 
+              ? 'Değerlendirmeniz için teşekkür ederiz! 🙏' 
+              : 'Geri bildiriminiz için teşekkür ederiz!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        
+        // Reklam engellemesini kaldır (değerlendirme tamamlandı)
+        AdMobService().clearInAppActionFlag();
+        
+        // Callback'i çağır
+        widget.onReviewSubmitted();
+      }
+    } catch (e) {
+      debugPrint('❌ Değerlendirme hatası: $e');
+      if (mounted) {
+        setState(() {
+          _isSubmitting = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Bir hata oluştu, lütfen daha sonra tekrar deneyin'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      // Hata durumunda da reklam engellemesini kaldır
       AdMobService().clearInAppActionFlag();
-      
-      // Callback'i çağır
-      widget.onReviewSubmitted();
     }
   }
   

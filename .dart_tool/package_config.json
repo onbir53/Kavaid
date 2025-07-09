@@ -314,6 +314,12 @@
       "languageVersion": "3.7"
     },
     {
+      "name": "flutter_tts",
+      "rootUri": "file:///C:/Users/kul/AppData/Local/Pub/Cache/hosted/pub.dev/flutter_tts-4.2.3",
+      "packageUri": "lib/",
+      "languageVersion": "3.4"
+    },
+    {
       "name": "flutter_web_plugins",
       "rootUri": "file:///C:/flutter/packages/flutter_web_plugins",
       "packageUri": "lib/",
@@ -582,6 +588,12 @@
       "rootUri": "file:///C:/Users/kul/AppData/Local/Pub/Cache/hosted/pub.dev/pubspec_parse-1.5.0",
       "packageUri": "lib/",
       "languageVersion": "3.6"
+    },
+    {
+      "name": "screenshot",
+      "rootUri": "file:///C:/Users/kul/AppData/Local/Pub/Cache/hosted/pub.dev/screenshot-3.0.0",
+      "packageUri": "lib/",
+      "languageVersion": "2.12"
     },
     {
       "name": "share_plus",

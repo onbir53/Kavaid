@@ -487,52 +487,6 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
   List<Widget> _buildMainContentSlivers() {
     List<Widget> slivers = [];
     
-    if (_showAIButton && !_isLoading) {
-      slivers.add(
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(8, 12, 8, 0),
-            child: Container(
-              decoration: BoxDecoration(
-                color: const Color(0xFF007AFF),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  onTap: _searchWithAI,
-                  borderRadius: BorderRadius.circular(12),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.search,
-                          color: Colors.white,
-                          size: 20,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Kelime ara',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.white,
-                            letterSpacing: 0.3,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ),
-      );
-    }
-    
     if (_isLoading) {
       slivers.add(
         SliverToBoxAdapter(
@@ -561,107 +515,194 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
       return slivers;
     }
 
-    if (_isSearching && _searchResults.isNotEmpty) {
-      // Native reklam gösterme mantığı - Sadece 4. sonuçtan sonra
-      final int maxAds = 1; // Maksimum 1 reklam göster
-      
-      // Reklam pozisyonlarını hesapla - Sadece 4+ sonuç varsa
-      final List<int> adPositions = [];
-      if (_searchResults.length >= 4) {
-        // 4 veya daha fazla sonuç varsa 4. pozisyonda reklam göster
-        adPositions.add(4);
-      }
-      // 4'ten az sonuç varsa reklam gösterme
-      
-      final int totalAds = adPositions.length;
-      
-      // Debug bilgileri
-      if (kDebugMode) {
-        debugPrint('📊 [NATIVE ADS] Arama sonuçları: ${_searchResults.length}');
-        debugPrint('📊 [NATIVE ADS] Reklam pozisyonları: $adPositions');
-        debugPrint('📊 [NATIVE ADS] Toplam reklam sayısı: $totalAds (MAX: 1)');
-        debugPrint('📊 [NATIVE ADS] Reklam pozisyonu: ${adPositions.isNotEmpty ? adPositions.first : 'yok'}');
-        debugPrint('🎯 [NATIVE ADS] Sabit pozisyon: 4. sonuçtan sonra');
-        debugPrint('✅ [NATIVE ADS] Sadece 4+ sonuç varsa reklam gösteriliyor');
-      }
-      
-      slivers.add(
-        SliverPadding(
-          padding: EdgeInsets.fromLTRB(8, 12, 8, widget.bottomPadding),
-          sliver: SliverList(
-            delegate: SliverChildBuilderDelegate(
-              (context, index) {
-                // Mevcut pozisyonda kaç reklam gösterilmiş
-                int adsShown = adPositions.where((pos) => pos <= index).length;
-                int actualIndex = index - adsShown;
-                
-                // Bu pozisyonda reklam gösterilmeli mi?
-                if (adPositions.contains(index)) {
-                  return RepaintBoundary(
-                    key: ValueKey('ad_$index'),
-                    child: const NativeAdWidget(),
-                  );
-                }
-                
-                // Normal arama sonucu
-                if (actualIndex < _searchResults.length) {
-                  final word = _searchResults[actualIndex];
-                  return RepaintBoundary(
-                    key: ValueKey('result_${word.kelime}_$actualIndex'),
-                    child: SearchResultCard(
-                      word: word,
-                      onTap: () => _selectWord(word),
-                      onExpand: () {
-                        // Arapça klavye açıksa kapat
-                        if (_showArabicKeyboard) {
-                          setState(() {
-                            _showArabicKeyboard = false;
-                          });
-                          widget.onArabicKeyboardStateChanged?.call(false);
-                        }
-                      },
+    if (_isSearching) {
+      // 0 sonuç durumunda native reklam göster
+      if (_searchResults.isEmpty && _showAIButton) {
+        slivers.add(
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(8, 12, 8, 8),
+              child: Column(
+                children: [
+                  // Bulunamadı mesajı
+                  Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Center(
+                      child: Text(
+                        'Sonuç bulunamadı',
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: widget.isDarkMode ? Colors.white70 : const Color(0xFF8E8E93),
+                        ),
+                      ),
                     ),
-                  );
-                }
-                return const SizedBox.shrink();
-              },
-              childCount: _searchResults.length + totalAds,
-              // ✅ SCROLL: Reklam state'i koruması için KeepAlive aktif
-              addAutomaticKeepAlives: true,
-              addRepaintBoundaries: false,
-              // 🚀 PERFORMANCE: Semantic index'leri kapat
-              addSemanticIndexes: false,
-              findChildIndexCallback: (Key key) {
-                if (key is ValueKey) {
-                  final value = key.value as String;
-                  if (value.startsWith('ad_')) {
-                    return int.tryParse(value.substring(3));
-                  } else if (value.startsWith('result_')) {
-                    // Actual index'i bul
-                    for (int i = 0; i < _searchResults.length + totalAds; i++) {
-                      int adsShown = adPositions.where((pos) => pos <= i).length;
-                      int actualIndex = i - adsShown;
-                      if (actualIndex >= 0 && actualIndex < _searchResults.length) {
-                        final word = _searchResults[actualIndex];
-                        if (value == 'result_${word.kelime}_$actualIndex') {
-                          return i;
+                  ),
+                  // Native reklam - 0 sonuç durumunda göster
+                  RepaintBoundary(
+                    child: const NativeAdWidget(),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      } else if (_searchResults.isNotEmpty) {
+        // Native reklam gösterme mantığı - Sadece 4. sonuçtan sonra
+        final int maxAds = 1; // Maksimum 1 reklam göster
+        
+        // Reklam pozisyonlarını hesapla - Sadece 4+ sonuç varsa
+        final List<int> adPositions = [];
+        if (_searchResults.length >= 4) {
+          // 4 veya daha fazla sonuç varsa 4. pozisyonda reklam göster
+          adPositions.add(4);
+        }
+        // 4'ten az sonuç varsa reklam gösterme
+        
+        final int totalAds = adPositions.length;
+        
+        // Debug bilgileri
+        if (kDebugMode) {
+          debugPrint('📊 [NATIVE ADS] Arama sonuçları: ${_searchResults.length}');
+          debugPrint('📊 [NATIVE ADS] Reklam pozisyonları: $adPositions');
+          debugPrint('📊 [NATIVE ADS] Toplam reklam sayısı: $totalAds (MAX: 1)');
+          debugPrint('📊 [NATIVE ADS] Reklam pozisyonu: ${adPositions.isNotEmpty ? adPositions.first : 'yok'}');
+          debugPrint('🎯 [NATIVE ADS] Sabit pozisyon: 4. sonuçtan sonra');
+          debugPrint('✅ [NATIVE ADS] Sadece 4+ sonuç varsa reklam gösteriliyor');
+        }
+        
+        slivers.add(
+          SliverPadding(
+            padding: EdgeInsets.fromLTRB(8, 12, 8, 8),
+            sliver: SliverList(
+              delegate: SliverChildBuilderDelegate(
+                (context, index) {
+                  // Mevcut pozisyonda kaç reklam gösterilmiş
+                  int adsShown = adPositions.where((pos) => pos <= index).length;
+                  int actualIndex = index - adsShown;
+                  
+                  // Bu pozisyonda reklam gösterilmeli mi?
+                  if (adPositions.contains(index)) {
+                    return RepaintBoundary(
+                      key: ValueKey('ad_$index'),
+                      child: const NativeAdWidget(),
+                    );
+                  }
+                  
+                  // Normal arama sonucu
+                  if (actualIndex < _searchResults.length) {
+                    final word = _searchResults[actualIndex];
+                    return RepaintBoundary(
+                      key: ValueKey('result_${word.kelime}_$actualIndex'),
+                      child: SearchResultCard(
+                        word: word,
+                        onTap: () => _selectWord(word),
+                        onExpand: () {
+                          // Arapça klavye açıksa kapat
+                          if (_showArabicKeyboard) {
+                            setState(() {
+                              _showArabicKeyboard = false;
+                            });
+                            widget.onArabicKeyboardStateChanged?.call(false);
+                          }
+                        },
+                      ),
+                    );
+                  }
+                  return const SizedBox.shrink();
+                },
+                childCount: _searchResults.length + totalAds,
+                // ✅ SCROLL: Reklam state'i koruması için KeepAlive aktif
+                addAutomaticKeepAlives: true,
+                addRepaintBoundaries: false,
+                // 🚀 PERFORMANCE: Semantic index'leri kapat
+                addSemanticIndexes: false,
+                findChildIndexCallback: (Key key) {
+                  if (key is ValueKey) {
+                    final value = key.value as String;
+                    if (value.startsWith('ad_')) {
+                      return int.tryParse(value.substring(3));
+                    } else if (value.startsWith('result_')) {
+                      // Actual index'i bul
+                      for (int i = 0; i < _searchResults.length + totalAds; i++) {
+                        int adsShown = adPositions.where((pos) => pos <= i).length;
+                        int actualIndex = i - adsShown;
+                        if (actualIndex >= 0 && actualIndex < _searchResults.length) {
+                          final word = _searchResults[actualIndex];
+                          if (value == 'result_${word.kelime}_$actualIndex') {
+                            return i;
+                          }
                         }
                       }
                     }
                   }
-                }
-                return null;
-              },
+                  return null;
+                },
+              ),
             ),
           ),
-        ),
-      );
+        );
+      }
       
-      slivers.add(
-        const SliverToBoxAdapter(
-          child: SizedBox(height: 100), // Scroll performance için buffer
-        ),
-      );
+      // AI ile kelime ara butonu - listenin sonunda
+      if (_showAIButton) {
+        slivers.add(
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: EdgeInsets.fromLTRB(8, 12, 8, widget.bottomPadding + 20),
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      const Color(0xFF007AFF),
+                      const Color(0xFF0051D5),
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF007AFF).withOpacity(0.3),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: _searchWithAI,
+                    borderRadius: BorderRadius.circular(12),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.auto_awesome,
+                            color: Colors.white,
+                            size: 20,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            'AI ile Kelime Ara',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white,
+                              letterSpacing: 0.3,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+      }
       
       return slivers;
     }

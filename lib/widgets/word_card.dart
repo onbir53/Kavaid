@@ -5,6 +5,12 @@ import 'dart:ui' as ui;
 import '../models/word_model.dart';
 import '../services/saved_words_service.dart';
 import '../utils/performance_utils.dart';
+import '../services/tts_service.dart';
+import '../services/turkce_analytics_service.dart';
+import 'package:screenshot/screenshot.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:path_provider/path_provider.dart';
+import 'dart:io';
 
 // 🚀 PERFORMANCE: Font'u bir kere yükle ve cache'le
 class _FontCache {
@@ -39,7 +45,7 @@ class _FontCache {
 }
 
 // 🚀 PERFORMANCE: StatelessWidget'a dönüştür ve ValueListenableBuilder kullan
-class WordCard extends StatelessWidget {
+class WordCard extends StatefulWidget {
   final WordModel word;
 
   const WordCard({
@@ -48,19 +54,29 @@ class WordCard extends StatelessWidget {
   });
 
   @override
+  State<WordCard> createState() => _WordCardState();
+}
+
+class _WordCardState extends State<WordCard> {
+  final TTSService _ttsService = TTSService();
+  final ScreenshotController _screenshotController = ScreenshotController();
+  bool _isExpanded = false;
+  bool _hasEverExpanded = false;
+
+  @override
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final savedWordsService = SavedWordsService();
     
     // 🚀 PERFORMANCE: RepaintBoundary ile sarmalama ve key kullanımı
     return RepaintBoundary(
-      key: ValueKey('word_card_${word.kelime}'),
-      child: ValueListenableBuilder<bool>(
-        valueListenable: savedWordsService.isWordSavedNotifier(word),
-        builder: (context, isSaved, child) {
-          return GestureDetector(
-            onTap: () => _toggleSaved(context, savedWordsService, isSaved),
-            child: Container(
+      key: ValueKey('word_card_${widget.word.kelime}'),
+      child: Screenshot(
+        controller: _screenshotController,
+        child: ValueListenableBuilder<bool>(
+          valueListenable: savedWordsService.isWordSavedNotifier(widget.word),
+          builder: (context, isSaved, child) {
+            return Container(
               width: double.infinity,
               margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               padding: const EdgeInsets.all(16),
@@ -88,69 +104,269 @@ class WordCard extends StatelessWidget {
                 ] : null,
               ),
               // 🚀 PERFORMANCE: Basitleştirilmiş widget tree
-              child: _buildCardContent(isDarkMode, isSaved),
-            ),
-          );
-        },
+              child: _buildCardContent(isDarkMode, isSaved, savedWordsService),
+            );
+          },
+        ),
       ),
     );
   }
   
-  Future<void> _toggleSaved(BuildContext context, SavedWordsService service, bool isSaved) async {
+  Future<void> _toggleSaved(SavedWordsService service, bool isSaved) async {
     try {
       if (isSaved) {
-        await service.removeWord(word);
+        await service.removeWord(widget.word);
       } else {
-        await service.saveWord(word);
+        await service.saveWord(widget.word);
       }
     } catch (e) {
       print('Toggle saved error: $e');
     }
   }
   
+  Future<void> _speakArabic() async {
+    // Analytics event gönder
+    await TurkceAnalyticsService.kelimeTelaffuzEdildi(widget.word.kelime);
+    
+    // Harekeli kelime varsa onu kullan, yoksa normal kelimeyi kullan
+    final textToSpeak = widget.word.harekeliKelime?.isNotEmpty == true 
+        ? widget.word.harekeliKelime! 
+        : widget.word.kelime;
+    
+    final success = await _ttsService.speak(textToSpeak);
+    if (!success && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Telaffuz özelliği kullanılamıyor'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+    }
+  }
+  
+  Future<void> _shareWordCard() async {
+    try {
+      // Analytics event gönder
+      await TurkceAnalyticsService.kelimePaylasildi(widget.word.kelime);
+      
+      // Tüm detayları göster
+      if (!_isExpanded) {
+        setState(() {
+          _isExpanded = true;
+        });
+        // UI'nin güncellenmesi için bekle
+        await Future.delayed(const Duration(milliseconds: 300));
+      }
+      
+      // Screenshot al
+      final image = await _screenshotController.capture();
+      if (image == null) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Paylaşım için görüntü alınamadı'),
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
+        return;
+      }
+      
+      // Geçici dosya oluştur
+      final directory = await getTemporaryDirectory();
+      final imagePath = '${directory.path}/kavaid_${widget.word.kelime}.png';
+      final imageFile = File(imagePath);
+      await imageFile.writeAsBytes(image);
+      
+      // Paylaş
+      await Share.shareXFiles(
+        [XFile(imagePath)],
+        text: 'Kavaid - Arapça-Türkçe Sözlük\n\n'
+              '${widget.word.harekeliKelime ?? widget.word.kelime}\n'
+              '${widget.word.anlam ?? ""}',
+      );
+      
+      // Geçici dosyayı temizle
+      try {
+        await imageFile.delete();
+      } catch (_) {}
+      
+    } catch (e) {
+      debugPrint('Paylaşım hatası: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Paylaşım başarısız oldu'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    }
+  }
+  
+  void _toggleExpanded() {
+    setState(() {
+      _isExpanded = !_isExpanded;
+      if (!_hasEverExpanded && _isExpanded) {
+        _hasEverExpanded = true;
+        // Analytics event gönder
+        TurkceAnalyticsService.kelimeDetayiAcildi(widget.word.kelime);
+      }
+    });
+  }
+  
   // 🚀 PERFORMANCE: İçeriği ayrı method'a al
-  Widget _buildCardContent(bool isDarkMode, bool isSaved) {
+  Widget _buildCardContent(bool isDarkMode, bool isSaved, SavedWordsService savedWordsService) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min, // 🚀 PERFORMANCE: Column boyutunu minimize et
       children: [
-        // Arapça kelime - 🚀 PERFORMANCE: Cache'lenmiş font stili
-        Text(
-          word.harekeliKelime ?? word.kelime,
-          style: _FontCache.getArabicStyle().copyWith(
-            color: isDarkMode ? Colors.white : const Color(0xFF1C1C1E),
-          ),
-          textDirection: TextDirection.rtl,
+        // Ana içerik satırı
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Sol taraf - kelime ve anlam
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Arapça kelime - 🚀 PERFORMANCE: Cache'lenmiş font stili
+                  Text(
+                    widget.word.harekeliKelime ?? widget.word.kelime,
+                    style: _FontCache.getArabicStyle().copyWith(
+                      color: isDarkMode ? Colors.white : const Color(0xFF1C1C1E),
+                    ),
+                    textDirection: TextDirection.rtl,
+                  ),
+                  
+                  // Türkçe anlam
+                  if (widget.word.anlam != null && widget.word.anlam!.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      widget.word.anlam!,
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: isDarkMode 
+                            ? const Color(0xFF8E8E93)
+                            : const Color(0xFF6D6D70),
+                        height: 1.5,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            
+            // Sağ taraf - butonlar
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Telaffuz butonu
+                IconButton(
+                  onPressed: _speakArabic,
+                  icon: Icon(
+                    Icons.volume_up,
+                    color: isDarkMode ? const Color(0xFF8E8E93) : const Color(0xFF6D6D70),
+                  ),
+                  iconSize: 24,
+                  padding: const EdgeInsets.all(8),
+                  constraints: const BoxConstraints(
+                    minWidth: 40,
+                    minHeight: 40,
+                  ),
+                ),
+                
+                // Kaydetme butonu
+                IconButton(
+                  onPressed: () => _toggleSaved(savedWordsService, isSaved),
+                  icon: Icon(
+                    isSaved ? Icons.bookmark : Icons.bookmark_border,
+                    color: isSaved 
+                        ? const Color(0xFF007AFF)
+                        : (isDarkMode ? const Color(0xFF8E8E93) : const Color(0xFF6D6D70)),
+                  ),
+                  iconSize: 24,
+                  padding: const EdgeInsets.all(8),
+                  constraints: const BoxConstraints(
+                    minWidth: 40,
+                    minHeight: 40,
+                  ),
+                ),
+                
+                // Paylaşma butonu
+                IconButton(
+                  onPressed: _shareWordCard,
+                  icon: Icon(
+                    Icons.share,
+                    color: isDarkMode ? const Color(0xFF8E8E93) : const Color(0xFF6D6D70),
+                  ),
+                  iconSize: 24,
+                  padding: const EdgeInsets.all(8),
+                  constraints: const BoxConstraints(
+                    minWidth: 40,
+                    minHeight: 40,
+                  ),
+                ),
+              ],
+            ),
+          ],
         ),
         
-        // Türkçe anlam
-        if (word.anlam != null && word.anlam!.isNotEmpty) ...[
-          const SizedBox(height: 8),
-          Text(
-            word.anlam!,
-            style: TextStyle(
-              fontSize: 16,
-              color: isDarkMode 
-                  ? const Color(0xFF8E8E93)
-                  : const Color(0xFF6D6D70),
-              height: 1.5,
-            ),
-          ),
-        ],
-        
-        // 🚀 PERFORMANCE: Örnek cümle widget'ını optimize et
-        if (word.ornekler.isNotEmpty)
-          _buildExampleSection(isDarkMode),
-        
-        // Kaydetme göstergesi
+        // Genişletme butonu - orta alt
         const SizedBox(height: 12),
         Center(
-          child: Icon(
-            isSaved ? Icons.bookmark : Icons.bookmark_border,
-            color: isDarkMode ? Colors.white : Colors.black,
-            size: 24,
+          child: GestureDetector(
+            onTap: _toggleExpanded,
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 20),
+              decoration: BoxDecoration(
+                color: isDarkMode
+                    ? const Color(0xFF3A3A3C).withOpacity(0.5)
+                    : const Color(0xFFF2F2F7),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: isDarkMode
+                      ? const Color(0xFF48484A).withOpacity(0.3)
+                      : const Color(0xFFE5E5EA).withOpacity(0.5),
+                  width: 0.5,
+                ),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (!_hasEverExpanded && !_isExpanded) ...[
+                    Text(
+                      'Detayları görmek için tıklayın',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: isDarkMode
+                            ? const Color(0xFF8E8E93)
+                            : const Color(0xFF6D6D70),
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                  ],
+                  AnimatedRotation(
+                    turns: _isExpanded ? 0.5 : 0,
+                    duration: const Duration(milliseconds: 200),
+                    child: Icon(
+                      Icons.expand_more,
+                      color: isDarkMode
+                          ? const Color(0xFF8E8E93)
+                          : const Color(0xFF6D6D70),
+                      size: 20,
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
         ),
+        
+        // 🚀 PERFORMANCE: Örnek cümle widget'ını optimize et
+        if (_isExpanded && widget.word.ornekler.isNotEmpty)
+          _buildExampleSection(isDarkMode),
       ],
     );
   }
@@ -207,7 +423,7 @@ class WordCard extends StatelessWidget {
               children: [
                 // 🚀 PERFORMANCE: Cache'lenmiş font stili kullan
                 Text(
-                  word.ornekler.first.arapcaCumle,
+                  widget.word.ornekler.first.arapcaCumle,
                   style: _FontCache.getExampleArabicStyle().copyWith(
                     color: isDarkMode 
                         ? Colors.white.withOpacity(0.9)
@@ -216,10 +432,10 @@ class WordCard extends StatelessWidget {
                   textDirection: TextDirection.rtl,
                 ),
                 
-                if (word.ornekler.first.turkceCeviri.isNotEmpty) ...[
+                if (widget.word.ornekler.first.turkceCeviri.isNotEmpty) ...[
                   const SizedBox(height: 8),
                   Text(
-                    word.ornekler.first.turkceCeviri,
+                    widget.word.ornekler.first.turkceCeviri,
                     style: TextStyle(
                       fontSize: 14,
                       color: isDarkMode 

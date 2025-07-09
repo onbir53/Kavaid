@@ -47,7 +47,7 @@ class AdMobService {
   // Reklam frekans kontrolü için sabitler - Debug modda çok kısa, production'da uzun
   static Duration get _minTimeBetweenInterstitialAds => kDebugMode 
       ? const Duration(seconds: 5) // Debug modda 5 saniye - test için
-      : const Duration(minutes: 5); // Production'da 5 dakika minimum
+      : const Duration(seconds: 45); // Production'da 45 saniye minimum
   static const Duration _interstitialAdExpiration = Duration(hours: 4); // Interstitial reklam geçerlilik süresi
   static const int _maxAdLoadRetries = 3; // Maksimum reklam yükleme deneme sayısı
   int _currentRetryCount = 0;

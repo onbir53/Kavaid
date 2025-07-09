@@ -122,6 +122,54 @@ class TurkceAnalyticsService {
     }
   }
   
+  /// Kelime telaffuz edildi
+  static Future<void> kelimeTelaffuzEdildi(String kelime) async {
+    try {
+      await _analytics.logEvent(
+        name: 'kelime_telaffuz',
+        parameters: {
+          'kelime': kelime,
+          'kelime_uzunluk': kelime.length,
+        },
+      );
+      debugPrint('📊 [Analytics] Kelime telaffuz edildi: $kelime');
+    } catch (e) {
+      debugPrint('❌ [Analytics] Kelime telaffuz hatası: $e');
+    }
+  }
+  
+  /// Kelime paylaşıldı
+  static Future<void> kelimePaylasildi(String kelime) async {
+    try {
+      await _analytics.logEvent(
+        name: 'kelime_paylas',
+        parameters: {
+          'kelime': kelime,
+          'kelime_uzunluk': kelime.length,
+        },
+      );
+      debugPrint('📊 [Analytics] Kelime paylaşıldı: $kelime');
+    } catch (e) {
+      debugPrint('❌ [Analytics] Kelime paylaşma hatası: $e');
+    }
+  }
+  
+  /// Kelime detayı açıldı
+  static Future<void> kelimeDetayiAcildi(String kelime) async {
+    try {
+      await _analytics.logEvent(
+        name: 'kelime_detay_acildi',
+        parameters: {
+          'kelime': kelime,
+          'kelime_uzunluk': kelime.length,
+        },
+      );
+      debugPrint('📊 [Analytics] Kelime detayı açıldı: $kelime');
+    } catch (e) {
+      debugPrint('❌ [Analytics] Kelime detay açma hatası: $e');
+    }
+  }
+  
   /// Tüm kayıtlı kelimeler temizlendi
   static Future<void> tumKelimelerTemizlendi(int kelimeSayisi) async {
     try {
