@@ -419,10 +419,8 @@ class _SearchResultCardState extends State<SearchResultCard> with SingleTickerPr
             Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                _buildSpeakButton(isDarkMode),
-                const SizedBox(width: 2),
                 _buildBookmarkButton(isDarkMode),
-                const SizedBox(width: 2),
+                _buildSpeakButton(isDarkMode),
                 _buildExpandButton(isDarkMode),
               ],
             ),
@@ -437,17 +435,24 @@ class _SearchResultCardState extends State<SearchResultCard> with SingleTickerPr
     return ValueListenableBuilder<bool>(
       valueListenable: _savedWordsService.isWordSavedNotifier(widget.word),
       builder: (context, isSaved, child) {
-        return IconButton(
-          onPressed: () => _toggleSaved(isSaved),
-          icon: Icon(
-            isSaved ? Icons.bookmark : Icons.bookmark_border,
-            color: isSaved 
-                ? const Color(0xFF007AFF)
-                : (isDarkMode ? const Color(0xFF8E8E93) : const Color(0xFF6D6D70)),
+        return Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: () => _toggleSaved(isSaved),
+            borderRadius: BorderRadius.circular(14),
+            child: Container(
+              width: 26, // Genişlik daha da daraltıldı.
+              height: 28,
+              alignment: Alignment.center,
+              child: Icon(
+                isSaved ? Icons.bookmark : Icons.bookmark_border,
+                color: isSaved
+                    ? const Color(0xFF007AFF)
+                    : (isDarkMode ? const Color(0xFF8E8E93) : const Color(0xFF6D6D70)),
+                size: 20,
+              ),
+            ),
           ),
-          iconSize: 20,
-          padding: EdgeInsets.zero,
-          constraints: const BoxConstraints(),
         );
       },
     );
@@ -455,15 +460,22 @@ class _SearchResultCardState extends State<SearchResultCard> with SingleTickerPr
   
   // Telaffuz butonu
   Widget _buildSpeakButton(bool isDarkMode) {
-    return IconButton(
-      onPressed: _speakArabic,
-      icon: Icon(
-        Icons.volume_up,
-        color: isDarkMode ? const Color(0xFF8E8E93) : const Color(0xFF6D6D70),
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: _speakArabic,
+        borderRadius: BorderRadius.circular(14),
+        child: Container(
+          width: 26, // Genişlik daha da daraltıldı.
+          height: 28,
+          alignment: Alignment.center,
+          child: Icon(
+            Icons.volume_up,
+            color: isDarkMode ? const Color(0xFF8E8E93) : const Color(0xFF6D6D70),
+            size: 20,
+          ),
+        ),
       ),
-      iconSize: 20,
-      padding: EdgeInsets.zero,
-      constraints: const BoxConstraints(),
     );
   }
   
@@ -489,21 +501,28 @@ class _SearchResultCardState extends State<SearchResultCard> with SingleTickerPr
   }
 
   Widget _buildExpandButton(bool isDarkMode) {
-    return IconButton(
-      onPressed: _toggleExpanded,
-      icon: AnimatedRotation(
-        turns: _isExpanded ? 0.5 : 0,
-        duration: const Duration(milliseconds: 200),
-        child: Icon(
-          Icons.expand_more,
-          color: isDarkMode
-              ? const Color(0xFF8E8E93)
-              : const Color(0xFF6D6D70),
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: _toggleExpanded,
+        borderRadius: BorderRadius.circular(14),
+        child: Container(
+          width: 26, // Genişlik daha da daraltıldı.
+          height: 28,
+          alignment: Alignment.center,
+          child: AnimatedRotation(
+            turns: _isExpanded ? 0.5 : 0,
+            duration: const Duration(milliseconds: 200),
+            child: Icon(
+              Icons.expand_more,
+              color: isDarkMode
+                  ? const Color(0xFF8E8E93)
+                  : const Color(0xFF6D6D70),
+              size: 20,
+            ),
+          ),
         ),
       ),
-      iconSize: 20,
-      padding: EdgeInsets.zero,
-      constraints: const BoxConstraints(),
     );
   }
 
