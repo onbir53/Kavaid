@@ -41,7 +41,7 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMixin, TickerProviderStateMixin {
+class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMixin, TickerProviderStateMixin, WidgetsBindingObserver {
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
   final GeminiService _geminiService = GeminiService();
@@ -59,6 +59,9 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
 
   NativeAd? _nativeAd;
   bool _isAdLoaded = false;
+  Timer? _adRefreshTimer;
+  int _aiSearchClickCount = 0;
+  final AdMobService _adMobService = AdMobService();
 
   @override
   bool get wantKeepAlive => true; // Widget state'ini koru
@@ -66,8 +69,11 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _searchController.addListener(_onSearchChanged);
     _loadNativeAd();
+    _adMobService.loadAiSearchInterstitialAd();
+    _adMobService.loadInterstitialAd(); // Normal geçiş reklamını yükle
     
     // Uygulama açılınca 0.5 saniye bekle sonra focus yap
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -88,11 +94,19 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _searchController.dispose();
     _searchFocusNode.dispose();
     _searchSubscription?.cancel();
     _nativeAd?.dispose();
+    _adRefreshTimer?.cancel();
+    _adMobService.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    _adMobService.onAppStateChanged(state);
   }
 
   void _loadNativeAd() {
@@ -110,6 +124,8 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
             setState(() {
               _isAdLoaded = true;
             });
+            // Reklam yüklendikten sonra yenileme zamanlayıcısını başlat
+            _startAdRefreshTimer();
           }
         },
         onAdFailedToLoad: (Ad ad, LoadAdError error) {
@@ -121,6 +137,25 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
         templateType: TemplateType.medium,
       ),
     )..load();
+  }
+
+  void _startAdRefreshTimer() {
+    // Önceki zamanlayıcıyı iptal et (varsa)
+    _adRefreshTimer?.cancel();
+    
+    _adRefreshTimer = Timer(const Duration(seconds: 60), () {
+      debugPrint('🔄 [AD REFRESH] 60 saniye geçti, native reklam yenileniyor...');
+      if (mounted) {
+        // Eski reklamı temizle
+        _nativeAd?.dispose();
+        setState(() {
+          _nativeAd = null;
+          _isAdLoaded = false;
+        });
+        // Yeni reklam yükle
+        _loadNativeAd();
+      }
+    });
   }
 
   void _onSearchChanged() {
@@ -203,13 +238,39 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
     final query = _searchController.text.trim();
     if (query.isEmpty) return;
 
-    setState(() {
-      _isLoading = true;
-      _selectedWord = null;
-      _searchResults = [];
-      _showAIButton = false;
-      _showNotFound = false;
-    });
+    _aiSearchClickCount++;
+
+    final shouldShowAd = _aiSearchClickCount % 4 == 0;
+
+    if (shouldShowAd) {
+      // Reklam gösterilirken aramayı arka planda başlat
+      final searchFuture = _performActualAISearch(query, showLoading: false);
+      
+      _adMobService.showAiSearchInterstitialAd(
+        onAdDismissed: () async {
+          // Arama sonucunu bekle ve UI'ı güncelle
+          debugPrint('Reklam sonrası arama sonucu bekleniyor...');
+          setState(() => _isLoading = true);
+          await searchFuture;
+          setState(() => _isLoading = false);
+          debugPrint('Reklam sonrası arama sonucu hazır.');
+        },
+      );
+    } else {
+      _performActualAISearch(query);
+    }
+  }
+
+  Future<void> _performActualAISearch(String query, {bool showLoading = true}) async {
+    if (showLoading) {
+      setState(() {
+        _isLoading = true;
+        _selectedWord = null;
+        _searchResults = [];
+        _showAIButton = false;
+        _showNotFound = false;
+      });
+    }
 
     try {
       debugPrint('🔍 AI ile arama başlatılıyor: $query');
@@ -238,16 +299,16 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
         await _firebaseService.saveWord(aiResult);
         
         setState(() {
-          _searchResults = [aiResult]; // AI sonucunu arama sonuçları listesine ekle
+          _searchResults = [aiResult];
           _isLoading = false;
-          _isSearching = true; // Arama sonuçları modunu aktif et
+          _isSearching = true;
           _showNotFound = false;
         });
       } else {
         setState(() {
           _isLoading = false;
           _showAIButton = true;
-          _showNotFound = true; // Bulunamadı mesajını göster
+          _showNotFound = true; // AI arama sonucu bulunamazsa bu flag'i true yap
         });
       }
     } catch (e) {
@@ -255,8 +316,14 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
       setState(() {
         _isLoading = false;
         _showAIButton = true;
-        _showNotFound = true; // Hata durumunda da bulunamadı göster
+        _showNotFound = true;
       });
+    } finally {
+      if (mounted && showLoading) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -610,56 +677,73 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
         slivers.add(
           SliverToBoxAdapter(
             child: Padding(
-              padding: EdgeInsets.fromLTRB(8, 8, 8, widget.bottomPadding + 20),
-              child: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      const Color(0xFF007AFF),
-                      const Color(0xFF0051D5),
-                    ],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.circular(12),
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color(0xFF007AFF).withOpacity(0.3),
-                      blurRadius: 12,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: Material(
-                  color: Colors.transparent,
-                  child: InkWell(
-                    onTap: _searchWithAI,
-                    borderRadius: BorderRadius.circular(12),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(
-                            Icons.search,
-                            color: Colors.white,
-                            size: 20,
-                          ),
-                          const SizedBox(width: 8),
-                          const Text(
-                            'Kelimeyi Ara',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.white,
-                              letterSpacing: 0.3,
-                            ),
-                          ),
+              padding: EdgeInsets.fromLTRB(8, 12, 8, widget.bottomPadding + 20),
+              child: Column(
+                children: [
+                  Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          const Color(0xFF007AFF),
+                          const Color(0xFF0051D5),
                         ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFF007AFF).withOpacity(0.3),
+                          blurRadius: 12,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        onTap: _searchWithAI,
+                        borderRadius: BorderRadius.circular(12),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(
+                                Icons.search,
+                                color: Colors.white,
+                                size: 20,
+                              ),
+                              const SizedBox(width: 8),
+                              const Text(
+                                'Kelimeyi Ara',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.white,
+                                  letterSpacing: 0.3,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
                     ),
                   ),
-                ),
+
+                  // AI ile arama sonucu bulunamadıysa mesajı göster
+                  if (_showNotFound)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 16.0),
+                      child: Text(
+                        'Kelime bulunamadı',
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: widget.isDarkMode ? Colors.white70 : const Color(0xFF8E8E93),
+                        ),
+                      ),
+                    ),
+                ],
               ),
             ),
           ),
@@ -684,25 +768,6 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
         ),
       );
       return slivers;
-    }
-
-    if (_showNotFound && !_isSearching) {
-      slivers.add(
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Center(
-              child: Text(
-                'kelime bulunamadı',
-                style: TextStyle(
-                  fontSize: 16,
-                  color: widget.isDarkMode ? Colors.white70 : const Color(0xFF8E8E93),
-                ),
-              ),
-            ),
-          ),
-        ),
-      );
     }
 
     // Boş durum - görseldeki gibi temiz alan
