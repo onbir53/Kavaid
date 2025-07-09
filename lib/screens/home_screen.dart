@@ -207,6 +207,9 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
   }
 
   Future<void> _selectWord(WordModel word) async {
+    // YENİ REKLAM TETİKLEYİCİSİ
+    _adMobService.onWordCardOpenedAdRequest();
+    
     // Arapça klavye açıksa kapat
     if (_showArabicKeyboard) {
       setState(() {
@@ -643,6 +646,7 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
                       word: word,
                       onTap: () => _selectWord(word),
                       onExpand: () {
+                        // Bu kısımdaki reklam tetikleyicisi kaldırıldı çünkü artık SearchResultCard içinde.
                         if (_showArabicKeyboard) {
                           setState(() {
                             _showArabicKeyboard = false;

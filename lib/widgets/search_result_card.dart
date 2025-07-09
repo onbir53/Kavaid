@@ -4,6 +4,7 @@ import 'dart:ui' as ui;
 import '../models/word_model.dart';
 import '../services/saved_words_service.dart';
 import '../services/credits_service.dart';
+import '../services/admob_service.dart';
 import '../utils/performance_utils.dart';
 import '../services/tts_service.dart';
 import '../services/turkce_analytics_service.dart';
@@ -77,6 +78,7 @@ class _SearchResultCardState extends State<SearchResultCard> with SingleTickerPr
   final SavedWordsService _savedWordsService = SavedWordsService();
   final CreditsService _creditsService = CreditsService();
   final TTSService _ttsService = TTSService();
+  final AdMobService _adMobService = AdMobService();
   final ScreenshotController _screenshotController = ScreenshotController();
   bool _isExpanded = false;
   bool _hasEverExpanded = false; // İlk defa açılma durumu için
@@ -148,6 +150,9 @@ class _SearchResultCardState extends State<SearchResultCard> with SingleTickerPr
         }
         return; // Kartı açma
       }
+
+      // REKLAM TETİKLEYİCİSİ BURAYA EKLENDİ
+      _adMobService.onWordCardOpenedAdRequest();
       
       // Hak tüket
       final consumed = await _creditsService.consumeCredit(widget.word.kelime);

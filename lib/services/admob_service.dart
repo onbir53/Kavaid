@@ -24,6 +24,7 @@ class AdMobService {
   DateTime? _lastAdShowTime;
   DateTime? _appStartTime;
   int _searchCountInGracePeriod = 0;
+  bool _didEnterBackground = false;
   
   AppLifecycleState? _previousState;
   bool _creditsServiceInitialized = false;
@@ -33,7 +34,7 @@ class AdMobService {
     await MobileAds.instance.initialize();
   }
 
-  // ----- GERİ EKLENEN ÜYELER -----
+  // --- Gerekli Üyeler ---
   bool get mounted => _interstitialAd != null;
   bool get isInterstitialAdAvailable => _interstitialAd != null;
 
@@ -48,12 +49,12 @@ class AdMobService {
         ? 'ca-app-pub-3375249639458473/8521867085'
         : 'ca-app-pub-3375249639458473/8521867085';
   }
-  // ----- BİTİŞ -----
+  // --- Bitiş ---
 
   Duration get _cooldownDuration => Duration(seconds: _geminiService.adCooldownSeconds);
 
   static String get interstitialAdUnitId {
-    return 'ca-app-pub-3375249639458473/4972153248'; // Güncellendi
+    return 'ca-app-pub-3375249639458473/4972153248';
   }
 
   void _initializeCreditsListener() {
@@ -94,8 +95,7 @@ class AdMobService {
     );
   }
 
-  // Reklam göstermeyi deneyen merkezi metot
-  Future<void> _tryShowAd({required VoidCallback onAdDismissed, bool force = false}) async {
+  Future<void> _tryShowAd({required VoidCallback onAdDismissed}) async {
     if (_interstitialAd == null || _isShowingAd) {
       onAdDismissed();
       return;
@@ -123,27 +123,22 @@ class AdMobService {
     );
     await _interstitialAd!.show();
   }
-
-  // `forceShowInterstitialAd` için bir sarmalayıcı. Zaman kontrolü yapmaz.
+  
   void forceShowInterstitialAd() {
     debugPrint('🎬 [AdLogic] Reklam gösterimi zorlanıyor (zaman kontrolü atlandı).');
-    _tryShowAd(onAdDismissed: () {}, force: true);
+    _tryShowAd(onAdDismissed: () {});
   }
 
-  // ARAMA YAPILDIĞINDA ÇAĞRILACAK METOT
   Future<void> onSearchAdRequest({required VoidCallback onAdDismissed}) async {
     final now = DateTime.now();
     
-    // Faz 1: Başlangıç periyodu
     if (_lastAdShowTime == null) {
-      // Sayaç süresi dolduysa ve bu ilk arama ise reklam göster.
       if (now.difference(_appStartTime!) > _cooldownDuration) {
         debugPrint('🎬 [AdLogic] Başlangıç sayacı bitti, ilk arama yapıldı. Reklam denemesi yapılıyor...');
         await _tryShowAd(onAdDismissed: onAdDismissed);
         return;
       }
 
-      // Sayaç süresi dolmadıysa, 3 arama kuralını uygula.
       _searchCountInGracePeriod++;
       debugPrint('ℹ️ [AdLogic] Başlangıç periyodunda arama yapıldı. Arama sayısı: $_searchCountInGracePeriod');
       if (_searchCountInGracePeriod >= 3) {
@@ -155,7 +150,6 @@ class AdMobService {
       return;
     }
 
-    // Faz 2: Normal döngü
     if (now.difference(_lastAdShowTime!) > _cooldownDuration) {
       debugPrint('🎬 [AdLogic] Sayaç bitti ve arama yapıldı, reklam denemesi yapılıyor...');
       await _tryShowAd(onAdDismissed: onAdDismissed);
@@ -166,28 +160,82 @@ class AdMobService {
     }
   }
 
-  void onAppStateChanged(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed && _previousState != AppLifecycleState.resumed) {
-      final now = DateTime.now();
-
-      // Faz 1: Başlangıç periyodu. Geri dönüş her zaman reklamı dener.
-      if (_lastAdShowTime == null) {
-         debugPrint('🎬 [AdLogic] Başlangıç periyodunda uygulamaya dönüldü, reklam denemesi yapılıyor...');
-         _tryShowAd(onAdDismissed: () {});
-         _previousState = state; 
-         return;
+  // KELİME KARTI AÇILDIĞINDA ÇAĞRILACAK METOT
+  Future<void> onWordCardOpenedAdRequest() async {
+    final now = DateTime.now();
+    
+    // Faz 1: Başlangıç periyodu
+    if (_lastAdShowTime == null) {
+      // Sayaç bittiyse, bu eylem ilk reklamı tetikleyebilir.
+      if (now.difference(_appStartTime!) > _cooldownDuration) {
+        debugPrint('🎬 [AdLogic] Başlangıç sayacı bitti ve bir kelime kartı açıldı, reklam denemesi yapılıyor...');
+        await _tryShowAd(onAdDismissed: () {});
+      } else {
+        // Sayaç devam ederken kelime kartı açmak reklam tetiklemez.
+        debugPrint('🤫 [AdLogic] Kelime kartı reklamı atlandı: "Hoş Geldin" sayacı henüz bitmedi.');
       }
+      return;
+    }
 
-      // Faz 2: Normal döngü
-      if (now.difference(_lastAdShowTime!) > _cooldownDuration) {
-        debugPrint('🎬 [AdLogic] Sayaç bitti ve uygulamaya dönüldü, reklam denemesi yapılıyor...');
-        _tryShowAd(onAdDismissed: () {});
+    // Faz 2: Normal döngü
+    if (now.difference(_lastAdShowTime!) > _cooldownDuration) {
+      debugPrint('🎬 [AdLogic] Sayaç bitti ve bir kelime kartı açıldı, reklam denemesi yapılıyor...');
+      await _tryShowAd(onAdDismissed: () {});
+    } else {
+      final remaining = _cooldownDuration - now.difference(_lastAdShowTime!);
+      debugPrint('⏳ [AdLogic] Kelime kartı reklamı atlandı. Kalan süre: ${remaining.inSeconds}s');
+    }
+  }
+
+  void onAppStateChanged(AppLifecycleState state) {
+    debugPrint('📱 [Lifecycle] App state changed to: $state.');
+
+    if (state == AppLifecycleState.paused) {
+      debugPrint('🛑 [Lifecycle] App has been paused. Ad will be eligible on next resume.');
+      _didEnterBackground = true;
+    }
+
+    if (state == AppLifecycleState.resumed) {
+      debugPrint('▶️ [Lifecycle] App Resumed. Checking if it was truly in background...');
+      
+      if (_didEnterBackground) {
+        debugPrint('✅ [AdLogic] App resumed from background. Proceeding with ad checks...');
+        _didEnterBackground = false;
+
+        if (_isShowingAd) {
+          debugPrint('🤫 [AdLogic] Ad skipped: Another ad is already showing.');
+          _previousState = state;
+          return;
+        }
+        
+        if (_isInAppAction) {
+          debugPrint('🤫 [AdLogic] Ad skipped: An in-app action is in progress.');
+          _previousState = state;
+          return;
+        }
+
+        final now = DateTime.now();
+        if (_lastAdShowTime == null) {
+           debugPrint('🎬 [AdLogic] Başlangıç periyodunda uygulamaya dönüldü, reklam denemesi yapılıyor...');
+           _tryShowAd(onAdDismissed: () {});
+           _previousState = state;
+           return;
+        }
+
+        if (now.difference(_lastAdShowTime!) > _cooldownDuration) {
+          debugPrint('🎬 [AdLogic] Sayaç bitti ve uygulamaya dönüldü, reklam denemesi yapılıyor...');
+          _tryShowAd(onAdDismissed: () {});
+        } else {
+           final remaining = _cooldownDuration - now.difference(_lastAdShowTime!);
+           debugPrint('⏳ [AdLogic] Ad skipped: Cooldown not finished. Time remaining: ${remaining.inSeconds}s');
+        }
+      } else {
+        debugPrint('🤫 [AdLogic] Ad skipped: App resumed from a minor interruption, not from background.');
       }
     }
     _previousState = state;
   }
 
-  // ----- GERİ EKLENEN YARDIMCI METOTLAR -----
   void setInAppActionFlag(String actionType) {
     debugPrint('🔒 [AdMob] In-app action flag SET: $actionType');
     _isInAppAction = true;
@@ -208,5 +256,4 @@ class AdMobService {
     debugPrint('Cooldown Duration: ${_cooldownDuration.inSeconds}s');
     debugPrint('--------------------------');
   }
-  // ----- BİTİŞ -----
 }
