@@ -60,7 +60,6 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
   NativeAd? _nativeAd;
   bool _isAdLoaded = false;
   Timer? _adRefreshTimer;
-  int _aiSearchClickCount = 0;
   final AdMobService _adMobService = AdMobService();
 
   @override
@@ -72,8 +71,7 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
     WidgetsBinding.instance.addObserver(this);
     _searchController.addListener(_onSearchChanged);
     _loadNativeAd();
-    _adMobService.loadAiSearchInterstitialAd();
-    _adMobService.loadInterstitialAd(); // Normal geçiş reklamını yükle
+    _adMobService.loadInterstitialAd(); // Birleştirilmiş yükleme metodunu çağır
     
     // Uygulama açılınca 0.5 saniye bekle sonra focus yap
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -238,27 +236,20 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
     final query = _searchController.text.trim();
     if (query.isEmpty) return;
 
-    _aiSearchClickCount++;
+    // Arama işlemini arka planda hazırla
+    final searchFuture = _performActualAISearch(query, showLoading: false);
 
-    final shouldShowAd = _aiSearchClickCount % 4 == 0;
-
-    if (shouldShowAd) {
-      // Reklam gösterilirken aramayı arka planda başlat
-      final searchFuture = _performActualAISearch(query, showLoading: false);
-      
-      _adMobService.showAiSearchInterstitialAd(
-        onAdDismissed: () async {
-          // Arama sonucunu bekle ve UI'ı güncelle
-          debugPrint('Reklam sonrası arama sonucu bekleniyor...');
-          setState(() => _isLoading = true);
-          await searchFuture;
-          setState(() => _isLoading = false);
-          debugPrint('Reklam sonrası arama sonucu hazır.');
-        },
-      );
-    } else {
-      _performActualAISearch(query);
-    }
+    // AdMob servisine bir arama isteği olduğunu bildir.
+    // Kararı servis verecek.
+    await _adMobService.onSearchAdRequest(
+      onAdDismissed: () async {
+        // Bu blok, reklam gösterilsin veya gösterilmesin her zaman çalışır.
+        debugPrint('Arama sonucu gösteriliyor...');
+        setState(() => _isLoading = true);
+        await searchFuture;
+        setState(() => _isLoading = false);
+      },
+    );
   }
 
   Future<void> _performActualAISearch(String query, {bool showLoading = true}) async {

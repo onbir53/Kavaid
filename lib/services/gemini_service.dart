@@ -89,10 +89,19 @@ emirForm (string): Emir, 2. tekil eril, harekeli.
   factory GeminiService() => _instance;
   GeminiService._internal();
 
+  // Public initializer, main.dart'tan çağrılacak
+  Future<void> initialize() async {
+    await _initializeFirebaseConfig();
+  }
+
   // Firebase config durumu
   bool _isConfigInitialized = false;
+  int _adCooldownSeconds = 60; // Varsayılan değer
   static const int _maxRetries = 3;
   static const Duration _retryDelay = Duration(seconds: 2);
+
+  // Dışarıdan erişim için public getter
+  int get adCooldownSeconds => _adCooldownSeconds;
 
   // Firebase config'i initialize et ve validate et
   Future<void> _initializeFirebaseConfig() async {
@@ -133,11 +142,15 @@ emirForm (string): Emir, 2. tekil eril, harekeli.
       if (prompt.isEmpty || prompt.length < 100) {
         throw Exception('Prompt boş veya çok kısa');
       }
+
+      // Reklam süresi kontrolü
+      _adCooldownSeconds = await _getAdCooldown();
       
       debugPrint('✅ Firebase config validation başarılı');
       debugPrint('   API Key: ${apiKey.length} karakter');
       debugPrint('   Model: $model');
       debugPrint('   Prompt: ${prompt.length} karakter');
+      debugPrint('   Ad Cooldown: $_adCooldownSeconds saniye');
       
     } catch (e) {
       debugPrint('❌ Firebase config validation hatası: $e');
@@ -158,6 +171,19 @@ emirForm (string): Emir, 2. tekil eril, harekeli.
   // Retry mekanizması ile prompt al
   Future<String> _getPrompt() async {
     return await _getConfigWithRetry('gemini_prompt');
+  }
+
+  // Retry mekanizması ile reklam süresini al
+  Future<int> _getAdCooldown() async {
+    final valueStr = await _getConfigWithRetry('ad_cooldown_seconds');
+    debugPrint('ℹ️ [GeminiService] Firebase\'den okunan "ad_cooldown_seconds" ham değeri: "$valueStr"');
+    final intValue = int.tryParse(valueStr);
+    if (intValue == null) {
+      debugPrint('⚠️ [GeminiService] "ad_cooldown_seconds" değeri sayıya çevrilemedi. Güvenlik için 60sn kullanılıyor.');
+      return 60;
+    }
+    debugPrint('✅ [GeminiService] "ad_cooldown_seconds" başarıyla parse edildi: $intValue saniye.');
+    return intValue;
   }
 
   // Retry mekanizması ile config değeri al
@@ -372,6 +398,14 @@ emirForm (string): Emir, 2. tekil eril, harekeli.
         debugPrint('📝 Prompt: ${prompt.length} karakter');
         debugPrint('📝 Prompt Default?: ${prompt == _defaultPrompt}');
         debugPrint('📝 Prompt Preview: ${prompt.substring(0, math.min(100, prompt.length))}...');
+        
+        // Reklam süresi debug
+        try {
+          final cooldown = await _getAdCooldown();
+          debugPrint('⏱️ Ad Cooldown: $cooldown saniye');
+        } catch (e) {
+          debugPrint('❌ Ad Cooldown hatası: $e');
+        }
       } catch (e) {
         debugPrint('❌ Prompt hatası: $e');
       }
@@ -767,6 +801,14 @@ emirForm (string): Emir, 2. tekil eril, harekeli.
       final prompt = await service._getPrompt();
       debugPrint('📝 Alınan Prompt: ${prompt.length} karakter');
       debugPrint('📝 Prompt başı: ${prompt.substring(0, math.min(200, prompt.length))}...');
+      
+      // Reklam süresi debug
+      try {
+        final cooldown = await service._getAdCooldown();
+        debugPrint('⏱️ Ad Cooldown: $cooldown saniye');
+      } catch (e) {
+        debugPrint('❌ Ad Cooldown hatası: $e');
+      }
       
       debugPrint('✅ Firebase Config Test Tamamlandı');
       

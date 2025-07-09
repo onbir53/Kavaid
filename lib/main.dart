@@ -42,7 +42,7 @@ class NoGlowScrollBehavior extends ScrollBehavior {
   }
 }
 
-void main() async {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
   // Android sistem seviyesi log'larını filtrele
