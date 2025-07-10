@@ -233,13 +233,6 @@ Future<void> main() async {
     // Firebase olmadan devam et - offline modda çalışabilir
   }
 
-  // AdMob'u başlat ve test cihazını ayarla
-  await MobileAds.instance.initialize();
-  RequestConfiguration configuration = RequestConfiguration(
-    testDeviceIds: ['bbffd4ef-bbec-48dd-9123-fac2b36aa283'],
-  );
-  MobileAds.instance.updateRequestConfiguration(configuration);
-
   // Diğer servisleri arka planda başlat
   _initializeServicesInBackground();
   
@@ -264,20 +257,33 @@ void _initializeServicesInBackground() {
     await creditsService.initialize();
     debugPrint('✅ CreditsService başlatıldı: ${creditsService.credits} hak, Premium: ${creditsService.isPremium}');
     
-    // CreditsService başlatıldıktan sonra AdMob'u başlat
+    // CreditsService başlatıldıktan sonra AdMob'u arka planda başlat (uygulamayı engellemez)
     try {
-      await AdMobService.initialize();
-      debugPrint('✅ AdMob başlatıldı');
+      // AdMob'u 15 saniye zaman aşımı ile başlat. Başarısız olursa veya zaman aşımına uğrarsa,
+      // uygulama reklamsız çalışmaya devam eder.
+      await AdMobService.initialize().timeout(
+        const Duration(seconds: 15),
+        onTimeout: () {
+          debugPrint('⏱️ AdMob başlatma zaman aşımı! Uygulama reklamsız devam edecek.');
+          // Hata fırlatmaya gerek yok, sadece logla ve devam et.
+        },
+      );
+
+      debugPrint('✅ AdMob başarıyla başlatıldı');
+
+      // Test cihazı kimliğini ayarla (sadece debug modunda etkili olur)
+      RequestConfiguration configuration = RequestConfiguration(
+        testDeviceIds: ['bbffd4ef-bbec-48dd-9123-fac2b36aa283'],
+      );
+      await MobileAds.instance.updateRequestConfiguration(configuration);
       
-      // AdMob başlatıldıktan hemen sonra interstitial ad yüklemeyi başlat
+      // Premium üye değilse reklamları önden yükle
       if (!creditsService.isPremium && !creditsService.isLifetimeAdsFree) {
-        Future.delayed(const Duration(milliseconds: 500), () {
-          debugPrint('🚀 [MAIN] AdMob başlatıldı, interstitial reklam yükleniyor...');
-          AdMobService().loadInterstitialAd();
-        });
+        debugPrint('🚀 [MAIN] Interstitial reklam ön-yükleniyor...');
+        AdMobService().loadInterstitialAd();
       }
     } catch (e) {
-      debugPrint('❌ AdMob başlatılamadı: $e');
+      debugPrint('❌ AdMob başlatılırken bir hata oluştu: $e');
     }
   });
 
