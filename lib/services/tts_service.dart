@@ -75,7 +75,6 @@ class TTSService {
           final gender = voice['gender']?.toString().toLowerCase() ?? '';
           return lang.startsWith('ar') && (gender == 'male' || name.contains('male'));
         },
-        orElse: () => null,
       );
 
       if (arabicMaleVoice != null) {

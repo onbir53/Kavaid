@@ -355,73 +355,73 @@ class _SearchResultCardState extends State<SearchResultCard> with SingleTickerPr
       child: Container(
         padding: const EdgeInsets.all(12),
         child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      // 🚀 PERFORMANCE: Cache'lenmiş font stili
-                      Flexible(
-                        child: Container(
-                          constraints: BoxConstraints(
-                            maxWidth: MediaQuery.of(context).size.width * 0.4,
-                          ),
-                          child: Text(
-                            widget.word.harekeliKelime?.isNotEmpty == true 
-                                ? widget.word.harekeliKelime! 
-                                : widget.word.kelime,
-                            style: _FontCache.getArabicStyle().copyWith(
-                              color: isDarkMode ? Colors.white : const Color(0xFF1C1C1E),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          // 🚀 PERFORMANCE: Cache'lenmiş font stili
+                          Flexible(
+                            child: Container(
+                              constraints: BoxConstraints(
+                                maxWidth: MediaQuery.of(context).size.width * 0.4,
+                              ),
+                              child: Text(
+                                widget.word.harekeliKelime?.isNotEmpty == true 
+                                    ? widget.word.harekeliKelime! 
+                                    : widget.word.kelime,
+                                style: _FontCache.getArabicStyle().copyWith(
+                                  color: isDarkMode ? Colors.white : const Color(0xFF1C1C1E),
+                                ),
+                                textDirection: TextDirection.rtl,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                softWrap: false,
+                              ),
                             ),
-                            textDirection: TextDirection.rtl,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            softWrap: false,
                           ),
-                        ),
+                          const SizedBox(width: 8),
+                          // Kelime türü chip'i
+                          Flexible(
+                            child: Wrap(
+                              spacing: 6,
+                              runSpacing: 4,
+                              children: _buildWordInfoChips(isDarkMode),
+                            ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(width: 8),
-                      // Kelime türü chip'i
-                      Flexible(
-                        child: Wrap(
-                          spacing: 6,
-                          runSpacing: 4,
-                          children: _buildWordInfoChips(isDarkMode),
+                      const SizedBox(height: 4),
+                      // Türkçe anlam
+                      if (widget.word.anlam?.isNotEmpty == true) ...[
+                        Text(
+                          widget.word.anlam!,
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: isDarkMode 
+                                ? const Color(0xFF8E8E93) 
+                                : const Color(0xFF6D6D70),
+                            height: 1.3,
+                            fontWeight: FontWeight.w400,
+                          ),
+                          maxLines: _isExpanded ? null : 2,
+                          overflow: _isExpanded ? null : TextOverflow.ellipsis,
                         ),
-                      ),
+                      ],
                     ],
                   ),
-                  const SizedBox(height: 4),
-                  // Türkçe anlam
-                  if (widget.word.anlam?.isNotEmpty == true) ...[
-                    Text(
-                      widget.word.anlam!,
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: isDarkMode 
-                            ? const Color(0xFF8E8E93) 
-                            : const Color(0xFF6D6D70),
-                        height: 1.3,
-                        fontWeight: FontWeight.w400,
-                      ),
-                      maxLines: _isExpanded ? null : 2,
-                      overflow: _isExpanded ? null : TextOverflow.ellipsis,
-                    ),
-                  ],
-                ],
-              ),
             ),
-            const SizedBox(width: 8),
             Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                _buildBookmarkButton(isDarkMode),
-                _buildSpeakButton(isDarkMode),
                 _buildExpandButton(isDarkMode),
+                _buildSpeakButton(isDarkMode),
+                _buildBookmarkButton(isDarkMode),
               ],
             ),
           ],
@@ -441,8 +441,8 @@ class _SearchResultCardState extends State<SearchResultCard> with SingleTickerPr
             onTap: () => _toggleSaved(isSaved),
             borderRadius: BorderRadius.circular(14),
             child: Container(
-              width: 26, // Genişlik daha da daraltıldı.
-              height: 28,
+              width: 28, // Sıkılaştırma için genişlik ayarlandı.
+              height: 28, // Sıkılaştırma için yükseklik ayarlandı.
               alignment: Alignment.center,
               child: Icon(
                 isSaved ? Icons.bookmark : Icons.bookmark_border,
@@ -466,8 +466,8 @@ class _SearchResultCardState extends State<SearchResultCard> with SingleTickerPr
         onTap: _speakArabic,
         borderRadius: BorderRadius.circular(14),
         child: Container(
-          width: 26, // Genişlik daha da daraltıldı.
-          height: 28,
+          width: 28, // Sıkılaştırma için genişlik ayarlandı.
+          height: 28, // Sıkılaştırma için yükseklik ayarlandı.
           alignment: Alignment.center,
           child: Icon(
             Icons.volume_up,
@@ -479,27 +479,6 @@ class _SearchResultCardState extends State<SearchResultCard> with SingleTickerPr
     );
   }
   
-  // Paylaşma butonu
-  Widget _buildShareButton(bool isDarkMode) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: _shareWordCard,
-        borderRadius: BorderRadius.circular(16),
-        child: Container(
-          width: 32,
-          height: 32,
-          padding: const EdgeInsets.all(6),
-          child: Icon(
-            Icons.share,
-            color: isDarkMode ? const Color(0xFF8E8E93) : const Color(0xFF6D6D70),
-            size: 20,
-          ),
-        ),
-      ),
-    );
-  }
-
   Widget _buildExpandButton(bool isDarkMode) {
     return Material(
       color: Colors.transparent,
@@ -507,18 +486,18 @@ class _SearchResultCardState extends State<SearchResultCard> with SingleTickerPr
         onTap: _toggleExpanded,
         borderRadius: BorderRadius.circular(14),
         child: Container(
-          width: 26, // Genişlik daha da daraltıldı.
-          height: 28,
+          width: 28, // Sıkılaştırma için genişlik ayarlandı.
+          height: 28, // Sıkılaştırma için yükseklik ayarlandı.
           alignment: Alignment.center,
           child: AnimatedRotation(
             turns: _isExpanded ? 0.5 : 0,
             duration: const Duration(milliseconds: 200),
             child: Icon(
-              Icons.expand_more,
+              Icons.keyboard_arrow_down,
               color: isDarkMode
                   ? const Color(0xFF8E8E93)
                   : const Color(0xFF6D6D70),
-              size: 20,
+              size: 22,
             ),
           ),
         ),
