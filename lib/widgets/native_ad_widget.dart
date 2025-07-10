@@ -5,16 +5,16 @@ import 'package:google_mobile_ads/google_mobile_ads.dart';
 class NativeAdWidget extends StatelessWidget {
   final NativeAd ad;
 
-  const NativeAdWidget({
-    super.key,
-    required this.ad,
-  });
+  // Reklamın ve yer tutucunun sabit yüksekliği
+  static const double adHeight = 340.0;
+
+  const NativeAdWidget({super.key, required this.ad});
 
   @override
   Widget build(BuildContext context) {
     return RepaintBoundary(
       child: Container(
-        height: 120,
+        height: adHeight,
         margin: const EdgeInsets.symmetric(vertical: 6.0),
         decoration: BoxDecoration(
           color: Theme.of(context).brightness == Brightness.dark

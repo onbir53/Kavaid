@@ -39,12 +39,22 @@ class AdMobService {
   bool get isInterstitialAdAvailable => _interstitialAd != null;
 
   static String get bannerAdUnitId {
+    if (kDebugMode) {
+      return Platform.isAndroid
+          ? 'ca-app-pub-3940256099942544/6300978111'
+          : 'ca-app-pub-3940256099942544/2934735716';
+    }
     return Platform.isAndroid
         ? 'ca-app-pub-3375249639458473/4451476746'
         : 'ca-app-pub-3375249639458473/4569259764';
   }
 
   static String get nativeAdUnitId {
+    if (kDebugMode) {
+      return Platform.isAndroid
+          ? 'ca-app-pub-3940256099942544/2247696110'
+          : 'ca-app-pub-3940256099942544/3986624511';
+    }
     return Platform.isAndroid
         ? 'ca-app-pub-3375249639458473/8521867085'
         : 'ca-app-pub-3375249639458473/8521867085';
@@ -54,6 +64,11 @@ class AdMobService {
   Duration get _cooldownDuration => Duration(seconds: _geminiService.adCooldownSeconds);
 
   static String get interstitialAdUnitId {
+    if (kDebugMode) {
+      return Platform.isAndroid
+          ? 'ca-app-pub-3940256099942544/1033173712'
+          : 'ca-app-pub-3940256099942544/4411468910';
+    }
     return 'ca-app-pub-3375249639458473/4972153248';
   }
 

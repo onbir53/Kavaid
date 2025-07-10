@@ -59,7 +59,7 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
 
   NativeAd? _nativeAd;
   bool _isAdLoaded = false;
-  Timer? _adRefreshTimer;
+  int _aiSearchClickCount = 0;
   final AdMobService _adMobService = AdMobService();
 
   @override
@@ -97,8 +97,6 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
     _searchFocusNode.dispose();
     _searchSubscription?.cancel();
     _nativeAd?.dispose();
-    _adRefreshTimer?.cancel();
-    _adMobService.dispose();
     super.dispose();
   }
 
@@ -122,8 +120,7 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
             setState(() {
               _isAdLoaded = true;
             });
-            // Reklam yüklendikten sonra yenileme zamanlayıcısını başlat
-            _startAdRefreshTimer();
+            // Yenileme fonksiyonu kaldırıldı.
           }
         },
         onAdFailedToLoad: (Ad ad, LoadAdError error) {
@@ -135,25 +132,6 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
         templateType: TemplateType.medium,
       ),
     )..load();
-  }
-
-  void _startAdRefreshTimer() {
-    // Önceki zamanlayıcıyı iptal et (varsa)
-    _adRefreshTimer?.cancel();
-    
-    _adRefreshTimer = Timer(const Duration(seconds: 60), () {
-      debugPrint('🔄 [AD REFRESH] 60 saniye geçti, native reklam yenileniyor...');
-      if (mounted) {
-        // Eski reklamı temizle
-        _nativeAd?.dispose();
-        setState(() {
-          _nativeAd = null;
-          _isAdLoaded = false;
-        });
-        // Yeni reklam yükle
-        _loadNativeAd();
-      }
-    });
   }
 
   void _onSearchChanged() {
@@ -207,9 +185,6 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
   }
 
   Future<void> _selectWord(WordModel word) async {
-    // YENİ REKLAM TETİKLEYİCİSİ
-    _adMobService.onWordCardOpenedAdRequest();
-    
     // Arapça klavye açıksa kapat
     if (_showArabicKeyboard) {
       setState(() {
@@ -240,19 +215,19 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
     if (query.isEmpty) return;
 
     // Arama işlemini arka planda hazırla
-    final searchFuture = _performActualAISearch(query, showLoading: false);
-
+      final searchFuture = _performActualAISearch(query, showLoading: false);
+      
     // AdMob servisine bir arama isteği olduğunu bildir.
     // Kararı servis verecek.
     await _adMobService.onSearchAdRequest(
-      onAdDismissed: () async {
+        onAdDismissed: () async {
         // Bu blok, reklam gösterilsin veya gösterilmesin her zaman çalışır.
         debugPrint('Arama sonucu gösteriliyor...');
-        setState(() => _isLoading = true);
-        await searchFuture;
-        setState(() => _isLoading = false);
-      },
-    );
+          setState(() => _isLoading = true);
+          await searchFuture;
+          setState(() => _isLoading = false);
+        },
+      );
   }
 
   Future<void> _performActualAISearch(String query, {bool showLoading = true}) async {
@@ -620,11 +595,8 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
 
     if (_isSearching) {
       if (_searchResults.isNotEmpty) {
-        // Native reklam gösterme mantığı
-        int totalAds = 0;
-        if (_isAdLoaded && _nativeAd != null && _searchResults.length >= 3) {
-          totalAds = 1;
-        }
+        // Yer tutucu mantığı kaldırıldı, reklam sadece yüklüyse gösterilecek.
+        int totalAds = (_isAdLoaded && _nativeAd != null && _searchResults.length >= 3) ? 1 : 0;
         const int adPosition = 3;
 
         slivers.add(
@@ -638,7 +610,8 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
                   }
 
                   final itemIndex = (totalAds == 1 && index > adPosition) ? index - 1 : index;
-
+                  if (itemIndex >= _searchResults.length) return const SizedBox.shrink();
+                  
                   final word = _searchResults[itemIndex];
                   return RepaintBoundary(
                     key: ValueKey('result_${word.kelime}_$itemIndex'),
@@ -646,7 +619,6 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
                       word: word,
                       onTap: () => _selectWord(word),
                       onExpand: () {
-                        // Bu kısımdaki reklam tetikleyicisi kaldırıldı çünkü artık SearchResultCard içinde.
                         if (_showArabicKeyboard) {
                           setState(() {
                             _showArabicKeyboard = false;

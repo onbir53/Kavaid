@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'dart:ui' as ui;
+import 'dart:async';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 import '../models/word_model.dart';
 import '../services/saved_words_service.dart';
 import '../services/credits_service.dart';
@@ -8,6 +10,8 @@ import '../services/global_config_service.dart';
 import '../widgets/word_card.dart';
 import '../widgets/search_result_card.dart';
 import '../services/turkce_analytics_service.dart';
+import '../services/admob_service.dart';
+import '../widgets/native_ad_widget.dart';
 
 class SavedWordsScreen extends StatefulWidget {
   final double bottomPadding;
@@ -36,6 +40,10 @@ class _SavedWordsScreenState extends State<SavedWordsScreen> with AutomaticKeepA
   WordModel? _selectedWord;
   String _searchQuery = '';
   
+  NativeAd? _nativeAd;
+  bool _isAdLoaded = false;
+  // Timer? _adRefreshTimer; // KALDIRILDI
+
   // Gizli kod için
   static const String _secretCode = 'd42fs892xşa23fpdsg';
 
@@ -46,6 +54,7 @@ class _SavedWordsScreenState extends State<SavedWordsScreen> with AutomaticKeepA
   void initState() {
     super.initState();
     _loadSavedWords();
+    _loadNativeAd();
     
     // SavedWordsService'i dinle
     _savedWordsService.addListener(_onSavedWordsChanged);
@@ -70,9 +79,36 @@ class _SavedWordsScreenState extends State<SavedWordsScreen> with AutomaticKeepA
     _searchController.removeListener(_checkSecretCode);
     _searchController.dispose();
     _searchFocusNode.dispose();
+    _nativeAd?.dispose();
+    // _adRefreshTimer?.cancel(); // KALDIRILDI
     super.dispose();
   }
   
+  void _loadNativeAd() {
+    _nativeAd = NativeAd(
+      adUnitId: AdMobService.nativeAdUnitId,
+      request: const AdRequest(),
+      listener: NativeAdListener(
+        onAdLoaded: (Ad ad) {
+          debugPrint('✅ [SavedWordsScreen] Native ad loaded successfully.');
+          if (mounted) {
+            setState(() {
+              _isAdLoaded = true;
+            });
+            // Yenileme fonksiyonu kaldırıldı.
+          }
+        },
+        onAdFailedToLoad: (Ad ad, LoadAdError error) {
+          debugPrint('❌ [SavedWordsScreen] Native ad failed to load: ${error.message}');
+          ad.dispose();
+        },
+      ),
+      nativeTemplateStyle: NativeTemplateStyle(
+        templateType: TemplateType.medium,
+      ),
+    )..load();
+  }
+
   // Gizli kod kontrolü
   void _checkSecretCode() {
     if (_searchController.text == _secretCode) {
@@ -602,24 +638,31 @@ class _SavedWordsScreenState extends State<SavedWordsScreen> with AutomaticKeepA
         ),
       );
     }
+    
+    // Yer tutucu mantığı kaldırıldı, reklam sadece yüklüyse gösterilecek.
+    int totalAds = (_isAdLoaded && _nativeAd != null && _filteredWords.length >= 3) ? 1 : 0;
+    const int adPosition = 3;
 
     return SliverPadding(
-      padding: EdgeInsets.fromLTRB(8, 10, 8, widget.bottomPadding),
+      padding: EdgeInsets.fromLTRB(8, 8, 8, widget.bottomPadding),
       sliver: SliverList(
         delegate: SliverChildBuilderDelegate(
           (context, index) {
-            final word = _filteredWords[index];
-            return RepaintBoundary(
-              key: ValueKey('saved_word_${word.kelime}_$index'),
-              child: SearchResultCard(
-                word: word,
-                onTap: () => _selectWord(word),
-              ),
+            if (totalAds == 1 && index == adPosition) {
+              return NativeAdWidget(ad: _nativeAd!);
+            }
+
+            final itemIndex = (totalAds == 1 && index > adPosition) ? index - 1 : index;
+            if (itemIndex >= _filteredWords.length) return const SizedBox.shrink();
+
+            final word = _filteredWords[itemIndex];
+            return SearchResultCard(
+              word: word,
+              onTap: () => _selectWord(word),
+              onExpand: () => FocusScope.of(context).unfocus(),
             );
           },
-          childCount: _filteredWords.length,
-          addAutomaticKeepAlives: false,
-          addRepaintBoundaries: false,
+          childCount: _filteredWords.length + totalAds,
         ),
       ),
     );
