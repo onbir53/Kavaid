@@ -46,17 +46,8 @@ class _FontCache {
   }
 }
 
-// Global expanded card controller
-class ExpandedCardController {
-  static _SearchResultCardState? _currentExpanded;
-  
-  static void setExpanded(_SearchResultCardState? card) {
-    if (_currentExpanded != null && _currentExpanded != card && _currentExpanded!.mounted) {
-      _currentExpanded!._collapseCard();
-    }
-    _currentExpanded = card;
-  }
-}
+// Global expanded card controller sınıfı ve ilgili mantık kaldırıldı.
+// Artık bir kart açıldığında diğeri kapanmayacak.
 
 class SearchResultCard extends StatefulWidget {
   final WordModel word;
@@ -179,8 +170,8 @@ class _SearchResultCardState extends State<SearchResultCard> with SingleTickerPr
       });
       _animationController!.forward();
       
-      // Diğer açık kartları kapat
-      ExpandedCardController.setExpanded(this);
+      // Diğer açık kartları kapatma ve ekranı kaydırma işlevleri kaldırıldı.
+      
     } else {
       _collapseCard();
     }
