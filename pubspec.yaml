@@ -143,12 +143,13 @@ flutter:
   # "family" key with the font family name, and a "fonts" key with a
   # list giving the asset and other descriptors for the font. For
   # example:
-  # fonts:
-  #   - family: Amiri
-  #     fonts:
-  #       - asset: assets/fonts/Amiri-Regular.ttf
-  #       - asset: assets/fonts/Amiri-Bold.ttf
-  #         weight: 700
+  fonts:
+    - family: Inter
+      fonts:
+        - asset: assets/fonts/Inter-Regular.ttf
+    - family: ScheherazadeNew
+      fonts:
+        - asset: assets/fonts/ScheherazadeNew-Regular.ttf
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package

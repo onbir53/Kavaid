@@ -31,6 +31,27 @@ import 'services/gemini_service.dart';
 import 'services/tts_service.dart';
 import 'services/review_service.dart';
 
+// Fontları önbelleğe almak için yardımcı bir fonksiyon
+void _precacheFonts() {
+  final arapcaTextPainter = TextPainter(
+    text: const TextSpan(
+      style: TextStyle(fontFamily: 'ScheherazadeNew'),
+      text: 'ا', // Herhangi bir Arapça karakter
+    ),
+    textDirection: TextDirection.rtl,
+  )..layout();
+
+  final latinTextPainter = TextPainter(
+    text: const TextSpan(
+      style: TextStyle(fontFamily: 'Inter'),
+      text: 'a', // Herhangi bir Latin karakter
+    ),
+    textDirection: TextDirection.ltr,
+  )..layout();
+
+  debugPrint('✅ Fontlar önbelleğe alındı: ScheherazadeNew & Inter');
+}
+
 // Custom ScrollBehavior - overscroll glow efektini kaldırmak için
 class NoGlowScrollBehavior extends ScrollBehavior {
   @override
@@ -241,6 +262,11 @@ Future<void> main() async {
 
 // Servisleri arka planda başlat
 void _initializeServicesInBackground() {
+  // 🚀 FONT ÖN YÜKLEME: Uygulama başladıktan hemen sonra fontları arka planda belleğe al
+  Future.microtask(() {
+    _precacheFonts();
+  });
+
   // Firebase Analytics'i ilk olarak başlat
   Future.delayed(const Duration(milliseconds: 50), () async {
     try {
@@ -538,6 +564,7 @@ class _KavaidAppState extends State<KavaidApp> with WidgetsBindingObserver {
 
   ThemeData _buildLightTheme() {
     return ThemeData(
+      fontFamily: 'Inter', // Varsayılan font ailesi
       colorScheme: ColorScheme.fromSeed(
         seedColor: const Color(0xFF007AFF),
         brightness: Brightness.light,
@@ -600,12 +627,15 @@ class _KavaidAppState extends State<KavaidApp> with WidgetsBindingObserver {
         selectedItemColor: const Color(0xFF007AFF),
         unselectedItemColor: const Color(0xFF8E8E93),
         backgroundColor: const Color(0xFFFFFFFF).withOpacity(0.95),
+        selectedLabelStyle: const TextStyle(fontFamily: 'Inter'), // Font ailesini uygula
+        unselectedLabelStyle: const TextStyle(fontFamily: 'Inter'), // Font ailesini uygula
       ),
     );
   }
 
   ThemeData _buildDarkTheme() {
     return ThemeData(
+      fontFamily: 'Inter', // Varsayılan font ailesi
       colorScheme: ColorScheme.fromSeed(
         seedColor: const Color(0xFF007AFF),
         brightness: Brightness.dark,
@@ -668,6 +698,8 @@ class _KavaidAppState extends State<KavaidApp> with WidgetsBindingObserver {
         selectedItemColor: Color(0xFF007AFF),
         unselectedItemColor: Color(0xFF8E8E93),
         backgroundColor: Color(0xFF1C1C1E), // Karanlık tema için siyah navigation bar
+        selectedLabelStyle: TextStyle(fontFamily: 'Inter'), // Font ailesini uygula
+        unselectedLabelStyle: TextStyle(fontFamily: 'Inter'), // Font ailesini uygula
       ),
     );
   }

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'dart:ui' as ui;
 import '../models/word_model.dart';
 import '../services/saved_words_service.dart';
@@ -12,37 +11,28 @@ import 'package:share_plus/share_plus.dart';
 import 'package:path_provider/path_provider.dart';
 import 'dart:io';
 
-// 🚀 PERFORMANCE: Font'u bir kere yükle ve cache'le
-class _FontCache {
-  static TextStyle? _arabicStyle;
-  static TextStyle? _exampleArabicStyle;
-  
-  static TextStyle getArabicStyle() {
-    _arabicStyle ??= GoogleFonts.scheherazadeNew(
-      fontSize: 28,
-      fontWeight: FontWeight.w700,
-      height: 1.5,
-      fontFeatures: const [
-        ui.FontFeature.enable('liga'),
-        ui.FontFeature.enable('calt'),
-      ],
-    );
-    return _arabicStyle!;
-  }
-  
-  static TextStyle getExampleArabicStyle() {
-    _exampleArabicStyle ??= GoogleFonts.scheherazadeNew(
-      fontSize: 18,
-      fontWeight: FontWeight.w600,
-      height: 1.6,
-      fontFeatures: const [
-        ui.FontFeature.enable('liga'),
-        ui.FontFeature.enable('calt'),
-      ],
-    );
-    return _exampleArabicStyle!;
-  }
-}
+// 🚀 PERFORMANCE: Font stilleri artık doğrudan ve sabit olarak tanımlanıyor.
+const TextStyle _arabicTextStyle = TextStyle(
+  fontFamily: 'ScheherazadeNew',
+  fontSize: 28,
+  fontWeight: FontWeight.w700,
+  height: 1.5,
+  fontFeatures: [
+    ui.FontFeature.enable('liga'),
+    ui.FontFeature.enable('calt'),
+  ],
+);
+
+const TextStyle _exampleArabicTextStyle = TextStyle(
+  fontFamily: 'ScheherazadeNew',
+  fontSize: 18,
+  fontWeight: FontWeight.w600,
+  height: 1.6,
+  fontFeatures: [
+    ui.FontFeature.enable('liga'),
+    ui.FontFeature.enable('calt'),
+  ],
+);
 
 // 🚀 PERFORMANCE: StatelessWidget'a dönüştür ve ValueListenableBuilder kullan
 class WordCard extends StatefulWidget {
@@ -233,10 +223,10 @@ class _WordCardState extends State<WordCard> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Arapça kelime - 🚀 PERFORMANCE: Cache'lenmiş font stili
+                  // Arapça kelime - 🚀 PERFORMANCE: Sabit font stili
                   Text(
                     widget.word.harekeliKelime ?? widget.word.kelime,
-                    style: _FontCache.getArabicStyle().copyWith(
+                    style: _arabicTextStyle.copyWith(
                       color: isDarkMode ? Colors.white : const Color(0xFF1C1C1E),
                     ),
                     textDirection: TextDirection.rtl,
@@ -351,10 +341,10 @@ class _WordCardState extends State<WordCard> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               mainAxisSize: MainAxisSize.min,
               children: [
-                // 🚀 PERFORMANCE: Cache'lenmiş font stili kullan
+                // 🚀 PERFORMANCE: Sabit font stili kullan
                 Text(
                   widget.word.ornekler.first.arapcaCumle,
-                  style: _FontCache.getExampleArabicStyle().copyWith(
+                  style: _exampleArabicTextStyle.copyWith(
                     color: isDarkMode 
                         ? Colors.white.withOpacity(0.9)
                         : const Color(0xFF1C1C1E),
