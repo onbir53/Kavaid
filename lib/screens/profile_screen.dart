@@ -11,6 +11,7 @@ import '../services/turkce_analytics_service.dart';
 import '../services/app_usage_service.dart';
 import '../services/global_config_service.dart';
 import '../services/admob_service.dart';
+import '../services/review_service.dart';
 import '../widgets/fps_counter_widget.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -34,7 +35,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final OneTimePurchaseService _purchaseService = OneTimePurchaseService();
   final AppUsageService _appUsageService = AppUsageService();
   final GlobalConfigService _globalConfigService = GlobalConfigService();
-  bool _hasRatedApp = false;
+  final ReviewService _reviewService = ReviewService();
 
   @override
   void initState() {
@@ -46,23 +47,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
     
     // Play Console'dan fiyat bilgilerini yükle
     _loadPurchaseData();
-    // Değerlendirme durumunu kontrol et
-    _checkRatingStatus();
   }
   
-  Future<void> _checkRatingStatus() async {
-    final prefs = await SharedPreferences.getInstance();
-    setState(() {
-      _hasRatedApp = prefs.getBool('has_rated_app') ?? false;
-    });
-  }
-  
-  Future<void> _setRatedApp() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('has_rated_app', true);
-    setState(() {
-      _hasRatedApp = true;
-    });
+  // Değerlendirme ekranını aç
+  Future<void> _openInAppReview() async {
+    await _reviewService.requestReview();
+    // Butonun kaybolması için UI'ı güncelle
+    setState(() {}); 
   }
 
   Future<void> _loadPurchaseData() async {
@@ -245,7 +236,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 const SizedBox(height: 16),
                 
                 // Google Play Değerlendirme Butonu - değerlendirme yapılmamışsa göster
-                if (!_hasRatedApp) ...[
+                if (!_reviewService.hasRated) ...[
                   GestureDetector(
                     onTap: _openInAppReview,
                     child: Container(
@@ -355,9 +346,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               child: ElevatedButton(
                                 onPressed: () async {
                                   await _appUsageService.resetUsageStats();
-                                  final prefs = await SharedPreferences.getInstance();
-                                  await prefs.setBool('has_rated_app', false);
-                                  await _checkRatingStatus();
+                                  await _reviewService.resetRatingStatus();
+                                  
                                   if (mounted) {
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       const SnackBar(
@@ -782,61 +772,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ),
       ),
     );
-  }
-
-  Future<void> _openInAppReview() async {
-    final InAppReview inAppReview = InAppReview.instance;
-
-    try {
-      // Uygulama içi işlem flag'ini set et - reklam engellemek için
-      AdMobService().setInAppActionFlag('review');
-      // Analytics event'i gönder
-      await TurkceAnalyticsService.uygulamaDegerlendirmeAcildi();
-
-      if (await inAppReview.isAvailable()) {
-        debugPrint('✅ [Review] Sistem değerlendirme penceresi açılıyor...');
-        await inAppReview.requestReview();
-        // Kullanıcıya bir geri bildirim göstermeye gerek yok, sistem kendi yönetiyor.
-      } else {
-        debugPrint('⚠️ [Review] Sistem değerlendirme penceresi mevcut değil, mağaza sayfası açılıyor...');
-        await _openGooglePlayRating();
-      }
-    } catch (e) {
-      debugPrint('❌ [Review] Değerlendirme hatası, mağaza sayfası açılıyor: $e');
-      await _openGooglePlayRating(); // Hata durumunda fallback
-    } finally {
-      // Flag'i 1 dakika sonra temizle
-      Future.delayed(const Duration(minutes: 1), () {
-        AdMobService().clearInAppActionFlag();
-        debugPrint('🔓 Değerlendirme işlemi sonrası flag temizlendi');
-      });
-    }
-  }
-
-  Future<void> _openGooglePlayRating() async {
-    const String packageName = 'com.onbir.kavaid';
-    final Uri googlePlayUrl = Uri.parse('market://details?id=$packageName');
-    final Uri webUrl = Uri.parse('https://play.google.com/store/apps/details?id=$packageName');
-    
-    try {
-      if (await canLaunchUrl(googlePlayUrl)) {
-        await launchUrl(googlePlayUrl, mode: LaunchMode.externalApplication);
-      } else if (await canLaunchUrl(webUrl)) {
-        await launchUrl(webUrl, mode: LaunchMode.externalApplication);
-      } else {
-        throw 'Mağaza URL\'si açılamadı.';
-      }
-    } catch (e) {
-       debugPrint('❌ [Review] Google Play açma hatası: $e');
-      if(mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Mağaza açılamadı. Lütfen daha sonra tekrar deneyin.'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
   }
 
   Future<void> _shareApp() async {

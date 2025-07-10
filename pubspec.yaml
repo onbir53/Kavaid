@@ -96,6 +96,9 @@ dependencies:
   # Screenshot for sharing word cards as images
   screenshot: ^3.0.0
 
+  # Collection for advanced list operations (firstWhereOrNull)
+  collection: ^1.18.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

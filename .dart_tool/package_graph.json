@@ -8,6 +8,7 @@
       "version": "2.1.1+2054",
       "dependencies": [
         "cloud_firestore",
+        "collection",
         "connectivity_plus",
         "cupertino_icons",
         "device_info_plus",
@@ -140,6 +141,11 @@
         "vector_math",
         "vm_service"
       ]
+    },
+    {
+      "name": "collection",
+      "version": "1.19.1",
+      "dependencies": []
     },
     {
       "name": "screenshot",
@@ -516,11 +522,6 @@
         "source_span",
         "yaml"
       ]
-    },
-    {
-      "name": "collection",
-      "version": "1.19.1",
-      "dependencies": []
     },
     {
       "name": "build_config",

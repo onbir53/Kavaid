@@ -29,6 +29,7 @@ import 'models/word_model.dart';
 import 'services/app_usage_service.dart';
 import 'services/gemini_service.dart';
 import 'services/tts_service.dart';
+import 'services/review_service.dart';
 
 // Custom ScrollBehavior - overscroll glow efektini kaldırmak için
 class NoGlowScrollBehavior extends ScrollBehavior {
@@ -327,6 +328,13 @@ void _initializeServicesInBackground() {
     } catch (e) {
       debugPrint('❌ GeminiService hatası: $e');
     }
+  });
+
+  // Değerlendirme servisini başlat
+  Future.delayed(const Duration(milliseconds: 700), () async {
+    final reviewService = ReviewService();
+    await reviewService.initialize();
+    debugPrint('✅ ReviewService başlatıldı');
   });
 }
 
