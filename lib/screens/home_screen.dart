@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import '../models/word_model.dart';
 import '../services/gemini_service.dart';
 import '../services/firebase_service.dart';
+import '../services/database_service.dart'; // YEREL VERİTABANI SERVİSİ
 import '../services/credits_service.dart';
 import '../services/turkce_analytics_service.dart';
 import '../widgets/word_card.dart';
@@ -46,6 +47,7 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
   final FocusNode _searchFocusNode = FocusNode();
   final GeminiService _geminiService = GeminiService();
   final FirebaseService _firebaseService = FirebaseService();
+  final DatabaseService _dbService = DatabaseService.instance; // YEREL DB SERVİSİ
   final CreditsService _creditsService = CreditsService();
   
   List<WordModel> _searchResults = [];
@@ -160,21 +162,35 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
     });
 
     try {
-      // Tüm sonuçları al, limit yok
-      final results = await _firebaseService.searchWords(query, limit: 999); // Limit ekledim
+      debugPrint('🔍 Yerel arama başlatıldı: "$query"');
+
+      // 1. Tüm kelimeleri lokal veritabanından çek
+      final allLocalWords = await _dbService.getAllWords();
+      debugPrint('📚 Yerel veritabanından ${allLocalWords.length} kelime yüklendi.');
+
+
+      // 2. Sonuçları uygulama içinde filtrele ve sırala (Eski Firebase mantığı gibi)
+      final List<WordModel> results = allLocalWords
+          .where((word) => word.searchScore(query) > 0.0)
+          .toList();
+      
+      debugPrint('🔎 Filtreleme sonrası ${results.length} sonuç bulundu.');
+
+
+      results.sort((a, b) => b.searchScore(query).compareTo(a.searchScore(query)));
       
       // Analytics event'i gönder
       await TurkceAnalyticsService.kelimeArandiNormal(query, results.length);
       
       setState(() {
-        _searchResults = results; // Tüm sonuçlar gösterilecek
+        _searchResults = results; // Filtrelenmiş ve sıralanmış sonuçları göster
         _isLoading = false;
         _selectedWord = null;
-        _showAIButton = true; // Her arama sonrası AI butonunu göster
-        _showNotFound = false; // "Sonuç bulunamadı" yazısını gösterme
+        _showAIButton = true; 
+        _showNotFound = false; 
       });
     } catch (e) {
-      debugPrint('Arama hatası: $e');
+      debugPrint('Yerel Arama hatası: $e');
       setState(() {
         _searchResults = [];
         _isLoading = false;

@@ -515,4 +515,103 @@ class FirebaseService {
     
     return false;
   }
+
+  // ============== SYNC METOTLARI ==============
+
+  Future<Set<String>> getExistingWordKeys() async {
+    final snapshot = await _wordsRef.get();
+    if (!snapshot.exists) return {};
+    
+    final data = snapshot.value as Map<dynamic, dynamic>;
+    final keys = <String>{};
+    for (final value in data.values) {
+      if (value != null && value is Map) {
+        // Hem harekeli hem de harekesiz kelimeleri kontrol et
+        if (value['harekeliKelime'] != null) {
+          keys.add(value['harekeliKelime'] as String);
+        }
+        if (value['kelime'] != null) {
+          keys.add(value['kelime'] as String);
+        }
+      }
+    }
+    return keys;
+  }
+
+  Future<void> batchAddWords(List<WordModel> words) async {
+    if (words.isEmpty) return;
+
+    // Realtime Database için multi-path update oluştur
+    final Map<String, dynamic> updates = {};
+    for (final word in words) {
+      // Her kelime için Firebase'den yeni bir benzersiz anahtar al
+      final newWordKey = _wordsRef.push().key;
+      if (newWordKey != null) {
+        updates[newWordKey] = word.toFirebaseJson();
+      }
+    }
+    
+    if (updates.isNotEmpty) {
+      await _wordsRef.update(updates);
+      clearCache(); // Yeni kelimeler eklendiği için cache'i temizle
+    }
+  }
+
+  Future<void> recalculateAndSetTotalWordsCount() async {
+    final count = await getTotalWordCount();
+    // Bu fonksiyonun tam olarak ne yapması gerektiği belirsiz.
+    // Şimdilik sadece toplam kelime sayısını logluyoruz.
+    // Eğer Firebase'de ayrı bir 'sayac' düğümü varsa, o burada güncellenmeli.
+    debugPrint('Firebase\'deki toplam kelime sayısı yeniden hesaplandı: $count');
+    // Örnek: await _database.ref().child('kelimeSayaci').set(count);
+  }
+
+  // Tüm kelimeleri Firebase'den çekmek için yeni fonksiyon
+  Future<List<WordModel>> getAllWordsFromFirebase() async {
+    try {
+      final snapshot = await _wordsRef.get();
+      
+      if (!snapshot.exists) return [];
+
+      final data = snapshot.value as Map<dynamic, dynamic>;
+      final words = <WordModel>[];
+
+      for (final entry in data.entries) {
+        try {
+          final key = entry.key.toString();
+          final value = entry.value;
+          
+          if (value != null && value is Map) {
+            final wordData = Map<String, dynamic>.from(value.map((k, v) => MapEntry(k.toString(), v)));
+            
+            WordModel word;
+            if (wordData.containsKey('kelimeBilgisi')) {
+              word = WordModel.fromJson(wordData);
+            } else {
+              word = WordModel(
+                kelime: wordData['kelime'] ?? key,
+                harekeliKelime: wordData['harekeliKelime'] ?? key,
+                anlam: wordData['anlam'],
+                koku: wordData['koku'],
+                dilbilgiselOzellikler: _safeCastMap(wordData['dilbilgiselOzellikler']),
+                ornekCumleler: _safeCastList(wordData['ornekCumleler']),
+                fiilCekimler: _safeCastMap(wordData['fiilCekimler']),
+                eklenmeTarihi: wordData['eklenmeTarihi'],
+                bulunduMu: true,
+              );
+            }
+            words.add(word);
+          }
+        } catch (e) {
+          debugPrint('Kelime parse hatası (getAllWordsFromFirebase): $e');
+          continue;
+        }
+      }
+      debugPrint('Firebase\'den toplam ${words.length} kelime çekildi.');
+      return words;
+    } catch (e) {
+      print('Tüm kelimeleri Firebase\'den çekerken hata: $e');
+      return [];
+    }
+  }
 } 

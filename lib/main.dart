@@ -30,6 +30,7 @@ import 'services/app_usage_service.dart';
 import 'services/gemini_service.dart';
 import 'services/tts_service.dart';
 import 'services/review_service.dart';
+import 'services/sync_service.dart';
 
 // Fontları önbelleğe almak için yardımcı bir fonksiyon
 void _precacheFonts() {
@@ -66,6 +67,16 @@ class NoGlowScrollBehavior extends ScrollBehavior {
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // YEREL VERİTABANI SENKRONİZASYONU
+  // Uygulama başlamadan önce lokal veritabanını Firebase ile senkronize etmeyi dene.
+  // Bu işlem arka planda çalışacak ve uygulamanın açılışını engellemeyecektir.
+  try {
+    await SyncService().initializeLocalDatabase();
+    debugPrint('✅ Yerel veritabanı senkronizasyon kontrolü tamamlandı.');
+  } catch (e) {
+    debugPrint('❌ Yerel veritabanı senkronizasyonu sırasında bir hata oluştu: $e');
+  }
   
   // Android sistem seviyesi log'larını filtrele
   if (!kIsWeb && Platform.isAndroid) {
