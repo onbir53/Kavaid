@@ -265,6 +265,9 @@ Future<void> main() async {
     // Firebase olmadan devam et - offline modda çalışabilir
   }
 
+  // Global ayarları yükle
+  await GlobalConfigService().init();
+
   // Diğer servisleri arka planda başlat
   _initializeServicesInBackground();
   

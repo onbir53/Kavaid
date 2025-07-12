@@ -12,6 +12,11 @@ class GlobalConfigService extends ChangeNotifier {
     _initializeListener();
   }
   
+  // --- YENİ SABİT EŞİK DEĞERİ ---
+  // AI kelimelerinin Firebase ile senkronize edilmeden önce
+  // yerelde ne kadar birikeceğini belirler.
+  static const int aiBatchSyncThreshold = 1;
+
   bool _subscriptionDisabled = false;
   bool _isInitialized = false;
   
@@ -46,17 +51,23 @@ class GlobalConfigService extends ChangeNotifier {
       debugPrint('❌ [GlobalConfig] Firebase dinleme hatası: $error');
     });
     
-    // İlk değeri al
-    _loadInitialValue();
+  }
+
+  // Yeni init metodu - main.dart'tan çağrılacak
+  Future<void> init() async {
+    if (_isInitialized) return; // Zaten başlatıldıysa tekrar yapma
+    await _loadInitialValue();
   }
   
   // İlk değeri yükle
   Future<void> _loadInitialValue() async {
     try {
-      final snapshot = await _configRef.child('subscription_disabled').get();
-      
-      if (snapshot.exists && snapshot.value != null) {
-        final value = snapshot.value;
+      // Sadece subscription durumunu çek
+      final subSnapshot = await _configRef.child('subscription_disabled').get();
+
+      // subscription_disabled
+      if (subSnapshot.exists && subSnapshot.value != null) {
+        final value = subSnapshot.value;
         if (value is bool) {
           _subscriptionDisabled = value;
         } else if (value is String) {
@@ -65,7 +76,7 @@ class GlobalConfigService extends ChangeNotifier {
       }
       
       _isInitialized = true;
-      debugPrint('✅ [GlobalConfig] İlk değer yüklendi: subscription_disabled = $_subscriptionDisabled');
+      debugPrint('✅ [GlobalConfig] İlk değerler yüklendi: subscription_disabled = $_subscriptionDisabled');
       notifyListeners();
       
     } catch (e) {

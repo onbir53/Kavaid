@@ -72,7 +72,7 @@ class SyncService {
     await _dbService.addPendingAiWord(word);
     
     final pendingCount = await _dbService.getPendingAiWordsCount();
-    const threshold = 1; // Test için eşik 1'e ayarlandı
+    const threshold = GlobalConfigService.aiBatchSyncThreshold;
 
     debugPrint('Bekleyen AI kelime sayısı: $pendingCount, Eşik: $threshold');
 

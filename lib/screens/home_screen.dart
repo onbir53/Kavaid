@@ -18,6 +18,10 @@ import 'package:flutter/foundation.dart' show defaultTargetPlatform, kIsWeb;
 import 'package:flutter/material.dart' show TemplateType;
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import '../services/admob_service.dart';
+import 'package:kavaid/services/connectivity_service.dart';
+import 'package:kavaid/services/review_service.dart';
+import 'package:kavaid/services/turkce_analytics_service.dart';
+import 'package:kavaid/services/sync_service.dart';
 
 
 class HomeScreen extends StatefulWidget {
@@ -63,6 +67,9 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
   bool _isAdLoaded = false;
   int _aiSearchClickCount = 0;
   final AdMobService _adMobService = AdMobService();
+  final ReviewService _reviewService = ReviewService();
+  final ConnectivityService _connectivityService = ConnectivityService();
+  final SyncService _syncService = SyncService();
 
   @override
   bool get wantKeepAlive => true; // Widget state'ini koru
@@ -280,8 +287,8 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
       await TurkceAnalyticsService.kelimeArandiAI(query, aiResult.bulunduMu);
       
       if (aiResult.bulunduMu) {
-        // AI sonucunu Firebase'e kaydet
-        await _firebaseService.saveWord(aiResult);
+        // AI sonucunu Firebase'e kaydetmek yerine SyncService'e gönder
+        await _syncService.handleAiFoundWord(aiResult);
         
         setState(() {
           _searchResults = [aiResult];

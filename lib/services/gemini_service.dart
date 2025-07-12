@@ -451,7 +451,11 @@ emirForm (string): Emir, 2. tekil eril, harekeli.
     try {
       debugPrint('🔍 Kelime aranıyor: $word');
       
-      // Önce Firebase'de kelime var mı kontrol et
+      // OPTIMIZASYON: Firebase kontrolü burada gereksiz.
+      // Bu kontrol zaten bu fonksiyonu çağıran HomeScreen._performActualAISearch
+      // içinde yapılıyor. Bu bloğun kaldırılması, her AI aramasında
+      // gereksiz bir veritabanı sorgusunu önler.
+      /*
       final firebaseService = FirebaseService();
       final existingWord = await firebaseService.getWordByName(word);
       
@@ -459,6 +463,7 @@ emirForm (string): Emir, 2. tekil eril, harekeli.
         debugPrint('📦 Kelime zaten veritabanında mevcut: ${existingWord.kelime}');
         return existingWord;
       }
+      */
       
       debugPrint('🤖 Kelime veritabanında bulunamadı, Gemini API\'ye istek atılıyor: $word');
       

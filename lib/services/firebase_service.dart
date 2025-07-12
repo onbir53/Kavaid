@@ -558,12 +558,13 @@ class FirebaseService {
   }
 
   Future<void> recalculateAndSetTotalWordsCount() async {
-    final count = await getTotalWordCount();
-    // Bu fonksiyonun tam olarak ne yapması gerektiği belirsiz.
-    // Şimdilik sadece toplam kelime sayısını logluyoruz.
-    // Eğer Firebase'de ayrı bir 'sayac' düğümü varsa, o burada güncellenmeli.
-    debugPrint('Firebase\'deki toplam kelime sayısı yeniden hesaplandı: $count');
-    // Örnek: await _database.ref().child('kelimeSayaci').set(count);
+    try {
+      final count = await getTotalWordCount();
+      await _database.ref().child('stats').child('kelime_sayisi').set(count);
+      debugPrint('Firebase\'deki /stats/kelime_sayisi güncellendi: $count');
+    } catch (e) {
+      debugPrint('❌ Firebase kelime sayacı güncellenirken hata: $e');
+    }
   }
 
   // Tüm kelimeleri Firebase'den çekmek için yeni fonksiyon
