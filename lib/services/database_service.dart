@@ -20,7 +20,10 @@ class DatabaseService {
   Future<Database> _initDB(String filePath) async {
     final dbPath = await getDatabasesPath();
     final path = join(dbPath, filePath);
-    return await openDatabase(path, version: 1, onCreate: _createDB);
+    return await openDatabase(path, version: 1, onCreate: _createDB, onOpen: (db) async {
+      // Her açılışta tabloların var olduğundan emin ol
+      await _createDB(db, 1);
+    });
   }
 
   Future _createDB(Database db, int version) async {
@@ -29,11 +32,11 @@ class DatabaseService {
     const intType = 'INTEGER';
 
     await db.execute('''
-CREATE TABLE words ( 
+CREATE TABLE IF NOT EXISTS words ( 
   kelime ${idType}, harekeliKelime ${textType}, anlam ${textType}, koku ${textType}, dilbilgiselOzellikler ${textType}, ornekCumleler ${textType}, fiilCekimler ${textType}, eklenmeTarihi ${intType}
 )''');
     await db.execute('''
-CREATE TABLE pending_ai_words ( 
+CREATE TABLE IF NOT EXISTS pending_ai_words ( 
   kelime ${idType}, harekeliKelime ${textType}, anlam ${textType}, koku ${textType}, dilbilgiselOzellikler ${textType}, ornekCumleler ${textType}, fiilCekimler ${textType}, eklenmeTarihi ${intType}
 )''');
   }

@@ -296,6 +296,24 @@
       "languageVersion": "3.4"
     },
     {
+      "name": "firebase_remote_config",
+      "rootUri": "file:///C:/Users/kul/AppData/Local/Pub/Cache/hosted/pub.dev/firebase_remote_config-5.4.5",
+      "packageUri": "lib/",
+      "languageVersion": "3.2"
+    },
+    {
+      "name": "firebase_remote_config_platform_interface",
+      "rootUri": "file:///C:/Users/kul/AppData/Local/Pub/Cache/hosted/pub.dev/firebase_remote_config_platform_interface-1.5.5",
+      "packageUri": "lib/",
+      "languageVersion": "3.2"
+    },
+    {
+      "name": "firebase_remote_config_web",
+      "rootUri": "file:///C:/Users/kul/AppData/Local/Pub/Cache/hosted/pub.dev/firebase_remote_config_web-1.8.5",
+      "packageUri": "lib/",
+      "languageVersion": "3.4"
+    },
+    {
       "name": "fixnum",
       "rootUri": "file:///C:/Users/kul/AppData/Local/Pub/Cache/hosted/pub.dev/fixnum-1.1.1",
       "packageUri": "lib/",

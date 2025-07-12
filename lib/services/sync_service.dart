@@ -22,46 +22,60 @@ class SyncService {
   static const String _syncCompletedKey = 'firebase_sync_completed_v2';
 
   Future<void> initializeLocalDatabase({bool force = false}) async {
-    if (_isDbInitializing && !force) return;
-    
-    final prefs = await SharedPreferences.getInstance();
-    final bool isSyncCompleted = prefs.getBool(_syncCompletedKey) ?? false;
-
-    if (isSyncCompleted && !force) {
-      debugPrint('Yerel veritabanı zaten senkronize. İlk kurulum atlanıyor.');
+    if (_isDbInitializing && !force) {
+      debugPrint('Veritabanı başlatma/senkronizasyon zaten devam ediyor. Atlanıyor.');
       return;
     }
-
     _isDbInitializing = true;
+    debugPrint('Yerel veritabanı durumu kontrol ediliyor (force: $force)...');
 
     try {
       final db = await _dbService.database;
+      
+      // 1. Veritabanının fiziksel durumunu kontrol et
       final tableInfo = await db.rawQuery("SELECT name FROM sqlite_master WHERE type='table' AND name='words'");
-      bool exists = tableInfo.isNotEmpty;
-      int count = 0;
-      if (exists) {
+      bool tableExists = tableInfo.isNotEmpty;
+      int wordCount = 0;
+      if (tableExists) {
         final countResult = await db.rawQuery('SELECT COUNT(*) FROM words');
-        count = Sqflite.firstIntValue(countResult) ?? 0;
+        wordCount = Sqflite.firstIntValue(countResult) ?? 0;
       }
 
-      if (force || !exists || count == 0) {
-        debugPrint('Lokal veritabanı boş veya zorunlu senkronizasyon. Firebase\'den veriler çekiliyor...');
+      // 2. Senkronizasyon gerekip gerekmediğine karar ver
+      // Koşullar:
+      // - Senkronizasyon zorlanmışsa (force == true)
+      // - 'words' tablosu yoksa
+      // - 'words' tablosu boşsa
+      if (force || !tableExists || wordCount == 0) {
+        if (force) {
+            debugPrint('Zorunlu senkronizasyon tetiklendi.');
+        } else {
+            debugPrint('Yerel veritabanı boş veya bozuk. Firebase\'den yeniden senkronize edilecek.');
+        }
+
         try {
           final allWords = await _firebaseService.getAllWordsFromFirebase();
           if (allWords.isNotEmpty) {
             await _dbService.recreateWordsTable(allWords);
+            final prefs = await SharedPreferences.getInstance();
             await prefs.setBool(_syncCompletedKey, true);
             debugPrint('Lokal veritabanı başarıyla ${allWords.length} kelime ile kuruldu/güncellendi.');
           } else {
             debugPrint('Firebase\'den hiç kelime gelmedi. Lokal veritabanı boş bırakıldı.');
           }
         } catch (e) {
-          debugPrint('initializeLocalDatabase sırasında hata: $e');
+          debugPrint('initializeLocalDatabase sırasında senkronizasyon hatası: $e');
         }
       } else {
-        debugPrint('Lokal veritabanı zaten dolu ($count kelime). İlk kurulum atlanıyor.');
-        await prefs.setBool(_syncCompletedKey, true);
+        debugPrint('Lokal veritabanı zaten dolu ($wordCount kelime). Senkronizasyon atlanıyor.');
+        // İsteğe bağlı: Bayrağın doğru ayarlandığından emin olun
+        final prefs = await SharedPreferences.getInstance();
+        if (!(prefs.getBool(_syncCompletedKey) ?? false)) {
+          await prefs.setBool(_syncCompletedKey, true);
+        }
       }
+    } catch (e) {
+        debugPrint('Yerel veritabanı durumu kontrol edilirken kritik hata: $e');
     } finally {
       _isDbInitializing = false;
     }
@@ -72,7 +86,7 @@ class SyncService {
     await _dbService.addPendingAiWord(word);
     
     final pendingCount = await _dbService.getPendingAiWordsCount();
-    const threshold = GlobalConfigService.aiBatchSyncThreshold;
+    final threshold = _configService.aiBatchSyncThreshold;
 
     debugPrint('Bekleyen AI kelime sayısı: $pendingCount, Eşik: $threshold');
 

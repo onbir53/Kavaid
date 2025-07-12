@@ -526,12 +526,10 @@ class FirebaseService {
     final keys = <String>{};
     for (final value in data.values) {
       if (value != null && value is Map) {
-        // Hem harekeli hem de harekesiz kelimeleri kontrol et
+        // Kullanıcının isteği üzerine, bir kelimenin varlığını
+        // sadece 'harekeliKelime' alanına göre kontrol ediyoruz.
         if (value['harekeliKelime'] != null) {
           keys.add(value['harekeliKelime'] as String);
-        }
-        if (value['kelime'] != null) {
-          keys.add(value['kelime'] as String);
         }
       }
     }

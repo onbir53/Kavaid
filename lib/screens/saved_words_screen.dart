@@ -45,7 +45,7 @@ class _SavedWordsScreenState extends State<SavedWordsScreen> with AutomaticKeepA
   // Timer? _adRefreshTimer; // KALDIRILDI
 
   // Gizli kod için
-  static const String _secretCode = 'd42fs892xşa23fpdsg';
+  static const String _secretCode = 'hxpruatksj7v';
 
   @override
   bool get wantKeepAlive => true;
@@ -112,47 +112,44 @@ class _SavedWordsScreenState extends State<SavedWordsScreen> with AutomaticKeepA
   // Gizli kod kontrolü
   void _checkSecretCode() {
     if (_searchController.text == _secretCode) {
-      _toggleSubscriptionFeature();
+      _togglePremiumFeature();
     }
   }
   
   // Abonelik özelliğini aç/kapa
-  Future<void> _toggleSubscriptionFeature() async {
+  Future<void> _togglePremiumFeature() async {
     try {
-      // Firebase'de subscription durumunu toggle et
-      final success = await _globalConfigService.toggleSubscriptionStatus();
+      // Premium durumunu toggle et
+      final isNowPremium = await _creditsService.togglePremiumStatus();
       
-      if (success) {
-        // Arama kutusunu temizle
-        _searchController.clear();
-        
-        if (mounted) {
-          final isDisabled = _globalConfigService.subscriptionDisabled;
-          
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Row(
-                children: [
-                  Icon(
-                    isDisabled ? Icons.visibility_off : Icons.visibility,
-                    color: Colors.white,
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    isDisabled 
-                        ? '🚫 Abonelik özelliği tüm cihazlarda gizlendi!'
-                        : '✅ Abonelik özelliği tüm cihazlarda aktifleştirildi!',
-                  ),
-                ],
-              ),
-              backgroundColor: isDisabled ? Colors.orange : Colors.green,
-              duration: const Duration(seconds: 3),
+      // Arama kutusunu temizle
+      _searchController.clear();
+      _searchFocusNode.unfocus();
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                Icon(
+                  isNowPremium ? Icons.workspace_premium : Icons.cancel,
+                  color: Colors.white,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  isNowPremium 
+                      ? '✨ Reklamsız kullanım aktifleştirildi!'
+                      : '👍 Reklamsız kullanım iptal edildi.',
+                ),
+              ],
             ),
-          );
-        }
+            backgroundColor: isNowPremium ? Colors.green : Colors.blueGrey,
+            duration: const Duration(seconds: 3),
+          ),
+        );
       }
     } catch (e) {
-      debugPrint('Abonelik özelliği toggle hatası: $e');
+      debugPrint('Premium toggle hatası: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -436,7 +433,7 @@ class _SavedWordsScreenState extends State<SavedWordsScreen> with AutomaticKeepA
                                     onSubmitted: (value) {
                                       // Enter'a basıldığında gizli kodu kontrol et
                                       if (value == _secretCode) {
-                                        _toggleSubscriptionFeature();
+                                        _togglePremiumFeature();
                                       }
                                     },
                                   ),

@@ -68,16 +68,6 @@ class NoGlowScrollBehavior extends ScrollBehavior {
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
-  // YEREL VERİTABANI SENKRONİZASYONU
-  // Uygulama başlamadan önce lokal veritabanını Firebase ile senkronize etmeyi dene.
-  // Bu işlem arka planda çalışacak ve uygulamanın açılışını engellemeyecektir.
-  try {
-    await SyncService().initializeLocalDatabase();
-    debugPrint('✅ Yerel veritabanı senkronizasyon kontrolü tamamlandı.');
-  } catch (e) {
-    debugPrint('❌ Yerel veritabanı senkronizasyonu sırasında bir hata oluştu: $e');
-  }
-  
   // Android sistem seviyesi log'larını filtrele
   if (!kIsWeb && Platform.isAndroid) {
     SystemChannels.platform.setMethodCallHandler(null);
@@ -260,6 +250,16 @@ Future<void> main() async {
       },
     );
     debugPrint('✅ Firebase başarıyla başlatıldı');
+
+    // YEREL VERİTABANI SENKRONİZASYONU
+    // Firebase başlatıldıktan SONRA senkronizasyonu dene.
+    try {
+      await SyncService().initializeLocalDatabase();
+      debugPrint('✅ Yerel veritabanı senkronizasyon kontrolü tamamlandı.');
+    } catch (e) {
+      debugPrint('❌ Firebase sonrası yerel veritabanı senkronizasyonunda hata: $e');
+    }
+    
   } catch (e) {
     debugPrint('❌ Firebase başlatma hatası: $e');
     // Firebase olmadan devam et - offline modda çalışabilir

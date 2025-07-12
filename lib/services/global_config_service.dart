@@ -1,34 +1,78 @@
 import 'package:firebase_database/firebase_database.dart';
+import 'package:firebase_remote_config/firebase_remote_config.dart';
 import 'package:flutter/foundation.dart';
 
 class GlobalConfigService extends ChangeNotifier {
   static final FirebaseDatabase _database = FirebaseDatabase.instance;
   static final DatabaseReference _configRef = _database.ref().child('config');
-  
+  final FirebaseRemoteConfig _remoteConfig = FirebaseRemoteConfig.instance;
+
   // Singleton instance
   static final GlobalConfigService _instance = GlobalConfigService._internal();
   factory GlobalConfigService() => _instance;
-  GlobalConfigService._internal() {
-    _initializeListener();
-  }
-  
-  // --- YENİ SABİT EŞİK DEĞERİ ---
-  // AI kelimelerinin Firebase ile senkronize edilmeden önce
-  // yerelde ne kadar birikeceğini belirler.
-  static const int aiBatchSyncThreshold = 1;
+  GlobalConfigService._internal();
 
+  // Değişkenin ilk değeri kDebugMode'a göre ayarlanır.
+  int _aiBatchSyncThreshold = kDebugMode ? 2 : 10;
   bool _subscriptionDisabled = false;
   bool _isInitialized = false;
-  
+
   // Getter'lar
+  int get aiBatchSyncThreshold => _aiBatchSyncThreshold;
   bool get subscriptionDisabled => _subscriptionDisabled;
   bool get isInitialized => _isInitialized;
   
-  // Firebase listener
-  void _initializeListener() {
-    debugPrint('🌐 [GlobalConfig] Firebase listener başlatılıyor...');
+  // Ana başlatma metodu
+  Future<void> init() async {
+    if (_isInitialized) return;
     
-    // subscription_disabled değerini dinle
+    // İki başlatma işlemini aynı anda yap
+    await Future.wait([
+      _initializeRemoteConfig(), // Remote Config'i başlat
+      _loadInitialRealtimeValues(), // Realtime DB'den ilk değerleri yükle
+    ]);
+
+    _initializeRealtimeListener(); // Realtime DB dinleyicisini başlat
+
+    _isInitialized = true;
+    notifyListeners();
+  }
+  
+  // 1. Remote Config'i başlat ve değeri çek
+  Future<void> _initializeRemoteConfig() async {
+    debugPrint('⚙️ [RemoteConfig] Başlatılıyor...');
+    try {
+      await _remoteConfig.setConfigSettings(RemoteConfigSettings(
+        fetchTimeout: const Duration(minutes: 1),
+        minimumFetchInterval: const Duration(hours: 1),
+      ));
+      // Varsayılan değerler de kDebugMode'a göre ayarlanır.
+      await _remoteConfig.setDefaults(const {
+        'ai_batch_sync_threshold': kDebugMode ? 2 : 10,
+      });
+      await _remoteConfig.fetchAndActivate();
+      _aiBatchSyncThreshold = _remoteConfig.getInt('ai_batch_sync_threshold');
+      debugPrint('✅ [RemoteConfig] ai_batch_sync_threshold değeri çekildi: $_aiBatchSyncThreshold');
+
+      // Değişiklikleri dinle
+      _remoteConfig.onConfigUpdated.listen((event) async {
+        await _remoteConfig.fetchAndActivate();
+        final newThreshold = _remoteConfig.getInt('ai_batch_sync_threshold');
+        if (_aiBatchSyncThreshold != newThreshold) {
+           debugPrint('🔄 [RemoteConfig] ai_batch_sync_threshold güncellendi: $newThreshold');
+          _aiBatchSyncThreshold = newThreshold;
+          notifyListeners();
+        }
+      });
+
+    } catch (e) {
+      debugPrint('❌ [RemoteConfig] Başlatma hatası: $e. Varsayılan değer ($_aiBatchSyncThreshold) kullanılacak.');
+    }
+  }
+
+  // 2. Realtime Database dinleyicisini başlat (sadece subscription için)
+  void _initializeRealtimeListener() {
+    debugPrint('🌐 [GlobalConfig] Realtime DB listener başlatılıyor (subscription_disabled için)...');
     _configRef.child('subscription_disabled').onValue.listen((event) {
       final value = event.snapshot.value;
       bool newValue = false;
@@ -44,28 +88,19 @@ class GlobalConfigService extends ChangeNotifier {
       if (_subscriptionDisabled != newValue) {
         debugPrint('🔄 [GlobalConfig] subscription_disabled değişti: $_subscriptionDisabled -> $newValue');
         _subscriptionDisabled = newValue;
-        _isInitialized = true;
         notifyListeners();
       }
     }, onError: (error) {
-      debugPrint('❌ [GlobalConfig] Firebase dinleme hatası: $error');
+      debugPrint('❌ [GlobalConfig] Realtime DB dinleme hatası: $error');
     });
-    
-  }
-
-  // Yeni init metodu - main.dart'tan çağrılacak
-  Future<void> init() async {
-    if (_isInitialized) return; // Zaten başlatıldıysa tekrar yapma
-    await _loadInitialValue();
   }
   
-  // İlk değeri yükle
-  Future<void> _loadInitialValue() async {
+  // 3. Realtime Database'den ilk değeri yükle (sadece subscription için)
+  Future<void> _loadInitialRealtimeValues() async {
+    debugPrint('🌐 [GlobalConfig] Realtime DB ilk değerleri yükleniyor...');
     try {
-      // Sadece subscription durumunu çek
       final subSnapshot = await _configRef.child('subscription_disabled').get();
 
-      // subscription_disabled
       if (subSnapshot.exists && subSnapshot.value != null) {
         final value = subSnapshot.value;
         if (value is bool) {
@@ -74,27 +109,19 @@ class GlobalConfigService extends ChangeNotifier {
           _subscriptionDisabled = value.toLowerCase() == 'true';
         }
       }
-      
-      _isInitialized = true;
-      debugPrint('✅ [GlobalConfig] İlk değerler yüklendi: subscription_disabled = $_subscriptionDisabled');
-      notifyListeners();
-      
+      debugPrint('✅ [GlobalConfig] İlk değer yüklendi: subscription_disabled = $_subscriptionDisabled');
     } catch (e) {
-      debugPrint('❌ [GlobalConfig] İlk değer yükleme hatası: $e');
-      _isInitialized = true;
-      notifyListeners();
+      debugPrint('❌ [GlobalConfig] İlk Realtime DB değeri yükleme hatası: $e');
     }
   }
-  
+
   // Subscription durumunu toggle et
   Future<bool> toggleSubscriptionStatus() async {
     try {
       final newValue = !_subscriptionDisabled;
       
       debugPrint('🔄 [GlobalConfig] Subscription durumu değiştiriliyor: $newValue');
-      
       await _configRef.child('subscription_disabled').set(newValue);
-      
       debugPrint('✅ [GlobalConfig] Firebase\'e yazıldı: subscription_disabled = $newValue');
       
       // Local değeri hemen güncelle (listener ile de gelecek ama anında yanıt için)
@@ -106,16 +133,6 @@ class GlobalConfigService extends ChangeNotifier {
     } catch (e) {
       debugPrint('❌ [GlobalConfig] Toggle hatası: $e');
       return false;
-    }
-  }
-  
-  // Manuel olarak sıfırla (test için)
-  Future<void> resetSubscriptionStatus() async {
-    try {
-      await _configRef.child('subscription_disabled').set(false);
-      debugPrint('✅ [GlobalConfig] Subscription durumu sıfırlandı');
-    } catch (e) {
-      debugPrint('❌ [GlobalConfig] Sıfırlama hatası: $e');
     }
   }
 } 
