@@ -85,6 +85,12 @@ class _SavedWordsScreenState extends State<SavedWordsScreen> with AutomaticKeepA
   }
   
   void _loadNativeAd() {
+    // 🚀 PREMIUM KONTROLÜ: Premium kullanıcılar için reklam yükleme.
+    if (_creditsService.isPremium || _creditsService.isLifetimeAdsFree) {
+      debugPrint('👑 [SavedWordsScreen] Premium/Reklamsız kullanıcı - Native reklam yüklenmeyecek.');
+      return;
+    }
+  
     _nativeAd = NativeAd(
       adUnitId: AdMobService.nativeAdUnitId,
       request: const AdRequest(),
@@ -637,7 +643,7 @@ class _SavedWordsScreenState extends State<SavedWordsScreen> with AutomaticKeepA
     }
     
     // Yer tutucu mantığı kaldırıldı, reklam sadece yüklüyse gösterilecek.
-    int totalAds = (_isAdLoaded && _nativeAd != null && _filteredWords.length >= 3) ? 1 : 0;
+    int totalAds = (_isAdLoaded && _nativeAd != null && _filteredWords.length >= 3 && !_creditsService.isPremium && !_creditsService.isLifetimeAdsFree) ? 1 : 0;
     const int adPosition = 3;
 
     return SliverPadding(

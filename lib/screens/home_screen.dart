@@ -115,6 +115,12 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
   }
 
   void _loadNativeAd() {
+    // 🚀 PREMIUM KONTROLÜ: Premium kullanıcılar için reklam yükleme.
+    if (_creditsService.isPremium || _creditsService.isLifetimeAdsFree) {
+      debugPrint('👑 [HomeScreen] Premium/Reklamsız kullanıcı - Native reklam yüklenmeyecek.');
+      return;
+    }
+  
     if (kIsWeb || (defaultTargetPlatform != TargetPlatform.android && defaultTargetPlatform != TargetPlatform.iOS)) {
       return;
     }
@@ -619,7 +625,7 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
     if (_isSearching) {
       if (_searchResults.isNotEmpty) {
         // Yer tutucu mantığı kaldırıldı, reklam sadece yüklüyse gösterilecek.
-        int totalAds = (_isAdLoaded && _nativeAd != null && _searchResults.length >= 3) ? 1 : 0;
+        int totalAds = (_isAdLoaded && _nativeAd != null && _searchResults.length >= 3 && !_creditsService.isPremium && !_creditsService.isLifetimeAdsFree) ? 1 : 0;
         const int adPosition = 3;
 
         slivers.add(

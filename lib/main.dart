@@ -65,193 +65,16 @@ class NoGlowScrollBehavior extends ScrollBehavior {
   }
 }
 
-Future<void> main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  
-  // Android sistem seviyesi log'larını filtrele
-  if (!kIsWeb && Platform.isAndroid) {
-    SystemChannels.platform.setMethodCallHandler(null);
-    // Gralloc4 ve Surface debug mesajlarını engelle
-    FlutterError.onError = (details) {
-      final message = details.toString();
-      // Gereksiz sistem log'larını filtrele
-      if (message.contains('gralloc4') || 
-          message.contains('Surface') || 
-          message.contains('FrameEvents') ||
-          message.contains('SMPTE 2094-40') ||
-          message.contains('lockHardwareCanvas') ||
-          message.contains('updateAcquireFence')) {
-        return; // Bu log'ları gösterme
-      }
-      // Diğer hataları normal şekilde göster
-      FlutterError.presentError(details);
-    };
-  }
-  
-  // 🚀 PERFORMANCE MOD: Engine optimizasyonları
-  if (!kIsWeb) {
-    // Frame scheduler'ı optimize et
-    SchedulerBinding.instance.scheduleWarmUpFrame();
-    
-    // Raster cache'i optimize et
-    SystemChannels.platform.invokeMethod('SystemChrome.setEnabledSystemUI',
-        SystemUiOverlay.values.map((e) => e.toString()).toList());
-    
-    // 🚀 SHADER WARM-UP: İlk açılış jank'ini önle
-    SchedulerBinding.instance.addPostFrameCallback((_) {
-      // Shader'ları önceden derle
-      final shaderWarmUp = Paint()
-        ..color = Colors.transparent
-        ..style = PaintingStyle.fill;
-      
-      // Çeşitli shader kombinasyonlarını tetikle
-      for (int i = 0; i < 3; i++) {
-        SchedulerBinding.instance.scheduleWarmUpFrame();
-      }
-      
-      debugPrint('🎨 Shader warm-up tamamlandı');
-    });
-  }
-  
-  // 🚀 PERFORMANCE MOD: Android yüksek FPS desteği (GELİŞTİRİLMİŞ)
-  if (!kIsWeb && Platform.isAndroid) {
-    try {
-      // Desteklenen tüm display mode'ları al
-      final modes = await FlutterDisplayMode.supported;
-      debugPrint('📱 Desteklenen tüm ekran modları:');
-      for (final mode in modes) {
-        debugPrint('   ${mode.width}x${mode.height} @ ${mode.refreshRate}Hz');
-      }
-      
-      // Mevcut aktif mode'u al
-      final activeMode = await FlutterDisplayMode.active;
-      debugPrint('📊 Mevcut aktif mod: ${activeMode?.width}x${activeMode?.height} @ ${activeMode?.refreshRate}Hz');
-      
-      // En yüksek refresh rate'i bul (çözünürlük de dikkate alınarak)
-      DisplayMode? bestMode;
-      double maxRefreshRate = 60.0;
-      
-      // Önce mevcut çözünürlükte en yüksek refresh rate'i ara
-      final currentWidth = activeMode?.width ?? 0;
-      final currentHeight = activeMode?.height ?? 0;
-      
-      for (final mode in modes) {
-        // Aynı çözünürlükte daha yüksek refresh rate
-        if (mode.width == currentWidth && 
-            mode.height == currentHeight && 
-            mode.refreshRate > maxRefreshRate) {
-          maxRefreshRate = mode.refreshRate;
-          bestMode = mode;
-        }
-      }
-      
-      // Eğer aynı çözünürlükte bulunamazsa, tüm modlardan en yükseği seç
-      if (bestMode == null) {
-        for (final mode in modes) {
-          if (mode.refreshRate > maxRefreshRate) {
-            maxRefreshRate = mode.refreshRate;
-            bestMode = mode;
-          }
-        }
-      }
-      
-      // Uygun olan en yüksek refresh rate'i ayarla
-      if (bestMode != null) {
-        // Önce high refresh rate'i etkinleştir
-        await FlutterDisplayMode.setHighRefreshRate();
-        
-        // Sonra spesifik modu ayarla
-        await FlutterDisplayMode.setPreferredMode(bestMode);
-        
-        // Ayarın başarılı olup olmadığını kontrol et
-        await Future.delayed(const Duration(milliseconds: 100));
-        final newActiveMode = await FlutterDisplayMode.active;
-        
-        if (newActiveMode?.refreshRate == bestMode.refreshRate) {
-          debugPrint('✅ YENİLEME HIZI BAŞARIYLA AYARLANDI!');
-          debugPrint('🚀 Aktif mod: ${newActiveMode?.width}x${newActiveMode?.height} @ ${newActiveMode?.refreshRate}Hz');
-        } else {
-          debugPrint('⚠️ Yenileme hızı ayarlanamadı, fallback deneniyor...');
-          // Fallback: setHighRefreshRate kullan
-          await FlutterDisplayMode.setHighRefreshRate();
-        }
-        
-        // Frame rate'e göre engine'i optimize et
-        final finalRefreshRate = newActiveMode?.refreshRate ?? bestMode.refreshRate;
-        if (finalRefreshRate >= 120) {
-          debugPrint('⚡ 120Hz mod aktif - Ultra performans');
-        } else if (finalRefreshRate >= 90) {
-          debugPrint('⚡ 90Hz mod aktif - Yüksek performans');
-        } else {
-          debugPrint('⚡ 60Hz mod aktif - Standart performans');
-        }
-      } else {
-        debugPrint('⚠️ Yüksek refresh rate bulunamadı, 60Hz kullanılıyor');
-      }
-    } catch (e) {
-      debugPrint('❌ Display mode ayarlanamadı: $e');
-      // Hata durumunda bile high refresh rate'i dene
-      try {
-        await FlutterDisplayMode.setHighRefreshRate();
-        debugPrint('🔄 Fallback: setHighRefreshRate kullanıldı');
-      } catch (fallbackError) {
-        debugPrint('❌ Fallback da başarısız: $fallbackError');
-      }
-    }
-  }
-  
-  // 🚀 PERFORMANCE MOD: iOS ProMotion optimizasyonu
-  if (!kIsWeb && Platform.isIOS) {
-    debugPrint('🍎 iOS ProMotion aktif - Sistem otomatik adaptasyonu');
-    // iOS ProMotion otomatik olarak 120Hz'e kadar çıkabilir
-    // Sistem power management'a göre dinamik olarak ayarlanır
-  }
-  
-  // 📱 STATUS BAR: Başlangıç için şeffaf ayar - tema değişikliği main screen'de yapılacak
-  if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
-    SystemChrome.setSystemUIOverlayStyle(
-      const SystemUiOverlayStyle(
-        // Başlangıç için şeffaf status bar
-        statusBarColor: Colors.transparent,
-        statusBarIconBrightness: Brightness.dark,
-        statusBarBrightness: Brightness.light, // iOS için
-        // System navigation bar şeffaf bırak
-        systemNavigationBarColor: Colors.transparent,
-        systemNavigationBarIconBrightness: Brightness.dark,
-      ),
-    );
-    debugPrint('✅ Status bar şeffaf olarak ayarlandı');
-  }
-  
-  // 🚀 PERFORMANCE MOD: Memory ve GC optimizasyonları
-  if (!kIsWeb) {
-    // Image cache optimizasyonu
-    ImageCacheManager.initialize();
-    
-    // Garbage collection'ı optimize et
-    SchedulerBinding.instance.addPostFrameCallback((_) {
-      // FPS counter devre dışı - gereksiz debug log'larını önlemek için
-      // PerformanceUtils.enableFPSCounter();
-      
-      // 🚀 PERFORMANCE MOD: Cihaz performansını tespit et
-      PerformanceUtils.detectDevicePerformance();
-    });
-  }
-  
+// 🚀 PERFORMANCE MOD: Kritik servisleri paralel olarak başlat
+Future<void> _initializeCriticalServices() async {
   try {
-    // Firebase'i başlat (zorunlu) - 10 saniye timeout ile
+    // Firebase'i diğerlerinden önce ve tek başına başlat.
+    // Uygulamanın çalışması için kritik öneme sahip.
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
-    ).timeout(
-      const Duration(seconds: 10),
-      onTimeout: () {
-        debugPrint('⏱️ Firebase başlatma zaman aşımı!');
-        throw TimeoutException('Firebase başlatma zaman aşımı');
-      },
-    );
+    ).timeout(const Duration(seconds: 8));
     debugPrint('✅ Firebase başarıyla başlatıldı');
 
-    // YEREL VERİTABANI SENKRONİZASYONU
     // Firebase başlatıldıktan SONRA senkronizasyonu dene.
     try {
       await SyncService().initializeLocalDatabase();
@@ -259,129 +82,197 @@ Future<void> main() async {
     } catch (e) {
       debugPrint('❌ Firebase sonrası yerel veritabanı senkronizasyonunda hata: $e');
     }
+
+    // Diğer kritik servisleri paralel olarak başlat
+    final otherCriticalFutures = [
+      GlobalConfigService().init().catchError((e) {
+        debugPrint('❌ GlobalConfigService başlatılamadı: $e');
+      }),
+      // Gelecekte eklenecek diğer kritik servisler buraya gelebilir.
+    ];
     
+    await Future.wait(otherCriticalFutures);
+    debugPrint('✅ Diğer kritik servisler başlatıldı.');
+
   } catch (e) {
-    debugPrint('❌ Firebase başlatma hatası: $e');
-    // Firebase olmadan devam et - offline modda çalışabilir
+    debugPrint('❌ Kritik bir servis başlatma hatası: $e');
+    // Firebase başlatılamazsa, uygulama düzgün çalışmayabilir.
+    // Bu durumu ele almak için ek mantık eklenebilir.
   }
-
-  // Global ayarları yükle
-  await GlobalConfigService().init();
-
-  // Diğer servisleri arka planda başlat
-  _initializeServicesInBackground();
-  
-  runApp(const KavaidApp());
 }
 
-// Servisleri arka planda başlat
-void _initializeServicesInBackground() {
-  // 🚀 FONT ÖN YÜKLEME: Uygulama başladıktan hemen sonra fontları arka planda belleğe al
-  Future.microtask(() {
-    _precacheFonts();
-  });
-
-  // Firebase Analytics'i ilk olarak başlat
-  Future.delayed(const Duration(milliseconds: 50), () async {
-    try {
-      await TurkceAnalyticsService.uygulamaBaslatildi();
-      debugPrint('✅ Türkçe Analytics Service başlatıldı');
-    } catch (e) {
-      debugPrint('❌ Türkçe Analytics Service başlatılamadı: $e');
+// 🚀 PERFORMANCE MOD: Cihaz performans modlarını ayarla (runApp'i engellemez)
+void _setupPerformanceModes() {
+  SchedulerBinding.instance.addPostFrameCallback((_) {
+    // Android yüksek FPS desteği
+    if (!kIsWeb && Platform.isAndroid) {
+      _enableAndroidHighPerformanceMode();
+    }
+    
+    // iOS ProMotion bilgisi
+    if (!kIsWeb && Platform.isIOS) {
+      debugPrint('🍎 iOS ProMotion aktif - Sistem otomatik adaptasyonu');
+    }
+    
+    // Memory ve GC optimizasyonları
+    if (!kIsWeb) {
+      ImageCacheManager.initialize();
+      PerformanceUtils.detectDevicePerformance();
     }
   });
+}
 
-  // Önce CreditsService'i başlat (premium kontrolü için)
-  Future.delayed(const Duration(milliseconds: 100), () async {
+// Android yüksek performans modunu etkinleştirme mantığı
+Future<void> _enableAndroidHighPerformanceMode() async {
+  try {
+    final modes = await FlutterDisplayMode.supported;
+    if (modes.isEmpty) {
+      debugPrint('⚠️ Cihazda desteklenen ekran modu bulunamadı.');
+      await FlutterDisplayMode.setHighRefreshRate();
+      return;
+    }
+
+    DisplayMode? bestMode;
+    double maxRefreshRate = 0.0;
+
+    // En yüksek refresh rate'e sahip modu bul
+    for (final mode in modes) {
+      if (mode.refreshRate > maxRefreshRate) {
+        maxRefreshRate = mode.refreshRate;
+        bestMode = mode;
+      }
+    }
+    
+    if (bestMode != null) {
+      await FlutterDisplayMode.setPreferredMode(bestMode);
+      debugPrint('🚀 En yüksek yenileme hızı ayarlandı: ${bestMode.refreshRate}Hz');
+    } else {
+      // Fallback
+      await FlutterDisplayMode.setHighRefreshRate();
+      debugPrint('🚀 Fallback: Yüksek yenileme hızı (setHighRefreshRate) ayarlandı.');
+    }
+  } catch (e) {
+    debugPrint('❌ Display mode ayarlanamadı: $e');
+    try {
+      await FlutterDisplayMode.setHighRefreshRate();
+      debugPrint('🔄 Fallback: setHighRefreshRate denendi.');
+    } catch (fallbackError) {
+      debugPrint('❌ Fallback da başarısız: $fallbackError');
+    }
+  }
+}
+
+
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // 🚀 ÖNCELİK 1: Uygulama motorunu ve temel UI ayarlarını hazırla
+  // Bu işlemler hızlı ve senkron olmalı
+  if (!kIsWeb) {
+    // Frame scheduler'ı ve shader'ları erken optimize et
+    SchedulerBinding.instance.scheduleWarmUpFrame();
+    
+    if (Platform.isAndroid) {
+      // Gralloc4 ve Surface debug mesajlarını engelle
+      SystemChannels.platform.setMethodCallHandler(null);
+      FlutterError.onError = (details) {
+        final message = details.toString();
+        if (message.contains('gralloc4') || message.contains('Surface') || message.contains('FrameEvents') ||
+            message.contains('SMPTE 2094-40') || message.contains('lockHardwareCanvas') || message.contains('updateAcquireFence')) {
+          return;
+        }
+        FlutterError.presentError(details);
+      };
+    }
+
+    // Status bar'ı başlangıçta şeffaf yap
+    SystemChrome.setSystemUIOverlayStyle(
+      const SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.dark,
+        statusBarBrightness: Brightness.light,
+        systemNavigationBarColor: Colors.transparent,
+        systemNavigationBarIconBrightness: Brightness.dark,
+      ),
+    );
+  }
+
+  // 🚀 ÖNCELİK 2: Kritik servisleri paralel olarak başlat (UI'ı engeller)
+  await _initializeCriticalServices();
+  
+  // 🚀 ÖNCELİK 3: Uygulamayı çalıştır! (UI gösterilir)
+  runApp(const KavaidApp());
+
+  // 🚀 ÖNCELİK 4: UI gösterildikten sonra yapılacaklar
+  // Bu işlemler runApp'i engellemez ve arka planda çalışır.
+  _initializeServicesInBackground();
+  _setupPerformanceModes();
+}
+
+
+// Servisleri arka planda başlat (yapay gecikmeler olmadan)
+void _initializeServicesInBackground() {
+  // Fontları önbelleğe al
+  Future.microtask(_precacheFonts);
+
+  // Analitik servisini başlat
+  TurkceAnalyticsService.uygulamaBaslatildi().catchError((e) {
+    debugPrint('❌ Türkçe Analytics Service başlatılamadı: $e');
+  });
+
+  // Diğer tüm servisleri zincirleme ve hataya dayanıklı şekilde başlat
+  _initializeChainOfServices();
+}
+
+// Birbirine bağlı veya sırayla başlaması gereken servisler için zincir
+Future<void> _initializeChainOfServices() async {
+  try {
+    // Önce CreditsService'i başlat (premium kontrolü için önemli)
     final creditsService = CreditsService();
     await creditsService.initialize();
     debugPrint('✅ CreditsService başlatıldı: ${creditsService.credits} hak, Premium: ${creditsService.isPremium}');
-    
-    // CreditsService başlatıldıktan sonra AdMob'u arka planda başlat (uygulamayı engellemez)
-    try {
-      // AdMob'u 15 saniye zaman aşımı ile başlat. Başarısız olursa veya zaman aşımına uğrarsa,
-      // uygulama reklamsız çalışmaya devam eder.
-      await AdMobService.initialize().timeout(
-        const Duration(seconds: 15),
-        onTimeout: () {
-          debugPrint('⏱️ AdMob başlatma zaman aşımı! Uygulama reklamsız devam edecek.');
-          // Hata fırlatmaya gerek yok, sadece logla ve devam et.
-        },
-      );
 
-      debugPrint('✅ AdMob başarıyla başlatıldı');
+    // AdMob'u CreditsService'den sonra başlat
+    // Premium ise reklamları hiç başlatma
+    if (!creditsService.isPremium && !creditsService.isLifetimeAdsFree) {
+      try {
+        await AdMobService.initialize().timeout(const Duration(seconds: 15));
+        debugPrint('✅ AdMob başarıyla başlatıldı');
 
-      // Test cihazı kimliğini ayarla (sadece debug modunda etkili olur)
-      RequestConfiguration configuration = RequestConfiguration(
-        testDeviceIds: ['bbffd4ef-bbec-48dd-9123-fac2b36aa283'],
-      );
-      await MobileAds.instance.updateRequestConfiguration(configuration);
-      
-      // Premium üye değilse reklamları önden yükle
-      if (!creditsService.isPremium && !creditsService.isLifetimeAdsFree) {
+        RequestConfiguration configuration = RequestConfiguration(
+          testDeviceIds: ['bbffd4ef-bbec-48dd-9123-fac2b36aa283'],
+        );
+        MobileAds.instance.updateRequestConfiguration(configuration);
+
         debugPrint('🚀 [MAIN] Interstitial reklam ön-yükleniyor...');
         AdMobService().loadInterstitialAd();
+      } catch (e) {
+        debugPrint('❌ AdMob başlatılırken bir hata oluştu (timeout veya başka bir sorun): $e');
       }
-    } catch (e) {
-      debugPrint('❌ AdMob başlatılırken bir hata oluştu: $e');
+    } else {
+      debugPrint('✨ Premium kullanıcı, AdMob başlatılmadı.');
     }
-  });
+  } catch (e) {
+    debugPrint('❌ CreditsService başlatılamadı: $e');
+  }
 
-  // SavedWordsService'i arka planda başlat
-  Future.delayed(const Duration(milliseconds: 200), () async {
-    final savedWordsService = SavedWordsService();
-    await savedWordsService.initialize();
-    debugPrint('✅ SavedWordsService başlatıldı: ${savedWordsService.savedWordsCount} kelime yüklendi');
-  });
+  // Diğer servisler paralel olarak başlayabilir
+  final otherServices = [
+    SavedWordsService().initialize().then((_) => debugPrint('✅ SavedWordsService başlatıldı')),
+    OneTimePurchaseService().initialize().then((_) => debugPrint('✅ OneTimePurchaseService başlatıldı')),
+    AppUsageService().startSession().then((_) => debugPrint('✅ AppUsageService başlatıldı')),
+    TTSService().initialize().then((_) => debugPrint('✅ TTSService başlatıldı')),
+    GeminiService.createFirebaseConfig()
+        .then((_) => GeminiService.testApiConnection())
+        .then((_) => debugPrint('✅ GeminiService başlatıldı ve test edildi')),
+    ReviewService().initialize().then((_) => debugPrint('✅ ReviewService başlatıldı')),
+  ];
 
-  // OneTimePurchaseService'i arka planda başlat
-  Future.delayed(const Duration(milliseconds: 300), () async {
-    final oneTimePurchaseService = OneTimePurchaseService();
-    await oneTimePurchaseService.initialize();
-    debugPrint('✅ OneTimePurchaseService başlatıldı - Store: ${oneTimePurchaseService.isAvailable}');
-  });
-  
-  // AppUsageService'i arka planda başlat
-  Future.delayed(const Duration(milliseconds: 400), () async {
-    final appUsageService = AppUsageService();
-    await appUsageService.startSession();
-    debugPrint('✅ AppUsageService başlatıldı');
-  });
-  
-  // TTS Service'i arka planda başlat
-  Future.delayed(const Duration(milliseconds: 450), () async {
-    final ttsService = TTSService();
-    await ttsService.initialize();
-    debugPrint('✅ TTSService başlatıldı');
-  });
-  
-  // GlobalConfigService'i arka planda başlat
-  Future.delayed(const Duration(milliseconds: 500), () async {
-    final globalConfigService = GlobalConfigService();
-    debugPrint('✅ GlobalConfigService başlatıldı - Subscription disabled: ${globalConfigService.subscriptionDisabled}');
-  });
-  
-  // GeminiService Firebase config oluştur ve test et
-  Future.delayed(const Duration(milliseconds: 600), () async {
-    try {
-      // Firebase config'ini oluştur (varsa dokunmaz)
-      await GeminiService.createFirebaseConfig();
-      debugPrint('✅ GeminiService Firebase config kontrol edildi');
-      
-      // API bağlantısını test et
-      await GeminiService.testApiConnection();
-      debugPrint('✅ GeminiService API testi tamamlandı');
-    } catch (e) {
-      debugPrint('❌ GeminiService hatası: $e');
-    }
-  });
-
-  // Değerlendirme servisini başlat
-  Future.delayed(const Duration(milliseconds: 700), () async {
-    final reviewService = ReviewService();
-    await reviewService.initialize();
-    debugPrint('✅ ReviewService başlatıldı');
-  });
+  // Hataları yakala ama akışı durdurma
+  Future.wait(otherServices.map((future) => future.catchError((e) {
+    debugPrint('❌ Arka plan servisi başlatma hatası: $e');
+    return null; // Hatalı future'ı null ile tamamla
+  })));
 }
 
 class KavaidApp extends StatefulWidget {
