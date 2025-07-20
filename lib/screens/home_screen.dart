@@ -326,9 +326,11 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
       await TurkceAnalyticsService.kelimeArandiAI(query, aiResult.bulunduMu);
       
       if (aiResult.bulunduMu) {
-        // AI sonucunu Firebase'e kaydetmek yerine SyncService'e gönder
-        await _syncService.handleAiFoundWord(aiResult);
+        // Eğer kelime yeni ise SyncService'e gönder
+        // GeminiService zaten duplikasyon kontrolü yaptı ve gerekirse pending tablosuna ekledi
+        // Bu yüzden burada tekrar handleAiFoundWord çağırmaya gerek yok
         
+        // Sadece UI'yı güncelle
         setState(() {
           _searchResults = [aiResult];
           _isLoading = false;

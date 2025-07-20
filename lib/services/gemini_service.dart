@@ -607,13 +607,26 @@ emirForm (string): Emir, 2. tekil eril, harekeli.
             
             if (existingWord != null) {
               debugPrint('⚠️ Kelime zaten mevcut, mevcut kelime döndürülüyor: $harekeliKelime');
-              return existingWord; // Mevcut kelimeyi döndür, yeni kaydet yapma
+              // Mevcut kelimeyi döndür ama isNewWord = false olarak işaretle
+              return WordModel(
+                kelime: existingWord.kelime,
+                harekeliKelime: existingWord.harekeliKelime,
+                anlam: existingWord.anlam,
+                koku: existingWord.koku,
+                dilbilgiselOzellikler: existingWord.dilbilgiselOzellikler,
+                fiilCekimler: existingWord.fiilCekimler,
+                ornekCumleler: existingWord.ornekCumleler,
+                eklenmeTarihi: existingWord.eklenmeTarihi,
+                bulunduMu: true,
+                // isNewWord: false, // Bu mevcut kelime
+              );
             } else {
               debugPrint('✅ Kelime yeni, local pending tablosuna kaydediliyor: $harekeliKelime');
               // WordModel oluştur ve local'e kaydet
               final newWordModel = WordModel.fromJson(wordData);
               await databaseService.addPendingAiWord(newWordModel);
               debugPrint('✅ Kelime pending_ai_words tablosuna eklendi: $harekeliKelime');
+              // Bu yeni kelime olduğunu belirtmek için return wordModel kullan
             }
           }
           
