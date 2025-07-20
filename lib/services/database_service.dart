@@ -1,6 +1,7 @@
 // kavaid/lib/services/database_service.dart
 
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import '../models/word_model.dart';
@@ -212,17 +213,52 @@ CREATE TABLE IF NOT EXISTS pending_ai_words (
 
   Future<WordModel?> getWordByHarekeliKelime(String harekeliKelime) async {
     final db = await instance.database;
-    final List<Map<String, dynamic>> maps = await db.rawQuery('''
-      SELECT * FROM words WHERE harekeliKelime = ?
-      UNION
-      SELECT * FROM pending_ai_words WHERE harekeliKelime = ?
-      LIMIT 1
-    ''', [harekeliKelime, harekeliKelime]);
-
+    final maps = await db.query(
+      'words',
+      where: 'harekeliKelime = ?',
+      whereArgs: [harekeliKelime],
+    );
+    
     if (maps.isNotEmpty) {
       return _dbMapToWord(maps.first);
     }
     return null;
+  }
+
+  // AI kelime arama öncesi tekrar kontrolü - harekeli Arapça ile
+  Future<bool> isWordExistsByHarekeliArabic(String harekeliKelime) async {
+    if (harekeliKelime.isEmpty) return false;
+    
+    final db = await instance.database;
+    
+    // Hem ana tabloda hem de pending AI words tablosunda kontrol et
+    final mainTableResult = await db.query(
+      'words',
+      where: 'harekeliKelime = ? COLLATE NOCASE',
+      whereArgs: [harekeliKelime],
+      limit: 1,
+    );
+    
+    if (mainTableResult.isNotEmpty) {
+      debugPrint('✅ Kelime ana tabloda bulundu: $harekeliKelime');
+      return true;
+    }
+    
+    // Pending AI words tablosunda da kontrol et
+    final pendingTableResult = await db.query(
+      'pending_ai_words',
+      where: 'harekeliKelime = ? COLLATE NOCASE',
+      whereArgs: [harekeliKelime],
+      limit: 1,
+    );
+    
+    if (pendingTableResult.isNotEmpty) {
+      debugPrint('✅ Kelime pending AI tablosunda bulundu: $harekeliKelime');
+      return true;
+    }
+    
+    debugPrint('❌ Kelime hiçbir tabloda bulunamadı: $harekeliKelime');
+    return false;
   }
 
   Future close() async {

@@ -107,10 +107,9 @@ Future<void> _initializeCriticalServices() async {
     // Tüm kritik servisleri paralel bekle ama timeout ile
     await Future.wait(criticalFutures).timeout(
       const Duration(seconds: 3),
-      onTimeout: () {
-        debugPrint('⚠️ Kritik servisler timeout - uygulama devam ediyor');
-      },
-    );
+    ).catchError((e) {
+      debugPrint('⚠️ Kritik servisler timeout/error - uygulama devam ediyor: $e');
+    });
     debugPrint('✅ Kritik servisler hızlı başlatıldı');
 
   } catch (e) {

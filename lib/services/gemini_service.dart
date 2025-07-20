@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import 'package:firebase_database/firebase_database.dart';
 import '../models/word_model.dart';
 import 'firebase_service.dart';
+import 'database_service.dart';
 import 'dart:math' as math;
 
 class GeminiService {
@@ -595,9 +596,24 @@ emirForm (string): Emir, 2. tekil eril, harekeli.
           final wordData = json.decode(cleanedJson);
           final wordModel = WordModel.fromJson(wordData);
           
-          // Eğer kelime bulunduysa Firebase'e kaydet
+          // Eğer kelime bulunduysa önce tekrar kontrolü yap, sonra local'e kaydet
           if (wordData['bulunduMu'] == true && wordData['kelimeBilgisi'] != null) {
-            await _saveToFirebase(wordData['kelimeBilgisi']);
+            final kelimeBilgisi = wordData['kelimeBilgisi'] as Map<String, dynamic>;
+            final harekeliKelime = kelimeBilgisi['harekeliKelime'] ?? kelimeBilgisi['kelime'] ?? '';
+            
+            // Harekeli Arapça hali ile veritabanında kontrol et
+            final databaseService = DatabaseService();
+            final alreadyExists = await databaseService.isWordExistsByHarekeliArabic(harekeliKelime);
+            
+            if (alreadyExists) {
+              debugPrint('⚠️ Kelime zaten mevcut, kayıt atlanıyor: $harekeliKelime');
+            } else {
+              debugPrint('✅ Kelime yeni, local pending tablosuna kaydediliyor: $harekeliKelime');
+              // WordModel oluştur ve local'e kaydet
+              final newWordModel = WordModel.fromJson(wordData);
+              await databaseService.addPendingAiWord(newWordModel);
+              debugPrint('✅ Kelime pending_ai_words tablosuna eklendi: $harekeliKelime');
+            }
           }
           
           return wordModel;
