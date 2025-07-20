@@ -596,17 +596,18 @@ emirForm (string): Emir, 2. tekil eril, harekeli.
           final wordData = json.decode(cleanedJson);
           final wordModel = WordModel.fromJson(wordData);
           
-          // Eğer kelime bulunduysa önce tekrar kontrolü yap, sonra local'e kaydet
+          // Eğer kelime bulunduysa önce tekrar kontrolü yap
           if (wordData['bulunduMu'] == true && wordData['kelimeBilgisi'] != null) {
             final kelimeBilgisi = wordData['kelimeBilgisi'] as Map<String, dynamic>;
             final harekeliKelime = kelimeBilgisi['harekeliKelime'] ?? kelimeBilgisi['kelime'] ?? '';
             
             // Harekeli Arapça hali ile veritabanında kontrol et
-            final databaseService = DatabaseService();
-            final alreadyExists = await databaseService.isWordExistsByHarekeliArabic(harekeliKelime);
+            final databaseService = DatabaseService.instance;
+            final existingWord = await databaseService.getWordByHarekeliKelime(harekeliKelime);
             
-            if (alreadyExists) {
-              debugPrint('⚠️ Kelime zaten mevcut, kayıt atlanıyor: $harekeliKelime');
+            if (existingWord != null) {
+              debugPrint('⚠️ Kelime zaten mevcut, mevcut kelime döndürülüyor: $harekeliKelime');
+              return existingWord; // Mevcut kelimeyi döndür, yeni kaydet yapma
             } else {
               debugPrint('✅ Kelime yeni, local pending tablosuna kaydediliyor: $harekeliKelime');
               // WordModel oluştur ve local'e kaydet
