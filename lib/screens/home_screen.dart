@@ -152,7 +152,7 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
   void _onSearchChanged() {
     // Debounce timer kaldırıldı - harf girildiği anda direkt arama yapılıyor
     if (_searchController.text.isNotEmpty) {
-      _performSearch(_searchController.text);
+      _performSearch(_searchController.text.trim());
     } else {
       setState(() {
         _searchResults = [];
@@ -273,10 +273,15 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
     try {
       debugPrint('🔍 AI ile arama başlatılıyor: $query');
       
-      // Önce Firebase'de var mı kontrol et
-      final existingWord = await _firebaseService.getWordByName(query);
+      // 1. Yerel veritabanında tam eşleşme (harekeli) var mı kontrol et
+      debugPrint('📦 AI araması öncesi yerel DB kontrol ediliyor: "$query"');
+      final existingWord = await _dbService.getWordByHarekeliKelime(query);
       if (existingWord != null) {
-        debugPrint('📦 Kelime zaten veritabanında mevcut, AI çağrısı yapılmadı: ${existingWord.kelime}');
+        debugPrint('✅ Kelime yerel veritabanında bulundu, AI çağrısı yapılmadı: ${existingWord.kelime}');
+        
+        // Analytics event'i gönder (AI araması olarak sayılır ama cache'den)
+        await TurkceAnalyticsService.kelimeArandiAI(query, true, fromCache: true);
+
         setState(() {
           _searchResults = [existingWord];
           _isLoading = false;

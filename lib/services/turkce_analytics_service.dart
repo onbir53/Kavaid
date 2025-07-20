@@ -59,17 +59,20 @@ class TurkceAnalyticsService {
   }
   
   /// AI ile kelime arama
-  static Future<void> kelimeArandiAI(String kelime, bool bulundu) async {
+  static Future<void> kelimeArandiAI(String kelime, bool bulundu, {bool fromCache = false}) async {
     try {
+      final parameters = {
+        'kelime': kelime,
+        'bulundu': bulundu ? 'evet' : 'hayir',
+        'kelime_uzunluk': kelime.length,
+        'from_cache': fromCache ? 'evet' : 'hayir',
+      };
+
       await _analytics.logEvent(
         name: 'ai_kelime_arama',
-        parameters: {
-          'kelime': kelime,
-          'bulundu': bulundu ? 'evet' : 'hayir',
-          'kelime_uzunluk': kelime.length,
-        },
+        parameters: parameters,
       );
-      debugPrint('📊 [Analytics] AI kelime arama: $kelime (${bulundu ? 'bulundu' : 'bulunamadı'})');
+      debugPrint('📊 [Analytics] AI kelime arama: $kelime (${bulundu ? 'bulundu' : 'bulunamadı'}, fromCache: $fromCache)');
     } catch (e) {
       debugPrint('❌ [Analytics] AI arama hatası: $e');
     }

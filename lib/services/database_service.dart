@@ -193,6 +193,21 @@ CREATE TABLE IF NOT EXISTS pending_ai_words (
     return null;
   }
 
+  Future<WordModel?> getWordByHarekeliKelime(String harekeliKelime) async {
+    final db = await instance.database;
+    final List<Map<String, dynamic>> maps = await db.rawQuery('''
+      SELECT * FROM words WHERE harekeliKelime = ?
+      UNION
+      SELECT * FROM pending_ai_words WHERE harekeliKelime = ?
+      LIMIT 1
+    ''', [harekeliKelime, harekeliKelime]);
+
+    if (maps.isNotEmpty) {
+      return _dbMapToWord(maps.first);
+    }
+    return null;
+  }
+
   Future close() async {
     final db = await instance.database;
     db.close();
