@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
@@ -515,12 +516,19 @@ emirForm (string): Emir, 2. tekil eril, harekeli.
       final thinkingConfig = (requestBody['generationConfig'] as Map)['thinkingConfig'] as Map?;
       debugPrint('🔧 Thinking Budget: ${thinkingConfig?['thinkingBudget']}');
       
+      // Timeout ile HTTP isteği - donmayı önlemek için
       final response = await http.post(
         url,
         headers: {
           'Content-Type': 'application/json',
         },
         body: json.encode(requestBody),
+      ).timeout(
+        const Duration(seconds: 7), // 7 saniye timeout
+        onTimeout: () {
+          debugPrint('⏰ AI arama zaman aşımına uğradı (7 saniye)');
+          throw TimeoutException('AI kelime araması zaman aşımına uğradı', const Duration(seconds: 7));
+        },
       );
 
       debugPrint('📥 HTTP yanıt alındı - Status: ${response.statusCode}');

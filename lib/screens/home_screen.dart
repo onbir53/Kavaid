@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:isolate';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
@@ -23,6 +24,16 @@ import 'package:kavaid/services/review_service.dart';
 import 'package:kavaid/services/turkce_analytics_service.dart';
 import 'package:kavaid/services/sync_service.dart';
 
+// Arka planda arama sonuçlarını sıralama fonksiyonu
+List<WordModel> _sortSearchResults(Map<String, dynamic> params) {
+  final List<WordModel> results = params['results'] as List<WordModel>;
+  final String query = params['query'] as String;
+  
+  // Skorlama ve sıralama işlemini arka planda yap
+  results.sort((a, b) => b.searchScore(query).compareTo(a.searchScore(query)));
+  
+  return results;
+}
 
 class HomeScreen extends StatefulWidget {
   final double bottomPadding;
@@ -62,6 +73,8 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
   bool _showNotFound = false;
   bool _showArabicKeyboard = false;
   StreamSubscription<List<WordModel>>? _searchSubscription;
+  Timer? _debounceTimer;
+  bool _isSearchInProgress = false;
 
   NativeAd? _nativeAd;
   bool _isAdLoaded = false;
@@ -105,6 +118,7 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
     _searchController.dispose();
     _searchFocusNode.dispose();
     _searchSubscription?.cancel();
+    _debounceTimer?.cancel();
     _nativeAd?.dispose();
     super.dispose();
   }
@@ -150,66 +164,79 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
   }
 
   void _onSearchChanged() {
-    // Debounce timer kaldırıldı - harf girildiği anda direkt arama yapılıyor
-    if (_searchController.text.isNotEmpty) {
-      _performSearch(_searchController.text.trim());
-    } else {
+    // Debouncing kaldırıldı - anlık arama
+    if (_searchController.text.isEmpty) {
       setState(() {
         _searchResults = [];
         _selectedWord = null;
         _isSearching = false;
         _showAIButton = false;
         _showNotFound = false;
+        _isSearchInProgress = false;
       });
+      return;
+    }
+    
+    // Anlık arama yap
+    if (!_isSearchInProgress) {
+      _performSearch(_searchController.text.trim());
     }
   }
 
   Future<void> _performSearch(String query) async {
     if (query.trim().isEmpty) return;
     
+    // Eğer zaten bir arama devam ediyorsa, iptal et
+    if (_isSearchInProgress) {
+      debugPrint('⏸️ Önceki arama devam ediyor, yeni arama iptal edildi');
+      return;
+    }
+    
     setState(() {
+      _isSearchInProgress = true;
       _isSearching = true;
       _isLoading = true;
-      _showAIButton = true; // Her arama sonrası AI butonunu göster
-      _showNotFound = false; // "Sonuç bulunamadı" yazısını gösterme
+      _showAIButton = true;
+      _showNotFound = false;
     });
 
     try {
-      debugPrint('🔍 Yerel arama başlatıldı: "$query"');
+      debugPrint('🔍 Optimize edilmiş yerel arama başlatıldı: "$query"');
 
-      // 1. Tüm kelimeleri lokal veritabanından çek
-      final allLocalWords = await _dbService.getAllWords();
-      debugPrint('📚 Yerel veritabanından ${allLocalWords.length} kelime yüklendi.');
+      // Optimize edilmiş arama: Veritabanı seviyesinde filtreleme
+      final results = await _dbService.searchWords(query, limit: 50);
+      debugPrint('🔎 Veritabanından ${results.length} sonuç bulundu.');
 
-
-      // 2. Sonuçları uygulama içinde filtrele ve sırala (Eski Firebase mantığı gibi)
-      final List<WordModel> results = allLocalWords
-          .where((word) => word.searchScore(query) > 0.0)
-          .toList();
-      
-      debugPrint('🔎 Filtreleme sonrası ${results.length} sonuç bulundu.');
-
-
-      results.sort((a, b) => b.searchScore(query).compareTo(a.searchScore(query)));
+      // Arka planda skorlama ve sıralama (compute ile)
+      final sortedResults = await compute(_sortSearchResults, {
+        'results': results,
+        'query': query,
+      });
       
       // Analytics event'i gönder
-      await TurkceAnalyticsService.kelimeArandiNormal(query, results.length);
+      await TurkceAnalyticsService.kelimeArandiNormal(query, sortedResults.length);
       
-      setState(() {
-        _searchResults = results; // Filtrelenmiş ve sıralanmış sonuçları göster
-        _isLoading = false;
-        _selectedWord = null;
-        _showAIButton = true; 
-        _showNotFound = false; 
-      });
+      if (mounted) {
+        setState(() {
+          _searchResults = sortedResults;
+          _isLoading = false;
+          _selectedWord = null;
+          _showAIButton = true;
+          _showNotFound = false;
+          _isSearchInProgress = false;
+        });
+      }
     } catch (e) {
       debugPrint('Yerel Arama hatası: $e');
-      setState(() {
-        _searchResults = [];
-        _isLoading = false;
-        _showAIButton = true; // Hata durumunda da AI butonunu göster
-        _showNotFound = false;
-      });
+      if (mounted) {
+        setState(() {
+          _searchResults = [];
+          _isLoading = false;
+          _showAIButton = true;
+          _showNotFound = false;
+          _isSearchInProgress = false;
+        });
+      }
     }
   }
 

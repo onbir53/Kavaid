@@ -39,6 +39,14 @@ CREATE TABLE IF NOT EXISTS words (
 CREATE TABLE IF NOT EXISTS pending_ai_words ( 
   kelime ${idType}, harekeliKelime ${textType}, anlam ${textType}, koku ${textType}, dilbilgiselOzellikler ${textType}, ornekCumleler ${textType}, fiilCekimler ${textType}, eklenmeTarihi ${intType}
 )''');
+    
+    // ANR önleme için performans indeksleri
+    await db.execute('CREATE INDEX IF NOT EXISTS idx_words_kelime ON words(kelime COLLATE NOCASE)');
+    await db.execute('CREATE INDEX IF NOT EXISTS idx_words_harekeli ON words(harekeliKelime COLLATE NOCASE)');
+    await db.execute('CREATE INDEX IF NOT EXISTS idx_words_anlam ON words(anlam COLLATE NOCASE)');
+    await db.execute('CREATE INDEX IF NOT EXISTS idx_pending_kelime ON pending_ai_words(kelime COLLATE NOCASE)');
+    await db.execute('CREATE INDEX IF NOT EXISTS idx_pending_harekeli ON pending_ai_words(harekeliKelime COLLATE NOCASE)');
+    await db.execute('CREATE INDEX IF NOT EXISTS idx_pending_anlam ON pending_ai_words(anlam COLLATE NOCASE)');
   }
 
   Map<String, dynamic> _wordToDbMap(WordModel word) {
@@ -108,6 +116,7 @@ CREATE TABLE IF NOT EXISTS pending_ai_words (
         turkishContainsAfterCommaSpace
     ];
 
+    // Optimize edilmiş SQL sorgusu - indexli arama
     final List<Map<String, dynamic>> maps = await db.rawQuery('''
       SELECT * FROM (
           SELECT * FROM words
@@ -115,13 +124,21 @@ CREATE TABLE IF NOT EXISTS pending_ai_words (
           SELECT * FROM pending_ai_words
       )
       WHERE
-         kelime LIKE ?
-         OR harekeliKelime LIKE ?
+         kelime LIKE ? COLLATE NOCASE
+         OR harekeliKelime LIKE ? COLLATE NOCASE
          OR LOWER(anlam) LIKE ?
          OR LOWER(anlam) LIKE ?
          OR LOWER(anlam) LIKE ?
+      ORDER BY 
+        CASE 
+          WHEN kelime = ? THEN 1
+          WHEN harekeliKelime = ? THEN 2
+          WHEN kelime LIKE ? THEN 3
+          WHEN harekeliKelime LIKE ? THEN 4
+          ELSE 5
+        END
       LIMIT ? OFFSET ?
-    ''', [...params, limit, offset]);
+    ''', [...params, query, query, arabicStartsWith, arabicStartsWith, limit, offset]);
 
     return maps.map((json) => _dbMapToWord(json)).toList();
   }
