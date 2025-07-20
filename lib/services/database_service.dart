@@ -98,7 +98,7 @@ CREATE TABLE IF NOT EXISTS pending_ai_words (
     return Sqflite.firstIntValue(result) ?? 0;
   }
 
-  Future<List<WordModel>> searchWords(String query, {int limit = 50, int offset = 0}) async {
+  Future<List<WordModel>> searchWords(String query) async {
     final db = await instance.database;
     if (query.isEmpty) return [];
 
@@ -117,7 +117,7 @@ CREATE TABLE IF NOT EXISTS pending_ai_words (
         turkishContainsAfterCommaSpace
     ];
 
-    // Optimize edilmiş SQL sorgusu - indexli arama
+    // Optimize edilmiş SQL sorgusu - indexli arama (sınırsız)
     final List<Map<String, dynamic>> maps = await db.rawQuery('''
       SELECT * FROM (
           SELECT * FROM words
@@ -138,8 +138,7 @@ CREATE TABLE IF NOT EXISTS pending_ai_words (
           WHEN harekeliKelime LIKE ? THEN 4
           ELSE 5
         END
-      LIMIT ? OFFSET ?
-    ''', [...params, query, query, arabicStartsWith, arabicStartsWith, limit, offset]);
+    ''', [...params, query, query, arabicStartsWith, arabicStartsWith]);
 
     return maps.map((json) => _dbMapToWord(json)).toList();
   }
