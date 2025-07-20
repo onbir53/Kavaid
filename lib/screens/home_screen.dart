@@ -204,8 +204,8 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
     try {
       debugPrint('🔍 Optimize edilmiş yerel arama başlatıldı: "$query"');
 
-      // Optimize edilmiş arama: Veritabanı seviyesinde filtreleme
-      final results = await _dbService.searchWords(query, limit: 50);
+      // Optimize edilmiş arama: Veritabanı seviyesinde filtreleme (sınırsız)
+      final results = await _dbService.searchWords(query);
       debugPrint('🔎 Veritabanından ${results.length} sonuç bulundu.');
 
       // Arka planda skorlama ve sıralama (compute ile)

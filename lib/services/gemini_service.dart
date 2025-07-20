@@ -7,6 +7,8 @@ import '../models/word_model.dart';
 import 'firebase_service.dart';
 import 'database_service.dart';
 import 'dart:math' as math;
+import 'package:kavaid/services/sync_service.dart';
+import 'package:kavaid/services/global_config_service.dart';
 
 class GeminiService {
   static const String _defaultApiKey = 'AIzaSyCbAR_1yQ2QVKbpyWRFj0VpOxAQZ2JBfas';
@@ -626,6 +628,10 @@ emirForm (string): Emir, 2. tekil eril, harekeli.
               final newWordModel = WordModel.fromJson(wordData);
               await databaseService.addPendingAiWord(newWordModel);
               debugPrint('✅ Kelime pending_ai_words tablosuna eklendi: $harekeliKelime');
+              
+              // Eşik kontrolü yap ve gerekirse Firebase senkronizasyonu tetikle
+              await _checkAndTriggerSync(databaseService);
+              
               // Bu yeni kelime olduğunu belirtmek için return wordModel kullan
             }
           }
@@ -702,6 +708,25 @@ emirForm (string): Emir, 2. tekil eril, harekeli.
 
   String _buildPrompt(String word) {
     return _defaultPrompt.replaceAll('{KELIME}', word);
+  }
+
+  // Eşik kontrolü ve Firebase senkronizasyonu tetikleme
+  Future<void> _checkAndTriggerSync(DatabaseService databaseService) async {
+    try {
+      final pendingCount = await databaseService.getPendingAiWordsCount();
+      final configService = GlobalConfigService();
+      final threshold = configService.aiBatchSyncThreshold;
+      
+      debugPrint('🔄 Bekleyen AI kelime sayısı: $pendingCount, Eşik: $threshold');
+      
+      if (pendingCount >= threshold) {
+        debugPrint('🔥 AI kelime eşiği aşıldı. Firebase ile senkronizasyon tetikleniyor...');
+        final syncService = SyncService();
+        syncService.synchronizeWithFirebase(); // Background'da çalıştır
+      }
+    } catch (e) {
+      debugPrint('❌ Eşik kontrolü sırasında hata: $e');
+    }
   }
 
   String _cleanJsonResponse(String response) {
