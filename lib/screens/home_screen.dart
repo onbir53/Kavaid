@@ -92,19 +92,20 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _searchController.addListener(_onSearchChanged);
-    _loadNativeAd();
-    _adMobService.loadInterstitialAd(); // Birleştirilmiş yükleme metodunu çağır
     
-    // Uygulama açılınca 0.5 saniye bekle sonra focus yap
+    // Reklam yüklemelerini arka planda yap - ana thread'i bloke etme
+    Future.microtask(() {
+      _loadNativeAd();
+      _adMobService.loadInterstitialAd();
+    });
+    
+    // Klavye focus'unu optimize et - daha hızlı açılış
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      Future.delayed(const Duration(milliseconds: 500), () {
+      Future.delayed(const Duration(milliseconds: 200), () { // 500'den 200'e düşürüldü
         if (mounted) {
-          // Önce tüm focusları temizle
-          FocusScope.of(context).unfocus();
-          
-          // Hemen sonra focus ver
+          // Focus işlemini optimize et
           _searchFocusNode.requestFocus();
-          debugPrint('🎯 0.5 saniye sonra klavye açıldı');
+          debugPrint('🎯 Klavye hızlı açıldı (200ms)');
         }
       });
     });

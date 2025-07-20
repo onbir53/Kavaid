@@ -65,39 +65,57 @@ class NoGlowScrollBehavior extends ScrollBehavior {
   }
 }
 
-// 🚀 PERFORMANCE MOD: Kritik servisleri paralel olarak başlat
+// 🚀 PERFORMANCE MOD: Kritik servisleri hızlı ve ANR-free başlat
 Future<void> _initializeCriticalServices() async {
   try {
-    // Firebase'i diğerlerinden önce ve tek başına başlat.
-    // Uygulamanın çalışması için kritik öneme sahip.
+    // Firebase'i hızlı timeout ile başlat
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
-    ).timeout(const Duration(seconds: 8));
-    debugPrint('✅ Firebase başarıyla başlatıldı');
+    ).timeout(const Duration(seconds: 3)); // 8'den 3'e düşürüldü
+    debugPrint('✅ Firebase hızlı başlatıldı');
 
-    // Firebase başlatıldıktan SONRA senkronizasyonu dene.
-    try {
-      await SyncService().initializeLocalDatabase();
-      debugPrint('✅ Yerel veritabanı senkronizasyon kontrolü tamamlandı.');
-    } catch (e) {
-      debugPrint('❌ Firebase sonrası yerel veritabanı senkronizasyonunda hata: $e');
-    }
-
-    // Diğer kritik servisleri paralel olarak başlat
-    final otherCriticalFutures = [
-      GlobalConfigService().init().catchError((e) {
+    // Kritik servisleri paralel başlat - hiçbiri ana thread'i bloke etmesin
+    final criticalFutures = [
+      // GlobalConfig hızlı başlat
+      GlobalConfigService().init().timeout(
+        const Duration(seconds: 2),
+        onTimeout: () {
+          debugPrint('⚠️ GlobalConfigService timeout - varsayılan değerlerle devam');
+          return null;
+        },
+      ).catchError((e) {
         debugPrint('❌ GlobalConfigService başlatılamadı: $e');
       }),
-      // Gelecekte eklenecek diğer kritik servisler buraya gelebilir.
+      
+      // Veritabanı senkronizasyonunu arka planda başlat
+      Future.microtask(() async {
+        try {
+          await SyncService().initializeLocalDatabase().timeout(
+            const Duration(seconds: 2),
+            onTimeout: () {
+              debugPrint('⚠️ DB sync timeout - arka planda devam edecek');
+              return null;
+            },
+          );
+          debugPrint('✅ Yerel veritabanı hızlı senkronize edildi');
+        } catch (e) {
+          debugPrint('❌ DB sync hatası (arka planda devam): $e');
+        }
+      }),
     ];
     
-    await Future.wait(otherCriticalFutures);
-    debugPrint('✅ Diğer kritik servisler başlatıldı.');
+    // Tüm kritik servisleri paralel bekle ama timeout ile
+    await Future.wait(criticalFutures).timeout(
+      const Duration(seconds: 3),
+      onTimeout: () {
+        debugPrint('⚠️ Kritik servisler timeout - uygulama devam ediyor');
+      },
+    );
+    debugPrint('✅ Kritik servisler hızlı başlatıldı');
 
   } catch (e) {
-    debugPrint('❌ Kritik bir servis başlatma hatası: $e');
-    // Firebase başlatılamazsa, uygulama düzgün çalışmayabilir.
-    // Bu durumu ele almak için ek mantık eklenebilir.
+    debugPrint('❌ Kritik servis hatası (uygulama devam ediyor): $e');
+    // Hata durumunda da uygulama çalışmaya devam etsin
   }
 }
 
@@ -210,69 +228,127 @@ Future<void> main() async {
 }
 
 
-// Servisleri arka planda başlat (yapay gecikmeler olmadan)
+// Servisleri arka planda hızlı ve ANR-free başlat
 void _initializeServicesInBackground() {
-  // Fontları önbelleğe al
-  Future.microtask(_precacheFonts);
-
-  // Analitik servisini başlat
-  TurkceAnalyticsService.uygulamaBaslatildi().catchError((e) {
-    debugPrint('❌ Türkçe Analytics Service başlatılamadı: $e');
+  // Fontları asenkron önbelleğe al - ana thread'i bloke etme
+  Future.microtask(() async {
+    try {
+      await Future.delayed(const Duration(milliseconds: 100)); // UI'ın yerleşmesini bekle
+      _precacheFonts();
+    } catch (e) {
+      debugPrint('❌ Font önbellekleme hatası: $e');
+    }
   });
 
-  // Diğer tüm servisleri zincirleme ve hataya dayanıklı şekilde başlat
-  _initializeChainOfServices();
+  // Analitik servisini hızlı başlat
+  Future.microtask(() {
+    TurkceAnalyticsService.uygulamaBaslatildi().timeout(
+      const Duration(seconds: 2),
+      onTimeout: () => debugPrint('⚠️ Analytics timeout'),
+    ).catchError((e) {
+      debugPrint('❌ Analytics Service hatası: $e');
+    });
+  });
+
+  // Diğer servisleri tamamen arka planda başlat
+  Future.microtask(_initializeChainOfServices);
 }
 
-// Birbirine bağlı veya sırayla başlaması gereken servisler için zincir
+// Servis zincirini hızlı ve ANR-free başlat
 Future<void> _initializeChainOfServices() async {
   try {
-    // Önce CreditsService'i başlat (premium kontrolü için önemli)
+    // CreditsService'i hızlı başlat
     final creditsService = CreditsService();
-    await creditsService.initialize();
-    debugPrint('✅ CreditsService başlatıldı: ${creditsService.credits} hak, Premium: ${creditsService.isPremium}');
+    await creditsService.initialize().timeout(
+      const Duration(seconds: 3), // 15'ten 3'e düşürüldü
+    ).catchError((e) {
+      debugPrint('⚠️ CreditsService timeout/error - varsayılan değerlerle devam: $e');
+    });
+    debugPrint('✅ CreditsService hızlı başlatıldı: ${creditsService.credits} hak, Premium: ${creditsService.isPremium}');
 
-    // AdMob'u CreditsService'den sonra başlat
-    // Premium ise reklamları hiç başlatma
+    // AdMob'u arka planda başlat - ana thread'i bloke etme
     if (!creditsService.isPremium && !creditsService.isLifetimeAdsFree) {
-      try {
-        await AdMobService.initialize().timeout(const Duration(seconds: 15));
-        debugPrint('✅ AdMob başarıyla başlatıldı');
+      Future.microtask(() async {
+        try {
+          await AdMobService.initialize().timeout(const Duration(seconds: 5)); // 15'ten 5'e düşürüldü
+          debugPrint('✅ AdMob arka planda başlatıldı');
 
-        RequestConfiguration configuration = RequestConfiguration(
-          testDeviceIds: ['bbffd4ef-bbec-48dd-9123-fac2b36aa283'],
-        );
-        MobileAds.instance.updateRequestConfiguration(configuration);
+          RequestConfiguration configuration = RequestConfiguration(
+            testDeviceIds: ['bbffd4ef-bbec-48dd-9123-fac2b36aa283'],
+          );
+          MobileAds.instance.updateRequestConfiguration(configuration);
 
-        debugPrint('🚀 [MAIN] Interstitial reklam ön-yükleniyor...');
-        AdMobService().loadInterstitialAd();
-      } catch (e) {
-        debugPrint('❌ AdMob başlatılırken bir hata oluştu (timeout veya başka bir sorun): $e');
-      }
+          // Reklam yüklemesini daha da arka planda yap
+          Future.delayed(const Duration(seconds: 2), () {
+            AdMobService().loadInterstitialAd();
+            debugPrint('🚀 Interstitial reklam arka planda yüklendi');
+          });
+        } catch (e) {
+          debugPrint('❌ AdMob arka plan hatası: $e');
+        }
+      });
     } else {
-      debugPrint('✨ Premium kullanıcı, AdMob başlatılmadı.');
+      debugPrint('✨ Premium kullanıcı, AdMob atlandı');
     }
   } catch (e) {
-    debugPrint('❌ CreditsService başlatılamadı: $e');
+    debugPrint('❌ CreditsService hatası (devam ediyor): $e');
   }
 
-  // Diğer servisler paralel olarak başlayabilir
+  // Diğer tüm servisleri tamamen paralel ve hızlı başlat
   final otherServices = [
-    SavedWordsService().initialize().then((_) => debugPrint('✅ SavedWordsService başlatıldı')),
-    OneTimePurchaseService().initialize().then((_) => debugPrint('✅ OneTimePurchaseService başlatıldı')),
-    AppUsageService().startSession().then((_) => debugPrint('✅ AppUsageService başlatıldı')),
-    TTSService().initialize().then((_) => debugPrint('✅ TTSService başlatıldı')),
-    GeminiService.createFirebaseConfig()
-        .then((_) => GeminiService.testApiConnection())
-        .then((_) => debugPrint('✅ GeminiService başlatıldı ve test edildi')),
-    ReviewService().initialize().then((_) => debugPrint('✅ ReviewService başlatıldı')),
+    SavedWordsService().initialize().timeout(
+      const Duration(seconds: 2),
+    ).then((_) => debugPrint('✅ SavedWordsService hızlı başlatıldı')).catchError((e) {
+      debugPrint('⚠️ SavedWordsService timeout/error: $e');
+    }),
+    
+    OneTimePurchaseService().initialize().timeout(
+      const Duration(seconds: 2),
+    ).then((_) => debugPrint('✅ OneTimePurchaseService hızlı başlatıldı')).catchError((e) {
+      debugPrint('⚠️ OneTimePurchaseService timeout/error: $e');
+    }),
+    
+    AppUsageService().startSession().timeout(
+      const Duration(seconds: 1),
+    ).then((_) => debugPrint('✅ AppUsageService hızlı başlatıldı')).catchError((e) {
+      debugPrint('⚠️ AppUsageService timeout/error: $e');
+    }),
+    
+    TTSService().initialize().timeout(
+      const Duration(seconds: 2),
+    ).then((_) => debugPrint('✅ TTSService hızlı başlatıldı')).catchError((e) {
+      debugPrint('⚠️ TTSService timeout/error: $e');
+    }),
+    
+    // GeminiService'i arka planda başlat
+    Future.microtask(() async {
+      try {
+        await GeminiService.createFirebaseConfig().timeout(const Duration(seconds: 3));
+        await GeminiService.testApiConnection().timeout(const Duration(seconds: 2));
+        debugPrint('✅ GeminiService arka planda başlatıldı');
+      } catch (e) {
+        debugPrint('❌ GeminiService arka plan hatası: $e');
+      }
+    }),
+    
+    ReviewService().initialize().timeout(
+      const Duration(seconds: 1),
+    ).then((_) => debugPrint('✅ ReviewService hızlı başlatıldı')).catchError((e) {
+      debugPrint('⚠️ ReviewService timeout/error: $e');
+    }),
   ];
 
-  // Hataları yakala ama akışı durdurma
+  // Tüm servisleri paralel başlat - hataları yakala ama durma
   Future.wait(otherServices.map((future) => future.catchError((e) {
-    debugPrint('❌ Arka plan servisi başlatma hatası: $e');
-    return null; // Hatalı future'ı null ile tamamla
-  })));
+    debugPrint('❌ Arka plan servisi hatası (devam ediyor): $e');
+    return null;
+  }))).timeout(
+    const Duration(seconds: 5), // Tüm servisler için maksimum bekleme
+    onTimeout: () {
+      debugPrint('⚠️ Bazı servisler timeout - uygulama çalışıyor');
+      return <void>[];
+    },
+  );
 }
 
 class KavaidApp extends StatefulWidget {
