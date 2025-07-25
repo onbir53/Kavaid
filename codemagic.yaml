@@ -65,7 +65,7 @@ workflows:
       - $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.dSYM
     publishing:
       app_store_connect:
-        auth: api_key
+        auth: integration
         api_key: $APP_STORE_CONNECT_API_KEY      # Ortam değişkeni olarak eklenecek
         key_id: $APP_STORE_CONNECT_KEY_IDENTIFIER # Ortam değişkeni olarak eklenecek
         issuer_id: $APP_STORE_CONNECT_ISSUER_ID   # Ortam değişkeni olarak eklenecek
