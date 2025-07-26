@@ -69,7 +69,6 @@ workflows:
     publishing:
       app_store_connect:
         auth: integration
-
-        submit_to_testflight: true # İsteğe bağlı, doğrudan TestFlight'a gönderir
-        beta_groups: # İsteğe bağlı, belirli test gruplarına atar
+        submit_to_testflight: true
+        beta_groups:
           - Kavaid Testers
