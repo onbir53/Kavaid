@@ -37,6 +37,7 @@ workflows:
           success: true
           failure: false
 
+  # Workflow for releasing to the App Store
   ios-app-store-release:
     name: iOS App Store Release
     instance_type: mac_mini_m1
