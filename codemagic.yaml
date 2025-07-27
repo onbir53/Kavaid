@@ -1,4 +1,4 @@
-﻿    environment:
+    environment:
       flutter: stable
       xcode: latest
       cocoapods: default
@@ -10,23 +10,28 @@
           set -ex
           echo "=== Flutter Environment ==="
           flutter doctor -v
-          
+
           echo "\n=== Cleaning Project ==="
           flutter clean
-          
+
+          echo "\n=== Installing CocoaPods with Homebrew ==="
+          sudo gem uninstall cocoapods -a -x --ignore-dependencies || echo "gem cocoapods not found, continuing..."
+          brew install cocoapods
+          brew link --overwrite cocoapods
+
           echo "\n=== Creating iOS Project ==="
           flutter create --platforms=ios .
-          
+
           echo "\n=== Verifying iOS Project Structure ==="
           mkdir -p .ios/Flutter
           ls -la .ios/Flutter/ || echo "iOS Flutter folder not found"
-          
+
           echo "\n=== Installing Dependencies ==="
           flutter pub get
-          
+
           echo "\n=== Building iOS Project ==="
           flutter build ios --no-codesign --verbose
-          
+
           echo "\n=== Verifying podhelper.rb ==="
           if [ -f ".ios/Flutter/podhelper.rb" ]; then
             echo "podhelper.rb found!"
@@ -37,15 +42,15 @@
             cp -r "$(flutter sdk-path)/packages/flutter_tools/templates/app/ios.tmpl/Flutter/" .ios/
             ls -la .ios/Flutter/ || echo "Failed to copy Flutter template files"
           fi
-          
+
           echo "\n=== Running Pod Install ==="
           cd ios
           rm -rf Pods Podfile.lock .symlinks
           pod deintegrate
           arch -x86_64 pod install --repo-update --verbose
-          
+
           echo "\n=== Final Verification ==="
           ls -la Pods/ || echo "Pods directory not found"
-          
+
           echo "\n=== Build Phase Complete ==="
           cd ..
