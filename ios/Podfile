@@ -1,11 +1,13 @@
 # platform :ios, '13.0' # This is managed by Flutter
 
-flutter_bin = `which flutter`
-if flutter_bin.empty?
-  raise "Flutter SDK not found. Ensure flutter is in your PATH"
+flutter_bin_path = `which flutter`.strip
+if flutter_bin_path.empty?
+  raise 'Flutter SDK not found. Please add to PATH and try again.'
 end
-
-flutter_root = File.dirname(File.dirname(flutter_bin.strip))
+# Resolve the symlink to the actual flutter executable
+real_flutter_bin_path = File.realpath(flutter_bin_path)
+# The Flutter SDK root is two levels up from the real bin path
+flutter_root = File.dirname(File.dirname(real_flutter_bin_path))
 
 load File.join(flutter_root, 'packages', 'flutter_tools', 'bin', 'podhelper.rb')
 
