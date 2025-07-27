@@ -15,16 +15,26 @@ workflows:
       xcode: latest
       cocoapods: default
     scripts:
-      - name: Final Comprehensive iOS Build
+      - name: Ultimate iOS Build Script
         script: |
           set -e
+          echo "--- Verifying Flutter Environment ---"
+          flutter doctor -v
+          echo "--- Cleaning Project ---"
           flutter clean
-          gem install cocoapods
-          flutter pub upgrade
+          echo "--- Reinstalling CocoaPods ---"
+          sudo gem uninstall cocoapods -a -x && sudo gem install cocoapods
+          echo "--- Installing FFI for M1 ---"
           sudo arch -x86_64 gem install ffi
+          echo "--- Upgrading Flutter Packages ---"
+          flutter pub upgrade
+          echo "--- Generating iOS Project Files ---"
           flutter build ios --no-codesign
+          echo "--- Verifying Helper File Creation ---"
+          ls -la ios/Flutter
+          echo "--- Performing Aggressive Pod Cleaning and Installation ---"
           cd ios
-          rm -rf Pods Podfile.lock .symlinks
+          rm -rf Pods Podfile.lock .symlinks Flutter/Flutter.framework Flutter/Flutter.podspec
           pod deintegrate
           arch -x86_64 pod install --repo-update
       - name: Set up code signing settings on Xcode project
