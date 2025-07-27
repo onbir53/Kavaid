@@ -1,5 +1,7 @@
 # platform :ios, '13.0' # This is managed by Flutter
 
+load File.join(File.dirname(File.realpath(__FILE__)), '..', 'Flutter', 'podhelper.rb')
+
 # CocoaPods analytics sends network stats synchronously affecting flutter build latency.
 ENV['COCOAPODS_DISABLE_STATS'] = 'true'
 
