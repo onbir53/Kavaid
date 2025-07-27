@@ -15,14 +15,14 @@ workflows:
       xcode: latest
       cocoapods: default
     scripts:
-      - name: Install Flutter dependencies
-        script: flutter pub get
-      - name: Install FFI for M1
-        script: sudo arch -x86_64 gem install ffi
-      - name: Install CocoaPods dependencies
+      - name: Clean, Install Dependencies, and Build
         script: |
+          flutter clean
+          sudo arch -x86_64 gem install ffi
+          pod cache clean --all
+          flutter pub get
           cd ios
-          pod install
+          pod install --repo-update
       - name: Set up code signing settings on Xcode project
         script: xcode-project use-profiles
       - name: Build ipa for App Store
