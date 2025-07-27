@@ -1,78 +1,40 @@
 workflows:
-  ios-test-ipa:
-    name: iOS Test IPA (Unsigned)
+  ios-app-store:
+    name: iOS App Store
     instance_type: mac_mini_m1
-    max_build_duration: 60
+    max_build_duration: 120
+    integrations:
+      app_store_connect: kavaid
     environment:
-      flutter: stable
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.onbir.kavaid
+      groups:
+        - a # Your group of environment variables
+      flutter: 3.19.6 # Pin to a specific stable version for consistency
       xcode: latest
       cocoapods: default
     scripts:
       - name: Get Flutter packages
         script: flutter packages pub get
-      - name: Install CocoaPods
+      - name: Clean and Regenerate iOS platform
+        script: |
+          rm -rf ios
+          flutter create --platforms=ios .
+      - name: Install CocoaPods dependencies
         script: |
           cd ios
           pod install
-          cd ..
-      - name: Build iOS app
-        script: flutter build ios --release --no-codesign
-      - name: Create unsigned IPA
-        script: |
-          cd build/ios/iphoneos
-          mkdir -p Payload
-          cp -r Runner.app Payload/
-          cd Payload
-          zip -r ../Kavaid-Test.ipa .
-          cd ..
-          echo "=== IPA oluşturuldu ==="
-          ls -la *.ipa
-    artifacts:
-      - build/ios/iphoneos/Kavaid-Test.ipa
-    publishing:
-      email:
-        recipients:
-          - ebubekirkul6153@gmail.com
-        notify:
-          success: true
-          failure: false
-
-  # Workflow for releasing to the App Store
-  ios-app-store-release:
-    name: iOS App Store Release
-    integrations:
-      app_store_connect: Kavaid
-    instance_type: mac_mini_m1
-    max_build_duration: 120
-    environment:
-      flutter: stable
-      xcode: latest
-      cocoapods: default
-      groups:
-        - app_store_credentials # Codemagic UI'da tanımlanacak grup
-    scripts:
-      - name: Set up keychain
-        script: keychain initialize
-      - name: Set up code signing
-        script: |
-          cd kavaid
-          xcode-project use-profiles
-      - name: Get Flutter packages
-        script: |
-          cd kavaid
-          flutter packages pub get
-      - name: Build iOS App
-        script: | 
-          cd kavaid
-          flutter build ipa --release --export-options-plist=$XCODE_EXPORT_OPTIONS_PATH
+      - name: Set up code signing settings on Xcode project
+        script: xcode-project use-profiles
+      - name: Build ipa for App Store
+        script: flutter build ipa --release --export-options-plist=$HOME/export_options.plist
     artifacts:
       - build/ios/ipa/*.ipa
-      - /tmp/xcodebuild_logs/*.log
-      - $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.app
       - $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.dSYM
     publishing:
       app_store_connect:
         auth: integration
         submit_to_testflight: true
         beta_groups:
-          - Kavaid Testers
+          - kavaid
