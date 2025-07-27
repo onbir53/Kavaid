@@ -21,6 +21,8 @@ workflows:
         script: |
           flutter clean
           flutter pub get
+          # Generate iOS project files before installing pods
+          flutter build ios --no-codesign
           cd ios
           rm -f Podfile.lock
           pod repo update
