@@ -50,20 +50,15 @@ workflows:
       cocoapods: default
       groups:
         - app_store_credentials # Codemagic UI'da tanımlanacak grup
+    working_directory: kavaid # Set the working directory to the Flutter project root
     scripts:
-      - name: Set up code signing settings on Xcode project
-        script: | 
+      - name: Set up keychain
+        script: keychain initialize
+      - name: Set up code signing
+        script: |
           xcode-project use-profiles
       - name: Get Flutter packages
         script: flutter packages pub get
-      - name: Clean and rebuild iOS workspace
-        script: |
-          set -e
-          rm -rf ios/Pods
-          rm -f ios/Podfile.lock
-          cd ios
-          pod install
-          cd ..
       - name: Build iOS App
         script: | 
           flutter build ipa --release --export-options-plist=$XCODE_EXPORT_OPTIONS_PATH
