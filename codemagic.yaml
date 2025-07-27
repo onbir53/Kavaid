@@ -11,13 +11,17 @@ workflows:
         bundle_identifier: com.onbir.kavaid
       groups:
         - a # Your group of environment variables
-      flutter: 3.19.6 # Pin to a specific stable version for consistency
+      flutter: stable
       xcode: latest
       cocoapods: default
+    cache:
+      cache_paths: []
     scripts:
       - name: Ultimate iOS Build Script
         script: |
           set -e
+          echo "--- Repairing iOS Project Files ---"
+          flutter create . --platforms=ios
           echo "--- Verifying Flutter Environment ---"
           flutter doctor -v
           echo "--- Cleaning Project ---"
