@@ -5,3 +5,10 @@ kavaid-*
 build/ 
 debug-info/ 
 release_output/ 
+
+# Flutter/Dart packages
+.dart_tool/
+.packages
+
+# Flutter iOS
+.ios/
