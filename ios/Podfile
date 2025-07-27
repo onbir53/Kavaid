@@ -1,6 +1,8 @@
 # platform :ios, '13.0' # This is managed by Flutter
 
-# platform :ios, '13.0' # This is managed by Flutter
+flutter_application_path = File.expand_path('../..', __FILE__)
+load File.join(flutter_application_path, '.ios', 'Flutter', 'podhelper.rb')
+ # This is managed by Flutter
 
 # CocoaPods analytics sends network stats synchronously affecting flutter build latency.
 ENV['COCOAPODS_DISABLE_STATS'] = 'true'
@@ -22,7 +24,7 @@ target 'Runner' do
   use_frameworks!
   use_modular_headers!
 
-  flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
+  flutter_install_all_ios_pods(flutter_application_path)
 end
 
 post_install do |installer|
