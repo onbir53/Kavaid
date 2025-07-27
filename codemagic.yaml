@@ -9,7 +9,6 @@ workflows:
       ios_signing:
         distribution_type: app_store
         bundle_identifier: com.onbir.kavaid
-        profile_name: Kavaid_AppStore_Profile # Apple Developer'da oluşturduğun profile ismiyle aynı olmalı
       groups:
         - a # Your group of environment variables
       flutter: 3.19.6 # Pin to a specific stable version for consistency
