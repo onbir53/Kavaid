@@ -1,3 +1,7 @@
 
-flutter_application_path = File.expand_path('../..', __FILE__)
-load File.join(flutter_application_path, '.ios', 'Flutter', 'podhelper.rb')
+target 'Runner' do
+  use_frameworks!
+  use_modular_headers!
+
+  flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
+end
