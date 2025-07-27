@@ -21,6 +21,8 @@ workflows:
         script: |
           flutter clean
           flutter pub get
+          # Install ffi for M1 architecture compatibility
+          sudo arch -x86_64 gem install ffi
           # Generate iOS project files before installing pods
           flutter build ios --no-codesign
           cd ios
