@@ -17,20 +17,13 @@ workflows:
     scripts:
       - name: Get Flutter packages and create helper files
         script: flutter pub get
-      - name: Full CocoaPods Clean & Reinstall
+      - name: Clean and Install iOS dependencies
         script: |
-          cd ios
-          pod cache clean --all
-          sudo gem install cocoapods-deintegrate cocoapods-clean
-          sudo arch -x86_64 gem install ffi || true
-          pod deintegrate
-          pod clean
-          pod repo update
-          cd ..
           flutter clean
           flutter pub get
-          flutter build ios --no-codesign
           cd ios
+          rm -f Podfile.lock
+          pod repo update
           pod install
       - name: Set up code signing settings on Xcode project
         script: xcode-project use-profiles
