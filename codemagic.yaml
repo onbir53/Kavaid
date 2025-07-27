@@ -24,7 +24,7 @@ workflows:
           flutter build ios --no-codesign
           cd ios
           rm -rf Pods Podfile.lock
-          pod install --repo-update
+          arch -x86_64 pod install --repo-update
       - name: Set up code signing settings on Xcode project
         script: xcode-project use-profiles
       - name: Build ipa for App Store
