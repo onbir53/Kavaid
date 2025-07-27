@@ -20,7 +20,10 @@ workflows:
       - name: Clean and install dependencies
         script: |
           flutter clean
-          rm -rf ios/Pods ios/.symlinks ios/Flutter/Flutter.framework ios/Flutter/Flutter.podspec
+          flutter pub get
+          cd ios
+          rm -rf Pods .symlinks Flutter/Flutter.framework Flutter/Flutter.podspec
+          cd ..
           flutter pub get
           cd ios
           pod install
