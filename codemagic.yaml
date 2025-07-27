@@ -1,56 +1,51 @@
-workflows:
-  ios-app-store:
-    name: iOS App Store
-    instance_type: mac_mini_m1
-    max_build_duration: 120
-    integrations:
-      app_store_connect: kavaid
-    environment:
-      ios_signing:
-        distribution_type: app_store
-        bundle_identifier: com.onbir.kavaid
-      groups:
-        - a # Your group of environment variables
+﻿    environment:
       flutter: stable
       xcode: latest
       cocoapods: default
     cache:
       cache_paths: []
     scripts:
-      - name: Ultimate iOS Build Script
+      - name: iOS Build Fix
         script: |
-          set -e
-          echo "--- Repairing iOS Project Files ---"
-          flutter create . --platforms=ios
-          echo "--- Verifying Flutter Environment ---"
+          set -ex
+          echo "=== Flutter Environment ==="
           flutter doctor -v
-          echo "--- Cleaning Project ---"
+          
+          echo "\n=== Cleaning Project ==="
           flutter clean
-          echo "--- Reinstalling CocoaPods ---"
-          sudo gem uninstall cocoapods -a -x && sudo gem install cocoapods
-          echo "--- Installing FFI for M1 ---"
-          sudo arch -x86_64 gem install ffi
-          echo "--- Upgrading Flutter Packages ---"
-          flutter pub upgrade
-          echo "--- Generating iOS Project Files ---"
-          flutter build ios --no-codesign
-          echo "--- Verifying Helper File Creation ---"
-          ls -la ios/Flutter
-          echo "--- Performing Aggressive Pod Cleaning and Installation ---"
+          
+          echo "\n=== Creating iOS Project ==="
+          flutter create --platforms=ios .
+          
+          echo "\n=== Verifying iOS Project Structure ==="
+          mkdir -p .ios/Flutter
+          ls -la .ios/Flutter/ || echo "iOS Flutter folder not found"
+          
+          echo "\n=== Installing Dependencies ==="
+          flutter pub get
+          
+          echo "\n=== Building iOS Project ==="
+          flutter build ios --no-codesign --verbose
+          
+          echo "\n=== Verifying podhelper.rb ==="
+          if [ -f ".ios/Flutter/podhelper.rb" ]; then
+            echo "podhelper.rb found!"
+            cat .ios/Flutter/podhelper.rb | head -n 5
+          else
+            echo "WARNING: podhelper.rb not found!"
+            echo "Trying alternative location..."
+            cp -r "$(flutter sdk-path)/packages/flutter_tools/templates/app/ios.tmpl/Flutter/" .ios/
+            ls -la .ios/Flutter/ || echo "Failed to copy Flutter template files"
+          fi
+          
+          echo "\n=== Running Pod Install ==="
           cd ios
-          rm -rf Pods Podfile.lock .symlinks Flutter/Flutter.framework Flutter/Flutter.podspec
+          rm -rf Pods Podfile.lock .symlinks
           pod deintegrate
-          arch -x86_64 pod install --repo-update
-      - name: Set up code signing settings on Xcode project
-        script: xcode-project use-profiles
-      - name: Build ipa for App Store
-        script: flutter build ipa --release --export-options-plist=$HOME/export_options.plist
-    artifacts:
-      - build/ios/ipa/*.ipa
-      - $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.dSYM
-    publishing:
-      app_store_connect:
-        auth: integration
-        submit_to_testflight: true
-        beta_groups:
-          - kavaid
+          arch -x86_64 pod install --repo-update --verbose
+          
+          echo "\n=== Final Verification ==="
+          ls -la Pods/ || echo "Pods directory not found"
+          
+          echo "\n=== Build Phase Complete ==="
+          cd ..
