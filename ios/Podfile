@@ -1,0 +1,4 @@
+platform :ios, '13.0'
+
+flutter_application_path = File.expand_path('../..', __FILE__)
+load File.join(flutter_application_path, '.ios', 'Flutter', 'podhelper.rb')
