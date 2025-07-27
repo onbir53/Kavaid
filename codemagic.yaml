@@ -56,10 +56,17 @@ workflows:
           xcode-project use-profiles
       - name: Get Flutter packages
         script: flutter packages pub get
+      - name: Clean and rebuild iOS workspace
+        script: |
+          set -e
+          rm -rf ios/Pods
+          rm -f ios/Podfile.lock
+          cd ios
+          pod install
+          cd ..
       - name: Build iOS App
         script: | 
-          flutter build ipa --release \
-            --export-options-plist=$XCODE_EXPORT_OPTIONS_PATH
+          flutter build ipa --release --export-options-plist=$XCODE_EXPORT_OPTIONS_PATH
     artifacts:
       - build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
