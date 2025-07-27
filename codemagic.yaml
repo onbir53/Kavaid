@@ -21,6 +21,31 @@ workflows:
         script: |
           rm -rf ios
           flutter create --platforms=ios .
+      - name: Force create correct Podfile
+        script: |
+          cat << EOF > ios/Podfile
+# Copyright 2014 The Flutter Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+uncomment_if_needed(self)
+
+flutter_application_path = '..'
+load File.join(flutter_application_path, '.ios', 'Flutter', 'podhelper.rb')
+
+target 'Runner' do
+  use_frameworks!
+  use_modular_headers!
+
+  flutter_install_all_ios_pods(flutter_application_path)
+end
+
+post_install do |installer|
+  installer.pods_project.targets.each do |target|
+    flutter_additional_ios_build_settings(target)
+  end
+end
+EOF
       - name: Install CocoaPods dependencies
         script: |
           cd ios
