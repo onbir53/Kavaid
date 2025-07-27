@@ -17,9 +17,14 @@ workflows:
     scripts:
       - name: Get Flutter packages and create helper files
         script: flutter pub get
-      - name: Clean and install dependencies (final fix)
+      - name: Deep clean before build
         script: |
           flutter clean
+          rm -rf .ios
+          rm -rf ios/Pods
+          rm -rf ios/.symlinks
+          rm -rf ios/Flutter/Flutter.framework
+          rm -rf ios/Flutter/Flutter.podspec
           flutter pub get
           flutter build ios --no-codesign
           cd ios
