@@ -55,8 +55,7 @@ workflows:
         script: | 
           xcode-project use-profiles
       - name: Get Flutter packages
-        script: |
-          flutter packages pub get
+        script: flutter packages pub get
       - name: Build iOS App
         script: | 
           flutter build ipa --release \
