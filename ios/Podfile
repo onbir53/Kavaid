@@ -1,7 +1,13 @@
 # platform :ios, '13.0' # This is managed by Flutter
 
-flutter_application_path = File.expand_path('..')
-load File.join(flutter_application_path, '.ios', 'Flutter', 'podhelper.rb')
+flutter_bin = `which flutter`
+if flutter_bin.empty?
+  raise "Flutter SDK not found. Ensure flutter is in your PATH"
+end
+
+flutter_root = File.dirname(File.dirname(flutter_bin.strip))
+
+load File.join(flutter_root, 'packages', 'flutter_tools', 'bin', 'podhelper.rb')
 
 # CocoaPods analytics sends network stats synchronously affecting flutter build latency.
 ENV['COCOAPODS_DISABLE_STATS'] = 'true'
