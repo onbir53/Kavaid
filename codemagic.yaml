@@ -17,14 +17,18 @@ workflows:
     scripts:
       - name: Get Flutter packages and create helper files
         script: flutter pub get
-      - name: Clean and regenerate iOS platform files
+      - name: Clean and install dependencies (forum solution)
         script: |
           flutter clean
-          rm -rf ios/Pods ios/.symlinks ios/Flutter/Flutter.framework ios/Flutter/Flutter.podspec
+          rm -rf ios/Pods
+          rm -rf ios/.symlinks
+          rm -rf ios/Flutter/Flutter.framework
+          rm -rf ios/Flutter/Flutter.podspec
           flutter pub get
-          flutter build ios --no-codesign
           cd ios
           pod install
+          cd ..
+          flutter build ios
       - name: Set up code signing settings on Xcode project
         script: xcode-project use-profiles
       - name: Build ipa for App Store
