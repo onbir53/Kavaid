@@ -3,7 +3,7 @@ workflows:
     name: iOS Build Workflow
     environment:
       flutter: stable
-      xcode: 15.2
+      xcode: 15.4
       cocoapods: default
     cache:
       cache_paths: []
