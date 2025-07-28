@@ -100,6 +100,9 @@ dependencies:
   # Collection for advanced list operations (firstWhereOrNull)
   collection: ^1.18.0
 
+dependency_overrides:
+  in_app_purchase: 3.1.13
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
