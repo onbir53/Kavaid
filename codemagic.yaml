@@ -1,3 +1,6 @@
+workflows:
+  ios-workflow:
+    name: iOS Build Workflow
     environment:
       flutter: stable
       xcode: 15.2
