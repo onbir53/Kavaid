@@ -4,7 +4,7 @@ workflows:
     environment:
       flutter: stable
       xcode: 15.4
-      cocoapods: default
+      cocoapods: 1.16.2
     cache:
       cache_paths: []
     scripts:
