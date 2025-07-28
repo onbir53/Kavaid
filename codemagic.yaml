@@ -1,6 +1,6 @@
     environment:
       flutter: stable
-      xcode: latest
+      xcode: 15.2
       cocoapods: default
     cache:
       cache_paths: []
