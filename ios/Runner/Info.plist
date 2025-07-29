@@ -45,5 +45,7 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Uygulamamız, kelime kartlarını resim olarak galerinize kaydetmek veya paylaşmak için fotoğraf kütüphanenize erişim izni istemektedir.</string>
 </dict>
 </plist>
