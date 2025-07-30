@@ -1,7 +1,7 @@
 import Flutter
 import UIKit
 import Firebase
-import GoogleMobileAds
+// import GoogleMobileAds // AdMob banı nedeniyle geçici olarak devre dışı
 
 @main
 @objc class AppDelegate: FlutterAppDelegate {
@@ -12,8 +12,9 @@ import GoogleMobileAds
     // Firebase konfigürasyonu
     FirebaseApp.configure()
     
-    // Google Mobile Ads SDK'yı başlat
-    GADMobileAds.sharedInstance().start(completionHandler: nil)
+    // AdMob geçici olarak devre dışı (ban nedeniyle)
+    // Ban kalkınca şu satırı aktif hale getir:
+    // GADMobileAds.sharedInstance().start(completionHandler: nil)
     
     GeneratedPluginRegistrant.register(with: self)
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
