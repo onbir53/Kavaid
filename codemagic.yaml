@@ -17,6 +17,11 @@ workflows:
       - name: Build Runner
         script: |
           flutter pub run build_runner build --delete-conflicting-outputs
+      - name: Show AppDelegate content for debugging
+        script: |
+          echo "--- Displaying AppDelegate.swift content ---"
+          cat ios/Runner/AppDelegate.swift
+          echo "------------------------------------------"
       - name: Build iOS for release
         script: |
           flutter build ios --release --no-codesign
