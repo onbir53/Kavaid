@@ -47,5 +47,33 @@
 	<true/>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Uygulamamız, kelime kartlarını resim olarak galerinize kaydetmek veya paylaşmak için fotoğraf kütüphanenize erişim izni istemektedir.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Uygulamamız, Arapça kelimelerin telaffuzunu sağlamak için mikrofon erişimi gerektirir.</string>
+	<key>NSUserTrackingUsageDescription</key>
+	<string>Bu uygulama, size daha iyi reklam deneyimi sunmak için cihaz tanımlayıcınızı kullanır.</string>
+	<key>GADApplicationIdentifier</key>
+	<string>ca-app-pub-3940256099942544~1458002511</string>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsArbitraryLoads</key>
+		<true/>
+		<key>NSExceptionDomains</key>
+		<dict>
+			<key>googleapis.com</key>
+			<dict>
+				<key>NSExceptionAllowsInsecureHTTPLoads</key>
+				<true/>
+				<key>NSExceptionMinimumTLSVersion</key>
+				<string>TLSv1.0</string>
+			</dict>
+			<key>firebaseio.com</key>
+			<dict>
+				<key>NSExceptionAllowsInsecureHTTPLoads</key>
+				<true/>
+				<key>NSExceptionMinimumTLSVersion</key>
+				<string>TLSv1.0</string>
+			</dict>
+		</dict>
+	</dict>
 </dict>
 </plist>
