@@ -13,7 +13,7 @@ import GoogleMobileAds
     FirebaseApp.configure()
     
     // Google Mobile Ads SDK'yı başlat
-    GADMobileAds.sharedInstance().start(completionHandler: nil)
+    GoogleMobileAds.GADMobileAds.sharedInstance().start(completionHandler: nil)
     
     GeneratedPluginRegistrant.register(with: self)
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
