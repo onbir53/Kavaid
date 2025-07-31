@@ -5,6 +5,9 @@ workflows:
       flutter: stable
       xcode: 15.4
       cocoapods: 1.16.2
+      ios_signing:
+        distribution_type: development  # Change to 'app_store' for App Store builds
+        bundle_identifier: com.onbir.kavaid
     cache:
       cache_paths: []
     scripts:
@@ -22,16 +25,38 @@ workflows:
           echo "--- Displaying AppDelegate.swift content ---"
           cat ios/Runner/AppDelegate.swift
           echo "------------------------------------------"
-      - name: Build iOS for release
+      - name: Build iOS
         script: |
-          flutter build ios --release --no-codesign
-      - name: Create IPA file
+          flutter build ipa --release --export-options-plist=/tmp/ExportOptions.plist
+      - name: Create ExportOptions.plist
         script: |
-          mkdir -p Payload
-          cp -r build/ios/iphoneos/Runner.app Payload/
-          zip -r Runner.ipa Payload/
-          echo "IPA dosyası oluşturuldu: Runner.ipa"
-          ls -la Runner.ipa
+          cat > /tmp/ExportOptions.plist << EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+              <key>method</key>
+              <string>development</string>
+              <key>teamID</key>
+              <string>\$TEAM_ID</string>
+              <key>uploadBitcode</key>
+              <false/>
+              <key>compileBitcode</key>
+              <false/>
+              <key>uploadSymbols</key>
+              <true/>
+              <key>signingStyle</key>
+              <string>automatic</string>
+          </dict>
+          </plist>
+          EOF
     artifacts:
-      - Runner.ipa
-      - build/ios/iphoneos/Runner.app
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+    publishing:
+      email:
+        recipients:
+          - ebubekirkul6153@gmail.com
+        notify:
+          success: true
+          failure: true
