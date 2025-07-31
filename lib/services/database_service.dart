@@ -60,31 +60,76 @@ CREATE TABLE IF NOT EXISTS pending_ai_words (
   }
 
   WordModel _dbMapToWord(Map<String, dynamic> map) {
-    // ornekCumleler için güvenli dönüştürme
-    final decodedOrnekler = json.decode(map['ornekCumleler'] ?? '[]');
-    final ornekCumlelerList = (decodedOrnekler is List)
-        ? decodedOrnekler.map((e) => Map<String, String>.from(e as Map)).toList()
-        : <Map<String, String>>[];
+    try {
+      // Null safety: kelime alanı zorunlu
+      final kelime = map['kelime']?.toString();
+      if (kelime == null || kelime.isEmpty) {
+        throw Exception('Kelime alanı boş veya null');
+      }
 
-    // dilbilgiselOzellikler için güvenli dönüştürme
-    final decodedOzellikler = json.decode(map['dilbilgiselOzellikler'] ?? '{}');
-    final ozelliklerMap = (decodedOzellikler is Map)
-        ? Map<String, dynamic>.from(decodedOzellikler)
-        : <String, dynamic>{};
+      // ornekCumleler için güvenli dönüştürme
+      List<Map<String, String>> ornekCumlelerList = <Map<String, String>>[];
+      try {
+        final ornekCumlelerStr = map['ornekCumleler']?.toString() ?? '[]';
+        final decodedOrnekler = json.decode(ornekCumlelerStr);
+        if (decodedOrnekler is List) {
+          ornekCumlelerList = decodedOrnekler
+              .where((e) => e != null && e is Map)
+              .map((e) => Map<String, String>.from(e as Map))
+              .toList();
+        }
+      } catch (e) {
+        debugPrint('ornekCumleler JSON decode hatası: $e');
+        ornekCumlelerList = <Map<String, String>>[];
+      }
 
-    // fiilCekimler için güvenli dönüştürme
-    final decodedCekimler = json.decode(map['fiilCekimler'] ?? '{}');
-    final cekimlerMap = (decodedCekimler is Map)
-        ? Map<String, dynamic>.from(decodedCekimler)
-        : <String, dynamic>{};
+      // dilbilgiselOzellikler için güvenli dönüştürme
+      Map<String, dynamic> ozelliklerMap = <String, dynamic>{};
+      try {
+        final ozelliklerStr = map['dilbilgiselOzellikler']?.toString() ?? '{}';
+        final decodedOzellikler = json.decode(ozelliklerStr);
+        if (decodedOzellikler is Map) {
+          ozelliklerMap = Map<String, dynamic>.from(decodedOzellikler);
+        }
+      } catch (e) {
+        debugPrint('dilbilgiselOzellikler JSON decode hatası: $e');
+        ozelliklerMap = <String, dynamic>{};
+      }
 
-    return WordModel(
-      kelime: map['kelime'], harekeliKelime: map['harekeliKelime'], anlam: map['anlam'], koku: map['koku'],
-      dilbilgiselOzellikler: ozelliklerMap,
-      ornekCumleler: ornekCumlelerList,
-      fiilCekimler: cekimlerMap, 
-      eklenmeTarihi: map['eklenmeTarihi'], bulunduMu: true,
-    );
+      // fiilCekimler için güvenli dönüştürme
+      Map<String, dynamic> cekimlerMap = <String, dynamic>{};
+      try {
+        final cekimlerStr = map['fiilCekimler']?.toString() ?? '{}';
+        final decodedCekimler = json.decode(cekimlerStr);
+        if (decodedCekimler is Map) {
+          cekimlerMap = Map<String, dynamic>.from(decodedCekimler);
+        }
+      } catch (e) {
+        debugPrint('fiilCekimler JSON decode hatası: $e');
+        cekimlerMap = <String, dynamic>{};
+      }
+
+      return WordModel(
+        kelime: kelime,
+        harekeliKelime: map['harekeliKelime']?.toString(),
+        anlam: map['anlam']?.toString(),
+        koku: map['koku']?.toString(),
+        dilbilgiselOzellikler: ozelliklerMap,
+        ornekCumleler: ornekCumlelerList,
+        fiilCekimler: cekimlerMap,
+        eklenmeTarihi: map['eklenmeTarihi'] as int?,
+        bulunduMu: true,
+      );
+    } catch (e) {
+      debugPrint('_dbMapToWord hatası: $e, map: $map');
+      // Hata durumunda minimal bir WordModel döndür
+      return WordModel(
+        kelime: map['kelime']?.toString() ?? 'Hatalı Kelime',
+        harekeliKelime: map['harekeliKelime']?.toString(),
+        anlam: 'Veri yükleme hatası',
+        bulunduMu: false,
+      );
+    }
   }
 
   Future<void> addPendingAiWord(WordModel word) async {
