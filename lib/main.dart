@@ -65,59 +65,6 @@ class NoGlowScrollBehavior extends ScrollBehavior {
   }
 }
 
-// 🚀 PERFORMANCE MOD: Kritik servisleri hızlı ve ANR-free başlat
-Future<void> _initializeCriticalServices() async {
-  try {
-    // Firebase'i hızlı timeout ile başlat
-    await Firebase.initializeApp(
-      options: DefaultFirebaseOptions.currentPlatform,
-    ).timeout(const Duration(seconds: 3)); // 8'den 3'e düşürüldü
-    debugPrint('✅ Firebase hızlı başlatıldı');
-
-    // Kritik servisleri paralel başlat - hiçbiri ana thread'i bloke etmesin
-    final criticalFutures = [
-      // GlobalConfig hızlı başlat
-      GlobalConfigService().init().timeout(
-        const Duration(seconds: 2),
-        onTimeout: () {
-          debugPrint('⚠️ GlobalConfigService timeout - varsayılan değerlerle devam');
-          return null;
-        },
-      ).catchError((e) {
-        debugPrint('❌ GlobalConfigService başlatılamadı: $e');
-      }),
-      
-      // Veritabanı senkronizasyonunu arka planda başlat
-      Future.microtask(() async {
-        try {
-          await SyncService().initializeLocalDatabase().timeout(
-            const Duration(seconds: 2),
-            onTimeout: () {
-              debugPrint('⚠️ DB sync timeout - arka planda devam edecek');
-              return null;
-            },
-          );
-          debugPrint('✅ Yerel veritabanı hızlı senkronize edildi');
-        } catch (e) {
-          debugPrint('❌ DB sync hatası (arka planda devam): $e');
-        }
-      }),
-    ];
-    
-    // Tüm kritik servisleri paralel bekle ama timeout ile
-    await Future.wait(criticalFutures).timeout(
-      const Duration(seconds: 3),
-    ).catchError((e) {
-      debugPrint('⚠️ Kritik servisler timeout/error - uygulama devam ediyor: $e');
-    });
-    debugPrint('✅ Kritik servisler hızlı başlatıldı');
-
-  } catch (e) {
-    debugPrint('❌ Kritik servis hatası (uygulama devam ediyor): $e');
-    // Hata durumunda da uygulama çalışmaya devam etsin
-  }
-}
-
 // 🚀 PERFORMANCE MOD: Cihaz performans modlarını ayarla (runApp'i engellemez)
 void _setupPerformanceModes() {
   SchedulerBinding.instance.addPostFrameCallback((_) {
@@ -181,47 +128,40 @@ Future<void> _enableAndroidHighPerformanceMode() async {
 
 
 Future<void> main() async {
+  // Flutter binding'lerinin ve temel ayarların yapıldığından emin ol
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // Status bar'ı başlangıçta şeffaf yap
+  SystemChrome.setSystemUIOverlayStyle(
+    const SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      statusBarIconBrightness: Brightness.dark,
+      statusBarBrightness: Brightness.light,
+      systemNavigationBarColor: Colors.transparent,
+      systemNavigationBarIconBrightness: Brightness.dark,
+    ),
+  );
 
-  // 🚀 ÖNCELİK 1: Uygulama motorunu ve temel UI ayarlarını hazırla
-  // Bu işlemler hızlı ve senkron olmalı
-  if (!kIsWeb) {
-    // Frame scheduler'ı ve shader'ları erken optimize et
-    SchedulerBinding.instance.scheduleWarmUpFrame();
-    
-    if (Platform.isAndroid) {
-      // Gralloc4 ve Surface debug mesajlarını engelle
-      SystemChannels.platform.setMethodCallHandler(null);
-      FlutterError.onError = (details) {
-        final message = details.toString();
-        if (message.contains('gralloc4') || message.contains('Surface') || message.contains('FrameEvents') ||
-            message.contains('SMPTE 2094-40') || message.contains('lockHardwareCanvas') || message.contains('updateAcquireFence')) {
-          return;
-        }
-        FlutterError.presentError(details);
-      };
-    }
+  // Firebase'i başlat
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+  debugPrint('✅ Firebase başlatıldı.');
 
-    // Status bar'ı başlangıçta şeffaf yap
-    SystemChrome.setSystemUIOverlayStyle(
-      const SystemUiOverlayStyle(
-        statusBarColor: Colors.transparent,
-        statusBarIconBrightness: Brightness.dark,
-        statusBarBrightness: Brightness.light,
-        systemNavigationBarColor: Colors.transparent,
-        systemNavigationBarIconBrightness: Brightness.dark,
-      ),
-    );
+  // ‼️ ÖNEMLİ: Uygulama başlamadan önce yerel veritabanının senkronize olduğundan emin ol
+  // Bu, iOS'taki ilk çalıştırma sorununu çözer.
+  try {
+    debugPrint('Main metodunda veritabanı senkronizasyonu bekleniyor...');
+    await SyncService().initializeLocalDatabase();
+    debugPrint('✅ Main metodunda veritabanı senkronizasyonu tamamlandı.');
+  } catch (e) {
+    debugPrint('❌ Main metodunda veritabanı senkronizasyonu başarısız: $e');
   }
 
-  // 🚀 ÖNCELİK 2: Kritik servisleri paralel olarak başlat (UI'ı engeller)
-  await _initializeCriticalServices();
-  
-  // 🚀 ÖNCELİK 3: Uygulamayı çalıştır! (UI gösterilir)
+  // Uygulamayı çalıştır
   runApp(const KavaidApp());
 
-  // 🚀 ÖNCELİK 4: UI gösterildikten sonra yapılacaklar
-  // Bu işlemler runApp'i engellemez ve arka planda çalışır.
+  // Geri kalan servisleri ve performans ayarlarını arka planda yap
   _initializeServicesInBackground();
   _setupPerformanceModes();
 }

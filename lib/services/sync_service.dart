@@ -62,6 +62,10 @@ class SyncService {
             debugPrint('Lokal veritabanı başarıyla ${allWords.length} kelime ile kuruldu/güncellendi.');
           } else {
             debugPrint('Firebase\'den hiç kelime gelmedi. Lokal veritabanı boş bırakıldı.');
+            // Hiç kelime gelmese bile senkronizasyonun tamamlandığını işaretle ki
+            // uygulama her açılışta tekrar denemesin.
+            final prefs = await SharedPreferences.getInstance();
+            await prefs.setBool(_syncCompletedKey, true);
           }
         } catch (e, stacktrace) {
           debugPrint('**************************************************');
