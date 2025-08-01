@@ -1,7 +1,23 @@
-# Build artifacts 
-*.apk 
-*.aab 
-kavaid-* 
-build/ 
-debug-info/ 
-release_output/ 
+# Build artifacts
+*.apk
+*.aab
+kavaid-*
+build/
+debug-info/
+release_output/
+
+# Flutter/Dart specific
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.dart_tool/
+
+# IDE specific
+.idea/
+.vscode/
+
+# Misc
+*.iml
+*.hprof
+*.pid
