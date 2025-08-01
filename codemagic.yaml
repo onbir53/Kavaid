@@ -61,22 +61,16 @@ workflows:
           success: true
           failure: true
 
-  simulator-workflow:
-    name: Build for simulator
+  simulator-preview-workflow:
+    name: Flutter iOS Simulator Preview
     instance_type: mac_mini_m1
     environment:
       flutter: stable
       xcode: latest
     scripts:
       - name: Get Flutter packages
-        script: |
-          flutter packages pub get
-      - name: Build for simulator
-        script: |
-          xcodebuild build \
-            -project ios/Runner.xcodeproj \
-            -scheme Runner \
-            -sdk iphonesimulator \
-            -configuration Debug
+        script: flutter packages pub get
+      - name: Build Flutter app for simulator
+        script: flutter build ios --simulator --debug
     artifacts:
-      - $HOME/Library/Developer/Xcode/DerivedData/**/Build/Products/Debug-iphonesimulator/*.app
+      - build/ios/iphonesimulator/*.app
