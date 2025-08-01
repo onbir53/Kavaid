@@ -11,6 +11,7 @@ import 'services/connectivity_service.dart';
 import 'screens/home_screen.dart';
 import 'screens/saved_words_screen.dart';
 import 'screens/profile_screen.dart';
+import 'screens/splash_screen.dart';
 import 'services/firebase_options.dart';
 import 'services/saved_words_service.dart';
 import 'services/admob_service.dart';
