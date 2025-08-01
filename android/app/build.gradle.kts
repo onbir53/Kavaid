@@ -21,6 +21,11 @@ android {
     namespace = "com.onbir.kavaid"
     compileSdk = 35
     ndkVersion = "27.0.12077973"
+    
+    // ART profil hatası için devre dışı bırak
+    buildFeatures {
+        buildConfig = true
+    }
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
@@ -36,7 +41,7 @@ android {
         applicationId = "com.onbir.kavaid"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = 21
+        minSdk = 23
         targetSdk = 35
         versionCode = (System.getenv("FLUTTER_BUILD_NUMBER") ?: "2056").toInt()
         versionName = System.getenv("FLUTTER_BUILD_NAME") ?: "2.1.3"
@@ -80,6 +85,9 @@ android {
             // Performans optimizasyonları
             isMinifyEnabled = true
             isShrinkResources = true
+            
+            // ART profil optimizasyonunu devre dışı bırak (build hatası için)
+            enableUnitTestCoverage = false
             
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
