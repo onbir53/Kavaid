@@ -63,8 +63,12 @@ class SyncService {
           } else {
             debugPrint('Firebase\'den hiç kelime gelmedi. Lokal veritabanı boş bırakıldı.');
           }
-        } catch (e) {
-          debugPrint('initializeLocalDatabase sırasında senkronizasyon hatası: $e');
+        } catch (e, stacktrace) {
+          debugPrint('**************************************************');
+          debugPrint('Firebase senkronizasyonu sırasında KRİTİK HATA!');
+          debugPrint('Hata Mesajı: $e');
+          debugPrint('Stack Trace: $stacktrace');
+          debugPrint('**************************************************');
         }
       } else {
         debugPrint('Lokal veritabanı zaten dolu ($wordCount kelime). Senkronizasyon atlanıyor.');
