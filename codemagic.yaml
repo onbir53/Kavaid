@@ -60,3 +60,23 @@ workflows:
         notify:
           success: true
           failure: true
+
+  simulator-workflow:
+    name: Build for simulator
+    instance_type: mac_mini_m1
+    environment:
+      flutter: stable
+      xcode: latest
+    scripts:
+      - name: Get Flutter packages
+        script: |
+          flutter packages pub get
+      - name: Build for simulator
+        script: |
+          xcodebuild build \
+            -project ios/Runner.xcodeproj \
+            -scheme Runner \
+            -sdk iphonesimulator \
+            -configuration Debug
+    artifacts:
+      - $HOME/Library/Developer/Xcode/DerivedData/**/Build/Products/Debug-iphonesimulator/*.app
