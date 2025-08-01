@@ -25,9 +25,9 @@ class DatabaseService {
   }
 
   Future _createDB(Database db, int version) async {
-    const idType = 'TEXT PRIMARY KEY NOT NULL';
-    const textType = 'TEXT';
-    const intType = 'INTEGER';
+    final idType = 'TEXT PRIMARY KEY NOT NULL';
+    final textType = 'TEXT';
+    final intType = 'INTEGER';
 
     await db.execute('''
 CREATE TABLE IF NOT EXISTS words ( 
