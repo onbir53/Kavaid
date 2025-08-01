@@ -46,27 +46,6 @@ CREATE TABLE IF NOT EXISTS pending_ai_words (
     await db.execute('CREATE INDEX IF NOT EXISTS idx_pending_harekeli ON pending_ai_words(harekeliKelime COLLATE NOCASE)');
     await db.execute('CREATE INDEX IF NOT EXISTS idx_pending_anlam ON pending_ai_words(anlam COLLATE NOCASE)');
   }
-    const idType = 'TEXT PRIMARY KEY NOT NULL';
-    const textType = 'TEXT';
-    const intType = 'INTEGER';
-
-    await db.execute('''
-CREATE TABLE IF NOT EXISTS words ( 
-  kelime ${idType}, harekeliKelime ${textType}, anlam ${textType}, koku ${textType}, dilbilgiselOzellikler ${textType}, ornekCumleler ${textType}, fiilCekimler ${textType}, eklenmeTarihi ${intType}
-)''');
-    await db.execute('''
-CREATE TABLE IF NOT EXISTS pending_ai_words ( 
-  kelime ${idType}, harekeliKelime ${textType}, anlam ${textType}, koku ${textType}, dilbilgiselOzellikler ${textType}, ornekCumleler ${textType}, fiilCekimler ${textType}, eklenmeTarihi ${intType}
-)''');
-    
-    // ANR önleme için performans indeksleri
-    await db.execute('CREATE INDEX IF NOT EXISTS idx_words_kelime ON words(kelime COLLATE NOCASE)');
-    await db.execute('CREATE INDEX IF NOT EXISTS idx_words_harekeli ON words(harekeliKelime COLLATE NOCASE)');
-    await db.execute('CREATE INDEX IF NOT EXISTS idx_words_anlam ON words(anlam COLLATE NOCASE)');
-    await db.execute('CREATE INDEX IF NOT EXISTS idx_pending_kelime ON pending_ai_words(kelime COLLATE NOCASE)');
-    await db.execute('CREATE INDEX IF NOT EXISTS idx_pending_harekeli ON pending_ai_words(harekeliKelime COLLATE NOCASE)');
-    await db.execute('CREATE INDEX IF NOT EXISTS idx_pending_anlam ON pending_ai_words(anlam COLLATE NOCASE)');
-  }
 
   Map<String, dynamic> _wordToDbMap(WordModel word) {
     return {
