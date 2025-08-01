@@ -148,16 +148,6 @@ Future<void> main() async {
   );
   debugPrint('✅ Firebase başlatıldı.');
 
-  // ‼️ ÖNEMLİ: Uygulama başlamadan önce yerel veritabanının senkronize olduğundan emin ol
-  // Bu, iOS'taki ilk çalıştırma sorununu çözer.
-  try {
-    debugPrint('Main metodunda veritabanı senkronizasyonu bekleniyor...');
-    await SyncService().initializeLocalDatabase();
-    debugPrint('✅ Main metodunda veritabanı senkronizasyonu tamamlandı.');
-  } catch (e) {
-    debugPrint('❌ Main metodunda veritabanı senkronizasyonu başarısız: $e');
-  }
-
   // Uygulamayı çalıştır
   runApp(const KavaidApp());
 
@@ -446,10 +436,7 @@ class _KavaidAppState extends State<KavaidApp> with WidgetsBindingObserver {
       theme: _buildLightTheme(),
       darkTheme: _buildDarkTheme(),
       themeMode: _isDarkMode ? ThemeMode.dark : ThemeMode.light,
-      home: MainScreen(
-        isDarkMode: _isDarkMode,
-        onThemeToggle: _toggleTheme,
-      ),
+      home: SplashScreen(), // Uygulamayı SplashScreen ile başlat
       builder: (context, child) {
         // 🚀 PERFORMANCE MOD: Yüksek FPS için optimize edilmiş MediaQuery
         final mediaQuery = MediaQuery.of(context);
